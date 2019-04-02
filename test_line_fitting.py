@@ -1,5 +1,5 @@
 import numpy as np
-import HTOF.hip_proper_motion_fit as hipfit
+import HTOF.main as hipfit
 
 
 def test_unpack_elements_of_matrix():
