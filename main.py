@@ -15,34 +15,28 @@ class IntermediateDataParser(object):
     Base class for parsing Hip1 and Hip2 data. self.epoch, self.covariance_matrix and self.scan_angle are saved
     as panda dataframes. use .values (e.g. self.epoch.values) to call the ndarray version.
     """
-    def __init__(self, scan_angle=None, covariance_matrix=None, epoch=None, residuals=None):
+    def __init__(self, scan_angle=None, epoch=None, residuals=None):
         self.scan_angle = scan_angle
-        self.covariance_matrix = covariance_matrix
         self.epoch = epoch
         self.residuals = residuals
 
     @staticmethod
-    def read_intermediate_data_file(star_hip_id, intermediate_data_directory, skiprows, header):
+    def read_intermediate_data_file(star_hip_id, intermediate_data_directory, skiprows, header, sep):
         filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_hip_id + '*')
         filepath_list = glob.glob(filepath, recursive=True)
         if len(filepath_list) > 1:
             raise ValueError('More than one input file with hip id {0} found'.format(star_hip_id))
-        data = pd.read_csv(filepath_list[0], sep='[\s|]+', skiprows=skiprows, header=header, engine='python')
+        data = pd.read_csv(filepath_list[0], sep=sep, skiprows=skiprows, header=header, engine='python')
         return data
 
     @abc.abstractmethod
     def parse(self, star_id, intermediate_data_parent_directory, **kwargs):
         pass
 
-    @staticmethod
-    def _calculate_covariance_matrices(scan_angles):
-        pass
-
 
 class HipparcosOriginalData(IntermediateDataParser):
-    def __init__(self, scan_angle=None, covariance_matrix=None, epoch=None, residuals=None):
+    def __init__(self, scan_angle=None, epoch=None, residuals=None):
         super(HipparcosOriginalData, self).__init__(scan_angle=scan_angle,
-                                                    covariance_matrix=covariance_matrix,
                                                     epoch=epoch, residuals=residuals)
 
     def parse(self, star_hip_id, intermediate_data_directory, data_choice='NDAC'):
@@ -57,7 +51,7 @@ class HipparcosOriginalData(IntermediateDataParser):
         if (data_choice is not 'NDAC') and (data_choice is not 'FAST'):
             raise ValueError('data choice has to be either NDAC or FAST')
         data = self.read_intermediate_data_file(star_hip_id, intermediate_data_directory,
-                                                skiprows=0, header='infer')
+                                                skiprows=0, header='infer', sep='\s*\|\s*')
         # select either the data from the NDAC or the FAST consortium.
         data = data[data['IA2'] == data_choice[0]]
         # compute scan angles and observations epochs according to van Leeuwen & Evans 1997, eq. 11 & 12.
@@ -67,18 +61,30 @@ class HipparcosOriginalData(IntermediateDataParser):
 
 
 class HipparcosRereductionData(IntermediateDataParser):
-    def __init__(self, scan_angle=None, covariance_matrix=None, epoch=None, residuals=None):
+    def __init__(self, scan_angle=None, epoch=None, residuals=None):
         super(HipparcosRereductionData, self).__init__(scan_angle=scan_angle,
-                                               covariance_matrix=covariance_matrix,
                                                epoch=epoch, residuals=residuals)
 
     def parse(self, star_hip_id, intermediate_data_directory, **kwargs):
-        data = self.read_intermediate_data_file(star_hip_id, intermediate_data_directory, skiprows=1, header=None)
+        data = self.read_intermediate_data_file(star_hip_id, intermediate_data_directory,
+                                                skiprows=1, header=None, sep='\s+')
         # compute scan angles and observations epochs from van Leeuwen 2007, table G.8
         # see also Figure 2.1, section 2.5.1, and section 4.1.2
         self.scan_angle = np.arctan2(data[3], data[4])  # data[3] = cos(psi), data[4] = sin(psi)
         self.epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
+
+
+class GaiaData(IntermediateDataParser):
+    def __init__(self, scan_angle=None, epoch=None, residuals=None):
+        super(GaiaData, self).__init__(scan_angle=scan_angle,
+                                       epoch=epoch, residuals=residuals)
+
+    def parse(self, star_hip_id, intermediate_data_directory, **kwargs):
+        data = self.read_intermediate_data_file(star_hip_id, intermediate_data_directory,
+                                                skiprows=0, header='infer', sep='\s*,\s*')
+        self.epoch = data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]']
+        self.scan_angle = data['scanAngle[rad]']
 
 
 class AstrometricFitter(object):
@@ -165,6 +171,25 @@ class AstrometricFitter(object):
 
             astrometric_chi_squared_matrices[epoch] = A
         return astrometric_chi_squared_matrices
+
+
+def calculate_covariance_matrices(scan_angles, var_along_scan=1, var_cross_scan=1E5):
+    """
+    :param scan_angles: pandas DataFrame with scan angles, e.g. as-is from the data parsers
+    :param var_along_scan: variance along the scan direction
+    :param var_cross_scan: variance in the direction perpendicular to the scan direction
+    :return: covariance matrices for each scan angle as a Pandas DataFrame just like scan_angles
+    """
+    covariance_matrices = []
+    cov_matrix_in_scan_basis = np.array([[var_cross_scan, 0], [0, var_along_scan]])
+    # we define the along scan to be 'y' in the scan basis.
+    for theta in scan_angles:
+        # for Hipparcos, theta is measured against north, e.g. east of the north equatorial pole
+        c, s = np.cos(theta), np.sin(theta)
+        Rccw = np.array([[c, -s], [s, c]])
+        cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rccw, cov_matrix_in_scan_basis), Rccw.T)
+        covariance_matrices.append(cov_matrix_in_ra_dec_basis)
+    return pd.DataFrame(data=np.array(covariance_matrices), index=scan_angles.index)
 
 
 def unpack_elements_of_matrix(matrix):
