@@ -142,19 +142,20 @@ class AstrometricFitter(object):
         astrometric_solution_vector_components = {'ra': np.zeros((num_epochs, 4)),
                                                   'dec': np.zeros((num_epochs, 4))}
         for epoch in range(num_epochs):
-            inverse_det_c = 1 / np.linalg.det(self.covariance_matrices[epoch])
-            a, b, c, d = unpack_elements_of_matrix(self.covariance_matrices[epoch])
+            pseudo_inverse_cov_matrix = np.linalg.pinv(self.covariance_matrices[epoch])
+            d, b, c, a = unpack_elements_of_matrix(pseudo_inverse_cov_matrix)
+            b, c = -b, -c
             epoch_time = self.epoch_times[epoch]
             ra_vec, dec_vec = np.zeros(4).astype(np.float64), np.zeros(4).astype(np.float64)
-            ra_vec[0] = -inverse_det_c * (-2 * d * epoch_time)
-            ra_vec[1] = -inverse_det_c * ((b + c) * epoch_time)
-            ra_vec[2] = -inverse_det_c * (-2 * d)
-            ra_vec[3] = -inverse_det_c * (b + c)
+            ra_vec[0] = -(-2 * d * epoch_time)
+            ra_vec[1] = -((b + c) * epoch_time)
+            ra_vec[2] = -(-2 * d)
+            ra_vec[3] = -(b + c)
 
-            dec_vec[0] = -inverse_det_c * ((b + c) * epoch_time)
-            dec_vec[1] = -inverse_det_c * (- 2 * a * epoch_time)
-            dec_vec[2] = -inverse_det_c * (b + c)
-            dec_vec[3] = -inverse_det_c * (- 2 * a)
+            dec_vec[0] = -((b + c) * epoch_time)
+            dec_vec[1] = -(- 2 * a * epoch_time)
+            dec_vec[2] = -(b + c)
+            dec_vec[3] = -(- 2 * a)
 
             astrometric_solution_vector_components['ra'][epoch] = ra_vec
             astrometric_solution_vector_components['dec'][epoch] = dec_vec
@@ -164,28 +165,29 @@ class AstrometricFitter(object):
         num_epochs = len(self.epoch_times)
         astrometric_chi_squared_matrices = np.zeros((num_epochs, 4, 4))
         for epoch in range(num_epochs):
-            inverse_det_c = 1 / np.linalg.det(self.covariance_matrices[epoch])
-            a, b, c, d = unpack_elements_of_matrix(self.covariance_matrices[epoch])
+            pseudo_inverse_cov_matrix = np.linalg.pinv(self.covariance_matrices[epoch])
+            d, b, c, a = unpack_elements_of_matrix(pseudo_inverse_cov_matrix)
+            b, c = -b, -c
             epoch_time = self.epoch_times[epoch]
 
             A = np.zeros((4, 4))
 
-            A[:, 0] = inverse_det_c * np.array([2 * d * epoch_time,
-                                                (-b - c) * epoch_time,
-                                                2 * d,
-                                                (-b - c)])
-            A[:, 1] = inverse_det_c * np.array([(-b - c) * epoch_time,
-                                                2 * a * epoch_time,
-                                                (-b - c),
-                                                2 * a])
-            A[:, 2] = inverse_det_c * np.array([2 * d * epoch_time ** 2,
-                                                (-b - c) * epoch_time ** 2,
-                                                2 * d * epoch_time,
-                                                (-b - c) * epoch_time])
-            A[:, 3] = inverse_det_c * np.array([(-b - c) * epoch_time ** 2,
-                                                2 * a * epoch_time ** 2,
-                                                (-b - c) * epoch_time,
-                                                2 * a * epoch_time])
+            A[:, 0] = np.array([2 * d * epoch_time,
+                                (-b - c) * epoch_time,
+                                2 * d,
+                                (-b - c)])
+            A[:, 1] = np.array([(-b - c) * epoch_time,
+                                2 * a * epoch_time,
+                                (-b - c),
+                                2 * a])
+            A[:, 2] = np.array([2 * d * epoch_time ** 2,
+                                (-b - c) * epoch_time ** 2,
+                                2 * d * epoch_time,
+                                (-b - c) * epoch_time])
+            A[:, 3] = np.array([(-b - c) * epoch_time ** 2,
+                                2 * a * epoch_time ** 2,
+                                (-b - c) * epoch_time,
+                                2 * a * epoch_time])
 
             astrometric_chi_squared_matrices[epoch] = A
         return astrometric_chi_squared_matrices
@@ -290,6 +292,7 @@ def plot_error_ellipse(mu, cov_matrix, color="b"):
 
 
 if __name__ == "__main__":
+    """
     scan_angles = pd.DataFrame(data=np.linspace(0, 2*np.pi, 6))
     covariances = calculate_covariance_matrices(scan_angles, var_along_scan=0.1, var_cross_scan=0.8)
     for i in range(len(scan_angles)):
@@ -300,7 +303,8 @@ if __name__ == "__main__":
         ax.plot([0, -np.sin(angle)], [0, np.cos(angle)], 'k')
         ax.set_title('along scan angle {0} degrees east from the northern equatorial pole'.format(angle*180/np.pi))
     plt.show()
+    """
 
-    #plot_fitting_to_curved_astrometric_data(crescendo=False)
-    #plot_fitting_to_curved_astrometric_data(crescendo=True)
-    #plt.show()
+    plot_fitting_to_curved_astrometric_data(crescendo=False)
+    plot_fitting_to_curved_astrometric_data(crescendo=True)
+    plt.show()
