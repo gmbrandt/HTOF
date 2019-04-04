@@ -4,10 +4,12 @@ import pandas as pd
 import os
 import glob
 import datetime
+from astropy.time import Time
 
 import abc
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
 
 
 class IntermediateDataParser(object):
@@ -33,13 +35,25 @@ class IntermediateDataParser(object):
     def parse(self, star_id, intermediate_data_parent_directory, **kwargs):
         pass
 
+    @staticmethod
+    def convert_hip_style_epochs_to_julian_day(epochs, half_day_correction=True):
+        jd_epochs = []
+        for epoch in epochs.values:
+            epoch_year = int(epoch)
+            fraction = epoch - int(epoch)
+            utc_time = datetime.datetime(year=epoch_year, month=1, day=1) + datetime.timedelta(days=365.25) * fraction
+            if half_day_correction:
+                utc_time += datetime.timedelta(days=0.5)
+            jd_epochs.append(Time(utc_time).jd)
+        return pd.DataFrame(data=np.array(jd_epochs), index=epochs.index)
+
 
 class HipparcosOriginalData(IntermediateDataParser):
     def __init__(self, scan_angle=None, epoch=None, residuals=None):
         super(HipparcosOriginalData, self).__init__(scan_angle=scan_angle,
                                                     epoch=epoch, residuals=residuals)
 
-    def parse(self, star_hip_id, intermediate_data_directory, data_choice='NDAC'):
+    def parse(self, star_hip_id, intermediate_data_directory, data_choice='NDAC', convert_to_jd=True):
         """
         :param star_hip_id: a string which is just the number for the HIP ID.
         :param intermediate_data_directory: the path (string) to the place where the intermediate data is stored, e.g.
@@ -57,6 +71,8 @@ class HipparcosOriginalData(IntermediateDataParser):
         # compute scan angles and observations epochs according to van Leeuwen & Evans 1997, eq. 11 & 12.
         self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians
         self.epoch = data['IA6'] / data['IA3'] + 1991.25
+        if convert_to_jd:
+            self.epoch = self.convert_hip_style_epochs_to_julian_day(self.epoch)
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
 
 
@@ -65,13 +81,15 @@ class HipparcosRereductionData(IntermediateDataParser):
         super(HipparcosRereductionData, self).__init__(scan_angle=scan_angle,
                                                epoch=epoch, residuals=residuals)
 
-    def parse(self, star_hip_id, intermediate_data_directory, **kwargs):
+    def parse(self, star_hip_id, intermediate_data_directory, convert_to_jd=True):
         data = self.read_intermediate_data_file(star_hip_id, intermediate_data_directory,
                                                 skiprows=1, header=None, sep='\s+')
         # compute scan angles and observations epochs from van Leeuwen 2007, table G.8
         # see also Figure 2.1, section 2.5.1, and section 4.1.2
         self.scan_angle = np.arctan2(data[3], data[4])  # data[3] = cos(psi), data[4] = sin(psi)
         self.epoch = data[1] + 1991.25
+        if convert_to_jd:
+            self.epoch = self.convert_hip_style_epochs_to_julian_day(self.epoch)
         self.residuals = data[5]  # unit milli-arcseconds (mas)
 
 
@@ -173,23 +191,26 @@ class AstrometricFitter(object):
         return astrometric_chi_squared_matrices
 
 
-def calculate_covariance_matrices(scan_angles, var_along_scan=1, var_cross_scan=1E5):
+def calculate_covariance_matrices(scan_angles, var_along_scan=1.0, var_cross_scan=1E5):
+    # change to be ratio of cross to along scan. Then use np pseudo inverse. keep default ratio 1E5
     """
-    :param scan_angles: pandas DataFrame with scan angles, e.g. as-is from the data parsers
+    :param scan_angles: pandas DataFrame with scan angles, e.g. as-is from the data parsers. scan_angles.values is a
+                        numpy array with the scan angles
     :param var_along_scan: variance along the scan direction
     :param var_cross_scan: variance in the direction perpendicular to the scan direction
-    :return: covariance matrices for each scan angle as a Pandas DataFrame just like scan_angles
+    :return An ndarray with shape (len(scan_angles), 2, 2), e.g. an array of covariance matrices in the same order
+    as the scan angles
     """
     covariance_matrices = []
     cov_matrix_in_scan_basis = np.array([[var_cross_scan, 0], [0, var_along_scan]])
     # we define the along scan to be 'y' in the scan basis.
-    for theta in scan_angles:
-        # for Hipparcos, theta is measured against north, e.g. east of the north equatorial pole
+    for theta in scan_angles.values.flatten():
+        # for Hipparcos, theta is measured against north, specifically east of the north equatorial pole
         c, s = np.cos(theta), np.sin(theta)
         Rccw = np.array([[c, -s], [s, c]])
         cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rccw, cov_matrix_in_scan_basis), Rccw.T)
         covariance_matrices.append(cov_matrix_in_ra_dec_basis)
-    return pd.DataFrame(data=np.array(covariance_matrices), index=scan_angles.index)
+    return np.array(covariance_matrices)
 
 
 def unpack_elements_of_matrix(matrix):
@@ -246,7 +267,40 @@ def plot_fitting_to_curved_astrometric_data(crescendo=False):
     plt.title('RA and DEC linear fit using Covariance Matrices')
 
 
+def plot_error_ellipse(mu, cov_matrix, color="b"):
+    """
+    Based on
+    http://stackoverflow.com/questions/17952171/not-sure-how-to-fit-data-with-a-gaussian-python.
+    """
+    f, ax = plt.subplots(figsize=(3, 3))
+    # Compute eigenvalues and associated eigenvectors
+    vals, vecs = np.linalg.eigh(cov_matrix)
+
+    # Compute "tilt" of ellipse using first eigenvector
+    x, y = vecs[:, 0]
+    theta = np.degrees(np.arctan2(y, x))
+
+    # Eigenvalues give length of ellipse along each eigenvector
+    w, h = 2 * np.sqrt(vals)
+    ellipse = Ellipse(mu, w, h, theta, color=color)  # color="k")
+    ellipse.set_clip_box(ax.bbox)
+    ellipse.set_alpha(0.2)
+    ax.add_artist(ellipse)
+    return ax
+
+
 if __name__ == "__main__":
-    plot_fitting_to_curved_astrometric_data(crescendo=False)
-    plot_fitting_to_curved_astrometric_data(crescendo=True)
+    scan_angles = pd.DataFrame(data=np.linspace(0, 2*np.pi, 6))
+    covariances = calculate_covariance_matrices(scan_angles, var_along_scan=0.1, var_cross_scan=0.8)
+    for i in range(len(scan_angles)):
+        ax = plot_error_ellipse(mu=(0, 0), cov_matrix=covariances[i])
+        ax.set_xlim((-1, 1))
+        ax.set_ylim((-1, 1))
+        angle = scan_angles.values.flatten()[i]
+        ax.plot([0, -np.sin(angle)], [0, np.cos(angle)], 'k')
+        ax.set_title('along scan angle {0} degrees east from the northern equatorial pole'.format(angle*180/np.pi))
     plt.show()
+
+    #plot_fitting_to_curved_astrometric_data(crescendo=False)
+    #plot_fitting_to_curved_astrometric_data(crescendo=True)
+    #plt.show()
