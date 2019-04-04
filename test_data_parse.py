@@ -60,7 +60,19 @@ def test_parse_gaia_data():
 
 
 def test_calculating_covariance_matrices():
-    scan_angles = pd.DataFrame(data=np.linspace(0, np.pi/2, 10), index=np.arange(10, 20))
-    covariances = calculate_covariance_matrices(scan_angles, var_along_scan=1, var_cross_scan=10)
+    scan_angles = pd.DataFrame(data=np.linspace(0, 2 * np.pi, 10))
+    covariances = calculate_covariance_matrices(scan_angles, cross_scan_var_to_along_scan_var_ratio=10)
     assert len(covariances) == len(scan_angles)
-    print(covariances)
+    assert np.allclose(covariances[-1], covariances[0])
+    assert np.allclose(covariances[0], np.array([[10, 0], [0, 1]]))
+    for cov_matrix, scan_angle in zip(covariances, scan_angles.values.flatten()):
+        assert np.isclose(scan_angle % np.pi, angle_of_short_axis_of_error_ellipse(cov_matrix) % np.pi)
+        # modulo pi since the scan angle and angle of short axis could differ in sign from one another.
+
+
+def angle_of_short_axis_of_error_ellipse(cov_matrix):
+    vals, vecs = np.linalg.eigh(cov_matrix)
+    # Compute "tilt" of ellipse using first eigenvector
+    x, y = vecs[:, 0]
+    theta = np.arctan2(y, x) - np.pi/2
+    return theta

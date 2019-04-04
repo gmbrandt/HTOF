@@ -193,18 +193,17 @@ class AstrometricFitter(object):
         return astrometric_chi_squared_matrices
 
 
-def calculate_covariance_matrices(scan_angles, var_along_scan=1.0, var_cross_scan=1E5):
-    # change to be ratio of cross to along scan. Then use np pseudo inverse. keep default ratio 1E5
+def calculate_covariance_matrices(scan_angles, cross_scan_var_to_along_scan_var_ratio=1E5):
     """
     :param scan_angles: pandas DataFrame with scan angles, e.g. as-is from the data parsers. scan_angles.values is a
                         numpy array with the scan angles
-    :param var_along_scan: variance along the scan direction
-    :param var_cross_scan: variance in the direction perpendicular to the scan direction
+    :param cross_scan_var_to_along_scan_var_ratio: var_cross_scan / var_along_scan
     :return An ndarray with shape (len(scan_angles), 2, 2), e.g. an array of covariance matrices in the same order
     as the scan angles
     """
     covariance_matrices = []
-    cov_matrix_in_scan_basis = np.array([[var_cross_scan, 0], [0, var_along_scan]])
+    cov_matrix_in_scan_basis = np.array([[cross_scan_var_to_along_scan_var_ratio, 0],
+                                         [0, 1]])
     # we define the along scan to be 'y' in the scan basis.
     for theta in scan_angles.values.flatten():
         # for Hipparcos, theta is measured against north, specifically east of the north equatorial pole
@@ -219,9 +218,8 @@ def unpack_elements_of_matrix(matrix):
     return matrix.flatten()
 
 
-def generate_parabolic_astrometric_data(correlation_coefficient=0.0, sigma_ra=0.1, sigma_dec=0.1, crescendo=False):
+def generate_parabolic_astrometric_data(correlation_coefficient=0.0, sigma_ra=0.1, sigma_dec=0.1, crescendo=False, num_measurements=20):
     astrometric_data = {}
-    num_measurements = 20
     mu_ra, mu_dec = -1, 2
     acc_ra, acc_dec = -0.1, 0.2
     ra0, dec0 = -30, 40
@@ -243,8 +241,7 @@ def generate_parabolic_astrometric_data(correlation_coefficient=0.0, sigma_ra=0.
     return astrometric_data
 
 
-def plot_fitting_to_curved_astrometric_data(crescendo=False):
-    astrometric_data = generate_parabolic_astrometric_data(correlation_coefficient=0, sigma_ra=5E2, sigma_dec=5E2, crescendo=crescendo)
+def plot_fitting_to_astrometric_data(astrometric_data):
     # solving
     fitter = AstrometricFitter(covariance_matrices=astrometric_data['covariance_matrix'],
                                epoch_times=astrometric_data['epoch_delta_t'])
@@ -269,12 +266,11 @@ def plot_fitting_to_curved_astrometric_data(crescendo=False):
     plt.title('RA and DEC linear fit using Covariance Matrices')
 
 
-def plot_error_ellipse(mu, cov_matrix, color="b"):
+def plot_error_ellipse(ax, mu, cov_matrix, color="b"):
     """
     Based on
     http://stackoverflow.com/questions/17952171/not-sure-how-to-fit-data-with-a-gaussian-python.
     """
-    f, ax = plt.subplots(figsize=(3, 3))
     # Compute eigenvalues and associated eigenvectors
     vals, vecs = np.linalg.eigh(cov_matrix)
 
@@ -293,18 +289,39 @@ def plot_error_ellipse(mu, cov_matrix, color="b"):
 
 if __name__ == "__main__":
     """
-    scan_angles = pd.DataFrame(data=np.linspace(0, 2*np.pi, 6))
-    covariances = calculate_covariance_matrices(scan_angles, var_along_scan=0.1, var_cross_scan=0.8)
+    data = HipparcosRereductionData()
+    data.parse(intermediate_data_directory='/home/mbrandt21/Downloads/Hip2/IntermediateData/resrec',
+               star_hip_id='27321')
+    scan_angles = data.scan_angle.truncate(after=20)
+    multiplier = 20
+    covariances = calculate_covariance_matrices(scan_angles, cross_scan_var_to_along_scan_var_ratio=multiplier)
+    f, ax = plt.subplots()
     for i in range(len(scan_angles)):
-        ax = plot_error_ellipse(mu=(0, 0), cov_matrix=covariances[i])
-        ax.set_xlim((-1, 1))
-        ax.set_ylim((-1, 1))
+        center = data.epoch.values.flatten()[i]
+        ax = plot_error_ellipse(ax, mu=(center, 0), cov_matrix=covariances[i])
+        ax.set_xlim((np.min(data.epoch.values.flatten()), np.max(data.epoch.values.flatten())))
+        ax.set_ylim((-multiplier, multiplier))
         angle = scan_angles.values.flatten()[i]
-        ax.plot([0, -np.sin(angle)], [0, np.cos(angle)], 'k')
+        ax.plot([center, center -np.sin(angle)], [0, np.cos(angle)], 'k')
         ax.set_title('along scan angle {0} degrees east from the northern equatorial pole'.format(angle*180/np.pi))
+    plt.axis('equal')
     plt.show()
-    """
 
-    plot_fitting_to_curved_astrometric_data(crescendo=False)
-    plot_fitting_to_curved_astrometric_data(crescendo=True)
+    astrometric_data = generate_parabolic_astrometric_data(correlation_coefficient=0, sigma_ra=5E2,
+                                                           sigma_dec=5E2, crescendo=True)
+    plot_fitting_to_astrometric_data(astrometric_data)
+    astrometric_data = generate_parabolic_astrometric_data(correlation_coefficient=0, sigma_ra=5E2,
+                                                           sigma_dec=5E2, crescendo=True)
+    plot_fitting_to_astrometric_data(astrometric_data)
+    """
+    data = HipparcosRereductionData()
+    data.parse(intermediate_data_directory='/home/mbrandt21/Downloads/Hip2/IntermediateData/resrec',
+               star_hip_id='49699')
+    scan_angles = data.scan_angle
+    astrometric_data = generate_parabolic_astrometric_data(correlation_coefficient=0, sigma_ra=5E2,
+                                                           sigma_dec=5E2, num_measurements=len(scan_angles))
+    astrometric_data['covariance_matrix'] = calculate_covariance_matrices(data.scan_angle, cross_scan_var_to_along_scan_var_ratio=10)
+    astrometric_data['epoch_delta_t'] = data.epoch.values.flatten()
+    plot_fitting_to_astrometric_data(astrometric_data)
+
     plt.show()
