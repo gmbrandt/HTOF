@@ -2,12 +2,12 @@ import pandas as pd
 import numpy as np
 import os
 
-from HTOF.main import HipparcosOriginalData, HipparcosRereductionData, GaiaData, IntermediateDataParser
-from HTOF.main import calculate_covariance_matrices
+from htof.main import HipparcosOriginalData, HipparcosRereductionData, GaiaData, IntermediateDataParser
+from htof.main import calculate_covariance_matrices
 
 
 def test_parse_original_data():
-    test_data_directory = os.path.join(os.getcwd(), 'data_for_tests/Hip1')
+    test_data_directory = os.path.join(os.getcwd(), 'htof/data_for_tests/Hip1')
     data = HipparcosOriginalData()
     data.parse(star_hip_id='27321',
                intermediate_data_directory=test_data_directory,
@@ -28,7 +28,7 @@ def test_parse_original_data():
 
 
 def test_parse_rereduced_data():
-    test_data_directory = os.path.join(os.getcwd(), 'data_for_tests/Hip2')
+    test_data_directory = os.path.join(os.getcwd(), 'htof/data_for_tests/Hip2')
     data = HipparcosRereductionData()
     data.parse(star_hip_id='27321',
                intermediate_data_directory=test_data_directory, convert_to_jd=False)
@@ -48,7 +48,7 @@ def test_convert_dates_to_jd():
 
 
 def test_parse_gaia_data():
-    test_data_directory = os.path.join(os.getcwd(), 'data_for_tests/GaiaDR2/IntermediateData')
+    test_data_directory = os.path.join(os.getcwd(), 'htof/data_for_tests/GaiaDR2/IntermediateData')
     data = GaiaData()
     data.parse(intermediate_data_directory=test_data_directory,
                star_hip_id='49699')
