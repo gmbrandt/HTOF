@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import mock
 import os
 
 from htof.main import HipparcosOriginalData, HipparcosRereductionData, GaiaData, IntermediateDataParser
@@ -47,6 +48,13 @@ def test_convert_dates_to_jd():
     assert np.isclose(jd_epochs.values[1], 2447892.5 + 0.25*365.25)
 
 
+@mock.patch('htof.main.calculate_covariance_matrices', return_value=np.array([np.ones((2, 2))]))
+def test_calculate_inverse_covariances(mock_cov_matrix):
+    parser = IntermediateDataParser()
+    parser.calculate_inverse_covariance_matrices()
+    assert np.allclose(parser.inverse_covariance_matrix[0], 1/4 * np.ones((2, 2)))
+
+
 def test_parse_gaia_data():
     test_data_directory = os.path.join(os.getcwd(), 'htof/data_for_tests/GaiaDR2/IntermediateData')
     data = GaiaData()
@@ -61,7 +69,7 @@ def test_parse_gaia_data():
 
 def test_calculating_covariance_matrices():
     scan_angles = pd.DataFrame(data=np.linspace(0, 2 * np.pi, 10))
-    covariances = calculate_covariance_matrices(scan_angles, cross_scan_var_to_along_scan_var_ratio=10)
+    covariances = calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=10)
     assert len(covariances) == len(scan_angles)
     assert np.allclose(covariances[-1], covariances[0])
     assert np.allclose(covariances[0], np.array([[10, 0], [0, 1]]))
