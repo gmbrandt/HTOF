@@ -19,7 +19,7 @@ class IntermediateDataParser(object):
     """
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None):
         self.scan_angle = scan_angle
-        self.epoch = epoch
+        self._epoch = epoch
         self.residuals = residuals
         self.inverse_covariance_matrix = inverse_covariance_matrix
 
@@ -36,6 +36,9 @@ class IntermediateDataParser(object):
     def parse(self, star_id, intermediate_data_parent_directory, **kwargs):
         pass
 
+    def julian_day_epoch(self):
+        return self.convert_hip_style_epochs_to_julian_day(self._epoch)
+
     @staticmethod
     def convert_hip_style_epochs_to_julian_day(epochs, half_day_correction=True):
         jd_epochs = []
@@ -46,7 +49,7 @@ class IntermediateDataParser(object):
             if half_day_correction:
                 utc_time += datetime.timedelta(days=0.5)
             jd_epochs.append(Time(utc_time).jd)
-        return pd.DataFrame(data=np.array(jd_epochs), index=epochs.index)
+        return np.array(jd_epochs)
 
     def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=1E5):
         cov_matrices = calculate_covariance_matrices(self.scan_angle,
@@ -84,7 +87,7 @@ class HipparcosOriginalData(IntermediateDataParser):
                                                     epoch=epoch, residuals=residuals,
                                                     inverse_covariance_matrix=inverse_covariance_matrix)
 
-    def parse(self, star_hip_id, intermediate_data_directory, data_choice='NDAC', convert_to_jd=True):
+    def parse(self, star_hip_id, intermediate_data_directory, data_choice='NDAC'):
         """
         :param star_hip_id: a string which is just the number for the HIP ID.
         :param intermediate_data_directory: the path (string) to the place where the intermediate data is stored, e.g.
@@ -101,9 +104,7 @@ class HipparcosOriginalData(IntermediateDataParser):
         data = data[data['IA2'] == data_choice[0]]
         # compute scan angles and observations epochs according to van Leeuwen & Evans 1997, eq. 11 & 12.
         self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians
-        self.epoch = data['IA6'] / data['IA3'] + 1991.25
-        if convert_to_jd:
-            self.epoch = self.convert_hip_style_epochs_to_julian_day(self.epoch)
+        self._epoch = data['IA6'] / data['IA3'] + 1991.25
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
 
 
@@ -113,15 +114,13 @@ class HipparcosRereductionData(IntermediateDataParser):
                                                        epoch=epoch, residuals=residuals,
                                                        inverse_covariance_matrix=inverse_covariance_matrix)
 
-    def parse(self, star_hip_id, intermediate_data_directory, convert_to_jd=True):
+    def parse(self, star_hip_id, intermediate_data_directory, **kwargs):
         data = self.read_intermediate_data_file(star_hip_id, intermediate_data_directory,
                                                 skiprows=1, header=None, sep='\s+')
         # compute scan angles and observations epochs from van Leeuwen 2007, table G.8
         # see also Figure 2.1, section 2.5.1, and section 4.1.2
         self.scan_angle = np.arctan2(data[3], data[4])  # data[3] = cos(psi), data[4] = sin(psi)
-        self.epoch = data[1] + 1991.25
-        if convert_to_jd:
-            self.epoch = self.convert_hip_style_epochs_to_julian_day(self.epoch)
+        self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
 
 
@@ -134,8 +133,11 @@ class GaiaData(IntermediateDataParser):
     def parse(self, star_hip_id, intermediate_data_directory, **kwargs):
         data = self.read_intermediate_data_file(star_hip_id, intermediate_data_directory,
                                                 skiprows=0, header='infer', sep='\s*,\s*')
-        self.epoch = data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]']
+        self._epoch = data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]']
         self.scan_angle = data['scanAngle[rad]']
+
+    def julian_day_epoch(self):
+        return self._epoch.values.flatten()
 
 
 class AstrometricFitter(object):
@@ -308,7 +310,6 @@ def generate_parabolic_astrometric_data(correlation_coefficient=0.0, sigma_ra=0.
 
 if __name__ == "__main__":
 
-    """
     data = HipparcosRereductionData()
     data.parse(intermediate_data_directory='/home/mbrandt21/Downloads/Hip2/IntermediateData/resrec',
                star_hip_id='27321')
@@ -317,15 +318,14 @@ if __name__ == "__main__":
     covariances = calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=multiplier)
     f, ax = plt.subplots()
     for i in range(len(scan_angles)):
-        center = data.epoch.values.flatten()[i]
+        center = data.julian_day_epoch()[i]
         ax = plot_error_ellipse(ax, mu=(center, 0), cov_matrix=covariances[i])
-        ax.set_xlim((np.min(data.epoch.values.flatten()), np.max(data.epoch.values.flatten())))
+        ax.set_xlim((np.min(data.julian_day_epoch()), np.max(data.julian_day_epoch())))
         ax.set_ylim((-multiplier, multiplier))
         angle = scan_angles.values.flatten()[i]
         ax.plot([center, center -np.sin(angle)], [0, np.cos(angle)], 'k')
         ax.set_title('along scan angle {0} degrees east from the northern equatorial pole'.format(angle*180/np.pi))
     plt.axis('equal')
-    """
 
     data = HipparcosRereductionData()
     data.parse(intermediate_data_directory='/home/mbrandt21/Downloads/Hip2/IntermediateData/resrec',
@@ -334,7 +334,7 @@ if __name__ == "__main__":
     astrometric_data = generate_parabolic_astrometric_data(correlation_coefficient=0, sigma_ra=5E2,
                                                            sigma_dec=5E2, num_measurements=len(scan_angles))
     astrometric_data['covariance_matrix'] = calculate_covariance_matrices(data.scan_angle, cross_scan_along_scan_var_ratio=10)
-    astrometric_data['epoch_delta_t'] = data.epoch.values.flatten()
+    astrometric_data['epoch_delta_t'] = data.julian_day_epoch()
     plot_fitting_to_astrometric_data(astrometric_data)
 
     plt.show()
