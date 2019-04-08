@@ -8,6 +8,10 @@ from htof.main import AstrometricFitter
 
 @pytest.mark.e2e
 def test_parse_and_fit_to_line():
+    """
+    Tests fitting a line to fake RA and DEC data which has errors calculated from the real intermediate data
+    from Hip1, Hip2, and GaiaDR2. This only fits a line to the first 11 points.
+    """
     stars = ['49699', '27321', '27321']
     parsers = [GaiaData, HipparcosOriginalData, HipparcosRereductionData]
     subdirectories = ['GaiaDR2', 'Hip1', 'Hip2']
