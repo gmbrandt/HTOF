@@ -2,8 +2,8 @@ Example python code for parsing the intermediate data from Gaia or Hip, and then
 arbitrary RA and DEC vs epoch given the Hip or Gaia covariance matrices (from the intermediate data) at those epochs.
 
 
-from htof.main import DataParser # really this will be one of three parsers, e.g. GaiaData
-from htof.main import AstrometricFitter
+from htof.parse import IntermediateDataParser # one of three parsers: GaiaData
+from htof.fit import AstrometricFitter
 
 
 # things we do once at the start of the code:

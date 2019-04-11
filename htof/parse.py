@@ -7,9 +7,6 @@ from astropy.time import Time
 
 import abc
 
-import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
-
 
 class IntermediateDataParser(object):
     """
