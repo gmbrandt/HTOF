@@ -1,10 +1,10 @@
 import numpy as np
-import htof.main as hipfit
+from htof.fit import unpack_elements_of_matrix, AstrometricFitter
 
 
 def test_unpack_elements_of_matrix():
     A = np.arange(4).reshape((2, 2))
-    assert np.allclose(np.arange(4), hipfit.unpack_elements_of_matrix(A))
+    assert np.allclose(np.arange(4), unpack_elements_of_matrix(A))
 
 
 def test_chi2_matrix_single_epoch():
@@ -14,7 +14,7 @@ def test_chi2_matrix_single_epoch():
                            [195, -150, 5850, -4500],
                            [-2, 13/2, -60, 195],
                            [13/2, -5, 195, -150]])
-    fitter = hipfit.AstrometricFitter(inverse_covariance_matrices=[np.linalg.pinv(covariance_matrix)], epoch_times=[epoch_time],
+    fitter = AstrometricFitter(inverse_covariance_matrices=[np.linalg.pinv(covariance_matrix)], epoch_times=[epoch_time],
                                       astrometric_solution_vector_components=[])
     assert np.allclose(expected_A, fitter._chi2_matrix())
 
@@ -24,7 +24,7 @@ def test_chi2_solution_vector_single_epoch():
     ra, dec = 91, 82
     epoch_time = 30
     expected_c = (-1)*np.array([-10530, -5445, -351, -363/2])
-    fitter = hipfit.AstrometricFitter(inverse_covariance_matrices=np.array([np.linalg.pinv(covariance_matrix)]),
+    fitter = AstrometricFitter(inverse_covariance_matrices=np.array([np.linalg.pinv(covariance_matrix)]),
                                       epoch_times=np.array([epoch_time]),
                                       astrometric_chi_squared_matrices=[])
     assert np.allclose(expected_c, fitter._chi2_vector(ra_vs_epoch=np.array([ra]),
@@ -33,7 +33,7 @@ def test_chi2_solution_vector_single_epoch():
 
 def test_fitting_to_linear_astrometric_data():
     astrometric_data = generate_linear_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1)
-    fitter = hipfit.AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+    fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
                                       epoch_times=astrometric_data['epoch_delta_t'])
 
     assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),

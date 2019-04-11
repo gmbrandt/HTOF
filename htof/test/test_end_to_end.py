@@ -2,11 +2,11 @@ import pytest
 import os
 import numpy as np
 
-from htof.main import GaiaData, HipparcosRereductionData, HipparcosOriginalData
-from htof.main import AstrometricFitter
+from htof.parse import GaiaData, HipparcosRereductionData, HipparcosOriginalData
+from htof.fit import AstrometricFitter
 
 
-@pytest.mark.e2e
+@pytest.mark.integration
 def test_parse_and_fit_to_line():
     """
     Tests fitting a line to fake RA and DEC data which has errors calculated from the real intermediate data
@@ -15,7 +15,7 @@ def test_parse_and_fit_to_line():
     stars = ['49699', '27321', '27321']
     parsers = [GaiaData, HipparcosOriginalData, HipparcosRereductionData]
     subdirectories = ['GaiaDR2', 'Hip1', 'Hip2']
-    base_directory = os.path.join(os.getcwd(), 'htof/data_for_tests')
+    base_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests')
     for star, DataParser, subdirectory in zip(stars, parsers, subdirectories):
         test_data_directory = os.path.join(base_directory, subdirectory)
         data = DataParser()
