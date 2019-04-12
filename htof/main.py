@@ -88,6 +88,7 @@ if __name__ == "__main__":
         #epochs = data.julian_day_epoch()[:samples]
         #
         sample_orbit = np.loadtxt('/home/mbrandt21/Downloads/tim_orbit_fit_code/orbit.dat').T
+        sample_orbit[1] *= -1 # fixing reversed axis.
         epochs, ra_vs_epoch, dec_vs_epoch = sample_orbit[0], sample_orbit[1], sample_orbit[2]
         samples = len(dec_vs_epoch)
         #
@@ -95,7 +96,7 @@ if __name__ == "__main__":
         fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix,
                                    epoch_times=epochs)
 
-        #ra_vs_epoch, dec_vs_epoch = circle(radius=100, samples=samples, radians=np.pi/1.3)
+        # ra_vs_epoch, dec_vs_epoch = circle(radius=100, samples=samples, radians=np.pi/1.3)
         solution_vector = fitter.fit_line(ra_vs_epoch=ra_vs_epoch,
                                           dec_vs_epoch=dec_vs_epoch)
         # plotting
@@ -115,6 +116,7 @@ if __name__ == "__main__":
         plt.legend(loc='best', prop={'size': 14})
 
         finely_sampled_orbit = np.loadtxt('/home/mbrandt21/Downloads/tim_orbit_fit_code/orbit_full.dat')
+        finely_sampled_orbit[:, 1] *= -1 # fixing x axis.
 
         ax.plot(finely_sampled_orbit[:, 1], finely_sampled_orbit[:, 2], 'r')
 
@@ -126,7 +128,7 @@ if __name__ == "__main__":
             t = (year - 1991.25) * 365.25
             ax.plot(ra(t), dec(t), 'k*', markersize=15)
             ax.plot(ra(t), dec(t), 'y*', markersize=14)
-            ax.text(ra(t), dec(t) + 0.3, '%d' % (year))
+            ax.text(ra(t) + 1, dec(t) - 1, '%d' % (year))
 
         ax.plot(0, 0, 'D', markersize=15)
         ax.text(0, 0.7, 'Center of Mass', horizontalalignment='center')
