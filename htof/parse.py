@@ -3,6 +3,8 @@ import pandas as pd
 import os
 import glob
 import datetime
+import warnings
+
 from astropy.time import Time
 
 import abc
@@ -21,6 +23,9 @@ class IntermediateDataParser(object):
 
     @staticmethod
     def read_intermediate_data_file(star_hip_id, intermediate_data_directory, skiprows, header, sep):
+        if len(star_hip_id) < 6:
+            warnings.warn("Hip ID has not been fully specified (e.g. 3865 instead of 003865). Search may fail.",
+                          SyntaxWarning)
         filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_hip_id + '*')
         filepath_list = glob.glob(filepath, recursive=True)
         if len(filepath_list) > 1:

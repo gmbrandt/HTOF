@@ -27,10 +27,12 @@ def plot_fit_to_orbit(ax, data, ra_orbit, dec_orbit, parametric_fit_vector, cova
     angles = data.scan_angle.values.flatten()
     for ra, dec, angle, cov_matrix in zip(ra_orbit, dec_orbit, angles, covariance_matrices):
         ax = plot_error_ellipse(ax, mu=(ra, dec), cov_matrix=cov_matrix)
-        ax.plot([ra + np.sin(angle), ra, ra - np.sin(angle)],
-                [dec - np.cos(angle), dec, dec + np.cos(angle)], 'r', lw=2)  # plot scan angle
-    ax.arrow(ra0, dec0, mu_ra*500, mu_dec*500, color='k', label=r'$\mu_{Hip}$')  # arrow
-    ax.plot(ra0, dec0, 'go', markersize=20, label='1991.25')
+        ax.plot([ra + np.sin(angle)*.2, ra, ra - np.sin(angle)*.2],
+                [dec - np.cos(angle)*.2, dec, dec + np.cos(angle)*.2], 'r', lw=2)  # plot scan angle
+    ax.arrow(ra0, dec0, mu_ra*500, mu_dec*500, color='k', width=0.5)  # arrow
+    ax.plot([ra0, ra0+mu_ra], [dec0, dec0+mu_dec], color='k', label=r'$\mu_{Hip}$', lw=7)  # arrow label
+    ax.plot(ra0, dec0, 'gD', markersize=15, label='1991.25')
+    ax.plot(ra0, dec0, 'kD', markersize=2)
     return ax
 
 
@@ -82,10 +84,11 @@ if __name__ == "__main__":
                    star_hip_id='003850')
         multiplier = 100
         samples = 20
+        fontsize = 22
         #epochs = data.julian_day_epoch()[:samples]
         #
-        tims_data = np.loadtxt('/home/mbrandt21/Downloads/tim_orbit_fit_code/orbit.dat').T
-        epochs, ra_vs_epoch, dec_vs_epoch = tims_data[0], tims_data[1], tims_data[2]
+        sample_orbit = np.loadtxt('/home/mbrandt21/Downloads/tim_orbit_fit_code/orbit.dat').T
+        epochs, ra_vs_epoch, dec_vs_epoch = sample_orbit[0], sample_orbit[1], sample_orbit[2]
         samples = len(dec_vs_epoch)
         #
         data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=multiplier)
@@ -96,27 +99,27 @@ if __name__ == "__main__":
         solution_vector = fitter.fit_line(ra_vs_epoch=ra_vs_epoch,
                                           dec_vs_epoch=dec_vs_epoch)
         # plotting
-        cov_matrices = calculate_covariance_matrices(data.scan_angle, cross_scan_along_scan_var_ratio=multiplier)*.1
-        f, ax = plt.subplots(figsize=(12, 12))
+        cov_matrices = calculate_covariance_matrices(data.scan_angle, cross_scan_along_scan_var_ratio=multiplier)*.02
+        f, ax = plt.subplots(figsize=(8, 8))
         ax = plot_fit_to_orbit(ax, data, ra_vs_epoch, dec_vs_epoch, solution_vector, cov_matrices, epochs=epochs)
-        ax.set_ylabel(r'Declination (mas)', fontsize=18)
-        ax.set_xlabel(r'Right Ascension (mas)', fontsize=18)
+        ax.set_ylabel(r'Declination (mas)', fontsize=fontsize)
+        ax.set_xlabel(r'Right Ascension (mas)', fontsize=fontsize)
 
         font = {'family': 'serif',
-                'size': 18}
+                'size': fontsize}
         plt.rc('font', **font)
-        plt.xticks(fontsize=18)
-        plt.yticks(fontsize=18)
+        plt.xticks(fontsize=fontsize)
+        plt.yticks(fontsize=fontsize)
         plt.rc('mathtext', fontset="cm")  # fixing latex fonts
         plt.axis('equal')
         plt.legend(loc='best', prop={'size': 14})
 
-        orbit2 = np.loadtxt('/home/mbrandt21/Downloads/tim_orbit_fit_code/orbit_full.dat')
+        finely_sampled_orbit = np.loadtxt('/home/mbrandt21/Downloads/tim_orbit_fit_code/orbit_full.dat')
 
-        ax.plot(orbit2[:, 1], orbit2[:, 2], 'r')
+        ax.plot(finely_sampled_orbit[:, 1], finely_sampled_orbit[:, 2], 'r')
 
-        ra = interpolate.interp1d(orbit2[:, 0], orbit2[:, 1])
-        dec = interpolate.interp1d(orbit2[:, 0], orbit2[:, 2])
+        ra = interpolate.interp1d(finely_sampled_orbit[:, 0], finely_sampled_orbit[:, 1])
+        dec = interpolate.interp1d(finely_sampled_orbit[:, 0], finely_sampled_orbit[:, 2])
         years = np.arange(1988, 1995)
 
         for year in years:
