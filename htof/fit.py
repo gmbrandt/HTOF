@@ -14,7 +14,7 @@ class AstrometricFitter(object):
         if astrometric_solution_vector_components is None:
             self.astrometric_solution_vector_components = self._init_astrometric_solution_vectors()
         if astrometric_chi_squared_matrices is None:
-            self.astrometric_chi_squared_matrices = self._init_astrometric_chi_squared_matrices()
+            self._chi2_matrix = self._init_astrometric_chi_squared_matrix()
 
     def fit_line(self, ra_vs_epoch, dec_vs_epoch):
         """
@@ -22,11 +22,8 @@ class AstrometricFitter(object):
         :param dec_vs_epoch: 1d array of declination, ordered the same as the covariance matrices and epochs.
         :return:
         """
-        return np.linalg.solve(self._chi2_matrix(), self._chi2_vector(ra_vs_epoch=ra_vs_epoch,
-                                                                      dec_vs_epoch=dec_vs_epoch))
-
-    def _chi2_matrix(self):
-        return np.sum(self.astrometric_chi_squared_matrices, axis=0)
+        return np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch,
+                                                                    dec_vs_epoch=dec_vs_epoch))
 
     def _chi2_vector(self, ra_vs_epoch, dec_vs_epoch):
         ra_solution_vecs = self.astrometric_solution_vector_components['ra']
@@ -57,7 +54,7 @@ class AstrometricFitter(object):
             astrometric_solution_vector_components['dec'][epoch] = dec_vec
         return astrometric_solution_vector_components
 
-    def _init_astrometric_chi_squared_matrices(self):
+    def _init_astrometric_chi_squared_matrix(self):
         num_epochs = len(self.epoch_times)
         astrometric_chi_squared_matrices = np.zeros((num_epochs, 4, 4))
         for epoch in range(num_epochs):
@@ -85,7 +82,7 @@ class AstrometricFitter(object):
                                 2 * a * epoch_time])
 
             astrometric_chi_squared_matrices[epoch] = A
-        return astrometric_chi_squared_matrices
+        return np.sum(astrometric_chi_squared_matrices, axis=0)
 
 
 def unpack_elements_of_matrix(matrix):

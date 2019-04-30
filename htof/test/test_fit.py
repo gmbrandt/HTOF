@@ -16,7 +16,7 @@ def test_chi2_matrix_single_epoch():
                            [13/2, -5, 195, -150]])
     fitter = AstrometricFitter(inverse_covariance_matrices=[np.linalg.pinv(covariance_matrix)], epoch_times=[epoch_time],
                                       astrometric_solution_vector_components=[])
-    assert np.allclose(expected_A, fitter._chi2_matrix())
+    assert np.allclose(expected_A, fitter._chi2_matrix)
 
 
 def test_chi2_solution_vector_single_epoch():
