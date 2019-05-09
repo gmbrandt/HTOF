@@ -10,6 +10,9 @@ from astropy.time import Time
 import abc
 
 
+# For Hipparcos (both reductions) and Gaia, the scan angle theta is measured as
+# east of the north equatorial pole
+
 class IntermediateDataParser(object):
     """
     Base class for parsing Hip1 and Hip2 data. self.epoch, self.covariance_matrix and self.scan_angle are saved
@@ -74,7 +77,6 @@ def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1
                                          [0, 1]])
     # we define the along scan to be 'y' in the scan basis.
     for theta in scan_angles.values.flatten():
-        # for Hipparcos (both reductions) and Gaia, the scan angle theta is measured as east of the north equatorial pole
         c, s = np.cos(theta), np.sin(theta)
         Rccw = np.array([[c, -s], [s, c]])
         cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rccw, cov_matrix_in_scan_basis), Rccw.T)
@@ -116,16 +118,18 @@ class HipparcosRereductionData(IntermediateDataParser):
                                                        inverse_covariance_matrix=inverse_covariance_matrix)
 
     def parse(self, star_hip_id, intermediate_data_directory, **kwargs):
+        """
+        Compute scan angles and observations epochs from van Leeuwen 2007, table G.8
+        see also Figure 2.1, section 2.5.1, and section 4.1.2
+        NOTE: that the Hipparcos re-reduction book and the figures therein describe the
+        scan angle against the north ecliptic pole.
+        NOTE: In the actual intermediate astrometry data on the CD the scan angle
+        is given as east of the north equatorial pole, as for the original
+        Hipparcos and Gaia (Source: private communication between Daniel
+        Michalik and Floor van Leeuwen, April 2019).
+        """
         data = self.read_intermediate_data_file(star_hip_id, intermediate_data_directory,
                                                 skiprows=1, header=None, sep='\s+')
-        # compute scan angles and observations epochs from van Leeuwen 2007, table G.8
-        # see also Figure 2.1, section 2.5.1, and section 4.1.2
-        # Note that the Hipparcos re-reduction book and the figures therein describe the scan angle against the north ecliptic pole 
-        # (for pedagogical reasons?)
-	# In the actual intermediate astrometry data on the CD the scan angle
-	# is given as east of the north equatorial pole, as for the original
-	# Hipparcos and Gaia (Source: private communication between Daniel
-	# Michalik and Floor van Leeuwen, April 2019). 
         self.scan_angle = np.arctan2(data[3], data[4])  # data[3] = cos(psi), data[4] = sin(psi)
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)

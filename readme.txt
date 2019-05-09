@@ -2,12 +2,12 @@ Example python code for parsing the intermediate data from Gaia or Hip, and then
 arbitrary RA and DEC vs epoch given the Hip or Gaia covariance matrices (from the intermediate data) at those epochs.
 
 
-from htof.parse import IntermediateDataParser # one of three parsers: GaiaData
+from htof.parse import IntermediateDataParser # one of three parsers: GaiaData, HipparcosOriginalData, or HipparcosRereductionData
 from htof.fit import AstrometricFitter
 
 
 # things we do once at the start of the code:
-data = DataParser()
+data = IntermediateDataParser()
 data.parse(star_hip_id='49699',
            intermediate_data_directory='path/to/intermediate_data_parent_folder')
 data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
