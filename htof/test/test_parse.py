@@ -1,16 +1,17 @@
 import pandas as pd
 import numpy as np
+import pytest
 import mock
 import os
 
 from htof.parse import HipparcosOriginalData, HipparcosRereductionData, GaiaData, IntermediateDataParser
-from htof.parse import calculate_covariance_matrices
+from htof.parse import calculate_covariance_matrices, fractional_year_epoch_to_jd
 
 
 def test_parse_original_data():
     test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip1')
     data = HipparcosOriginalData()
-    data.parse(star_id='27321',
+    data.parse(star_id='027321',
                intermediate_data_directory=test_data_directory,
                data_choice='FAST')
     assert len(data._epoch) == 32
@@ -18,7 +19,7 @@ def test_parse_original_data():
     assert np.isclose(data.scan_angle[0], -2.009532)
     assert np.isclose(data._epoch[17], 1990.779865)
     assert np.isclose(data.scan_angle[17], 2.769795)
-    data.parse(star_id='27321',
+    data.parse(star_id='027321',
                intermediate_data_directory=test_data_directory,
                data_choice='NDAC')
     assert len(data._epoch) == 34
@@ -31,7 +32,7 @@ def test_parse_original_data():
 def test_parse_rereduced_data():
     test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
     data = HipparcosRereductionData()
-    data.parse(star_id='27321',
+    data.parse(star_id='027321',
                intermediate_data_directory=test_data_directory, convert_to_jd=False)
     assert len(data._epoch) == 111
     assert np.isclose(data._epoch[0], 1990.005)
@@ -40,12 +41,24 @@ def test_parse_rereduced_data():
     assert np.isclose(data.scan_angle[84], -0.941235)
 
 
+def test_parse_warns_on_short_name():
+    with pytest.warns(SyntaxWarning):
+        test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
+        data = HipparcosRereductionData()
+        data.parse(star_id='27321',
+                   intermediate_data_directory=test_data_directory, convert_to_jd=False)
+
+
 def test_convert_dates_to_jd():
     parser = IntermediateDataParser()
     epochs = pd.DataFrame(data=[1990.0, 1990.25], index=[5, 6])
     jd_epochs = parser.convert_hip_style_epochs_to_julian_day(epochs)
     assert np.isclose(jd_epochs[0], 2447892.5)
     assert np.isclose(jd_epochs[1], 2447892.5 + 0.25*365.25)
+
+
+def test_convert_date_to_jd():
+    assert np.isclose(fractional_year_epoch_to_jd(1990.0), 2447892.5)
 
 
 def test_call_jd_dates_hip():
@@ -75,7 +88,7 @@ def test_parse_gaia_data():
     test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
     data = GaiaData()
     data.parse(intermediate_data_directory=test_data_directory,
-               star_id='49699')
+               star_id='049699')
     assert len(data._epoch) == 72
     assert np.isclose(data._epoch[0], 2456951.7659301492)
     assert np.isclose(data.scan_angle[0], -1.8904696884345342)
