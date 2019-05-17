@@ -36,14 +36,15 @@ class Astrometry(object):
 
     @staticmethod
     def _shift_to_central_epoch(solution_vector, central_epoch_dec, central_epoch_ra, central_epoch_fmt):
-        ra0, dec0, mu_ra, mu_dec = solution_vector
         if central_epoch_fmt == 'frac_year':
             if central_epoch_dec > 3000 or central_epoch_ra > 3000:
                 warnings.warn('central epoch in RA or DEC was chosen to be > 3000. Are you sure this'
-                              'is a fractional year date and not an MJD? If MJD, set central_epoch_fmt=MJD.',
+                              'is a fractional year date and not a MJD? If MJD, set central_epoch_fmt=MJD.',
                               UserWarning)
             central_epoch_dec = fractional_year_epoch_to_jd(central_epoch_dec, half_day_correction=True)
             central_epoch_ra = fractional_year_epoch_to_jd(central_epoch_ra, half_day_correction=True)
+
+        ra0, dec0, mu_ra, mu_dec = solution_vector
         ra0 += mu_ra * central_epoch_ra
         dec0 += mu_dec * central_epoch_dec
         return np.array([ra0, dec0, mu_ra, mu_dec])
