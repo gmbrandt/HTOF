@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+"""
+Driver script for htof.
+The Fitter class is what a user should use to both parse intermediate data and fit data
+to the intermediate epochs.
+"""
+
 import numpy as np
 import math
 
@@ -8,10 +14,39 @@ from matplotlib.patches import Ellipse
 from scipy import interpolate
 
 from htof.fit import AstrometricFitter
-from htof.parse import HipparcosRereductionData, calculate_covariance_matrices
+from htof.parse import HipparcosRereductionData, calculate_covariance_matrices, GaiaData, HipparcosOriginalData, \
+                       fractional_year_epoch_to_jd
+
+
+class Fitter():
+    parsers = {'GaiaDR2': GaiaData, 'Hip1': HipparcosOriginalData, 'Hip2': HipparcosRereductionData}
+
+    def __init__(self, data_choice='', star_id='', intermediate_data_directory='', fitter=None, data=None):
+        self.data = data
+        self.fitter = fitter
+        if self.data is None:
+            DataParser = self.parsers[data_choice]
+            self.data = DataParser()
+            self.data.parse(star_id=star_id,
+                            intermediate_data_directory=intermediate_data_directory)
+            self.data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
+        if self.fitter is None:
+            self.fitter = AstrometricFitter(inverse_covariance_matrices=self.data.inverse_covariance_matrix,
+                                            epoch_times=np.linspace(0, 10, num=11))
+
+    def fit(self, central_epoch_dec=0, central_epoch_ra=0, central_epoch_fmt='MJD'):
+        solution_vector = self.fitter.fit_line(ra_vs_epoch=np.linspace(30, 40, num=11),
+                                               dec_vs_epoch=np.linspace(20, 30, num=11))
+        ra0, dec0, mu_ra, mu_dec = solution_vector
+        if central_epoch_fmt == 'frac_year':
+            central_epoch_dec = fractional_year_epoch_to_jd(central_epoch_dec, half_day_correction=True)
+            central_epoch_ra = fractional_year_epoch_to_jd(central_epoch_ra, half_day_correction=True)
+        ra0 = mu_ra * central_epoch_ra
+        dec0 = mu_dec * central_epoch_dec
+        return ra0, dec0, mu_ra, mu_dec
 
 """
-Driver script which currently just makes plots of interest.
+Utility functions which currently just makes plots of interest.
 """
 
 
@@ -63,7 +98,7 @@ if __name__ == "__main__":
     if plot_diagnostic_data:
         data = HipparcosRereductionData()
         data.parse(intermediate_data_directory='/home/mbrandt21/Downloads/Hip2/IntermediateData/resrec',
-                   star_hip_id='27321')
+                   star_id='27321')
         scan_angles = data.scan_angle.truncate(after=20)
         multiplier = 20
         covariances = calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=multiplier)
@@ -81,7 +116,7 @@ if __name__ == "__main__":
     if plot_fake_orbit_fit:
         data = HipparcosRereductionData()
         data.parse(intermediate_data_directory='/home/mbrandt21/Downloads/Hip2/IntermediateData/resrec',
-                   star_hip_id='003850')
+                   star_id='003850')
         multiplier = 100
         samples = 20
         fontsize = 22

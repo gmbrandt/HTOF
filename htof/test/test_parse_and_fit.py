@@ -19,7 +19,7 @@ def test_parse_and_fit_to_line():
     for star, DataParser, subdirectory in zip(stars, parsers, subdirectories):
         test_data_directory = os.path.join(base_directory, subdirectory)
         data = DataParser()
-        data.parse(star_hip_id=star,
+        data.parse(star_id=star,
                    intermediate_data_directory=test_data_directory)
         data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
         fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix,

@@ -25,14 +25,14 @@ class IntermediateDataParser(object):
         self.inverse_covariance_matrix = inverse_covariance_matrix
 
     @staticmethod
-    def read_intermediate_data_file(star_hip_id, intermediate_data_directory, skiprows, header, sep):
-        if len(star_hip_id) < 6:
-            warnings.warn("Hip ID has not been fully specified (e.g. 3865 instead of 003865). Search may fail.",
-                          SyntaxWarning)
-        filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_hip_id + '*')
+    def read_intermediate_data_file(star_id, intermediate_data_directory, skiprows, header, sep):
+        if len(star_id) < 6:
+            warnings.warn("If a Hip ID, star id has not been fully specified "
+                          "(e.g. 3865 instead of 003865). Search may fail.", SyntaxWarning)
+        filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id + '*')
         filepath_list = glob.glob(filepath, recursive=True)
         if len(filepath_list) > 1:
-            raise ValueError('More than one input file with hip id {0} found'.format(star_hip_id))
+            raise ValueError('More than one input file with hip id {0} found'.format(star_id))
         data = pd.read_csv(filepath_list[0], sep=sep, skiprows=skiprows, header=header, engine='python')
         return data
 
@@ -47,12 +47,8 @@ class IntermediateDataParser(object):
     def convert_hip_style_epochs_to_julian_day(epochs, half_day_correction=True):
         jd_epochs = []
         for epoch in epochs.values:
-            epoch_year = int(epoch)
-            fraction = epoch - int(epoch)
-            utc_time = datetime.datetime(year=epoch_year, month=1, day=1) + datetime.timedelta(days=365.25) * fraction
-            if half_day_correction:
-                utc_time += datetime.timedelta(days=0.5)
-            jd_epochs.append(Time(utc_time).jd)
+            jd_epoch = fractional_year_epoch_to_jd(epoch, half_day_correction=half_day_correction)
+            jd_epochs.append(jd_epoch)
         return np.array(jd_epochs)
 
     def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=1E5):
@@ -62,6 +58,16 @@ class IntermediateDataParser(object):
         for i in range(len(cov_matrices)):
             icov_matrices[i] = np.linalg.pinv(cov_matrices[i])
         self.inverse_covariance_matrix = icov_matrices
+
+
+def fractional_year_epoch_to_jd(epoch, half_day_correction=True):
+    epoch_year = int(epoch)
+    fraction = epoch - int(epoch)
+    utc_time = datetime.datetime(year=epoch_year, month=1, day=1) + datetime.timedelta(days=365.25) * fraction
+    if half_day_correction:
+        utc_time += datetime.timedelta(days=0.5)
+    jd_epoch = Time(utc_time).jd
+    return jd_epoch
 
 
 def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1E5):
@@ -90,9 +96,9 @@ class HipparcosOriginalData(IntermediateDataParser):
                                                     epoch=epoch, residuals=residuals,
                                                     inverse_covariance_matrix=inverse_covariance_matrix)
 
-    def parse(self, star_hip_id, intermediate_data_directory, data_choice='NDAC'):
+    def parse(self, star_id, intermediate_data_directory, data_choice='NDAC'):
         """
-        :param star_hip_id: a string which is just the number for the HIP ID.
+        :param star_id: a string which is just the number for the HIP ID.
         :param intermediate_data_directory: the path (string) to the place where the intermediate data is stored, e.g.
                 Hip2/IntermediateData/resrec
                 note you have to specify the file resrec or absrec. We use the residual records, so specify resrec.
@@ -101,7 +107,7 @@ class HipparcosOriginalData(IntermediateDataParser):
         """
         if (data_choice is not 'NDAC') and (data_choice is not 'FAST'):
             raise ValueError('data choice has to be either NDAC or FAST')
-        data = self.read_intermediate_data_file(star_hip_id, intermediate_data_directory,
+        data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=0, header='infer', sep='\s*\|\s*')
         # select either the data from the NDAC or the FAST consortium.
         data = data[data['IA2'] == data_choice[0]]
@@ -117,7 +123,7 @@ class HipparcosRereductionData(IntermediateDataParser):
                                                        epoch=epoch, residuals=residuals,
                                                        inverse_covariance_matrix=inverse_covariance_matrix)
 
-    def parse(self, star_hip_id, intermediate_data_directory, **kwargs):
+    def parse(self, star_id, intermediate_data_directory, **kwargs):
         """
         Compute scan angles and observations epochs from van Leeuwen 2007, table G.8
         see also Figure 2.1, section 2.5.1, and section 4.1.2
@@ -128,7 +134,7 @@ class HipparcosRereductionData(IntermediateDataParser):
         Hipparcos and Gaia (Source: private communication between Daniel
         Michalik and Floor van Leeuwen, April 2019).
         """
-        data = self.read_intermediate_data_file(star_hip_id, intermediate_data_directory,
+        data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=1, header=None, sep='\s+')
         self.scan_angle = np.arctan2(data[3], data[4])  # data[3] = cos(psi), data[4] = sin(psi)
         self._epoch = data[1] + 1991.25
@@ -141,8 +147,8 @@ class GaiaData(IntermediateDataParser):
                                        epoch=epoch, residuals=residuals,
                                        inverse_covariance_matrix=inverse_covariance_matrix)
 
-    def parse(self, star_hip_id, intermediate_data_directory, **kwargs):
-        data = self.read_intermediate_data_file(star_hip_id, intermediate_data_directory,
+    def parse(self, star_id, intermediate_data_directory, **kwargs):
+        data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=0, header='infer', sep='\s*,\s*')
         self._epoch = data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]']
         self.scan_angle = data['scanAngle[rad]']

@@ -10,7 +10,7 @@ from htof.parse import calculate_covariance_matrices
 def test_parse_original_data():
     test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip1')
     data = HipparcosOriginalData()
-    data.parse(star_hip_id='27321',
+    data.parse(star_id='27321',
                intermediate_data_directory=test_data_directory,
                data_choice='FAST')
     assert len(data._epoch) == 32
@@ -18,7 +18,7 @@ def test_parse_original_data():
     assert np.isclose(data.scan_angle[0], -2.009532)
     assert np.isclose(data._epoch[17], 1990.779865)
     assert np.isclose(data.scan_angle[17], 2.769795)
-    data.parse(star_hip_id='27321',
+    data.parse(star_id='27321',
                intermediate_data_directory=test_data_directory,
                data_choice='NDAC')
     assert len(data._epoch) == 34
@@ -31,7 +31,7 @@ def test_parse_original_data():
 def test_parse_rereduced_data():
     test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
     data = HipparcosRereductionData()
-    data.parse(star_hip_id='27321',
+    data.parse(star_id='27321',
                intermediate_data_directory=test_data_directory, convert_to_jd=False)
     assert len(data._epoch) == 111
     assert np.isclose(data._epoch[0], 1990.005)
@@ -75,7 +75,7 @@ def test_parse_gaia_data():
     test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
     data = GaiaData()
     data.parse(intermediate_data_directory=test_data_directory,
-               star_hip_id='49699')
+               star_id='49699')
     assert len(data._epoch) == 72
     assert np.isclose(data._epoch[0], 2456951.7659301492)
     assert np.isclose(data.scan_angle[0], -1.8904696884345342)
