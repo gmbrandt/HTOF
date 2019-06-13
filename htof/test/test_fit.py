@@ -43,8 +43,8 @@ class TestAstrometricFitter:
                                    epoch_times=astrometric_data['epoch_delta_t'],
                                    central_epoch_dec=dec_cnt, central_epoch_ra=ra_cnt)
         expected_vec = astrometric_data['linear_solution']
-        expected_vec[0] += ra_cnt * expected_vec[2]
-        expected_vec[1] += dec_cnt * expected_vec[3]
+        expected_vec[0] += ra_cnt * expected_vec[2]  # r0 = ra_central_time * mu_ra
+        expected_vec[1] += dec_cnt * expected_vec[3]  # dec0 = dec_central_time * mu_dec
         assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
                            expected_vec)
 
