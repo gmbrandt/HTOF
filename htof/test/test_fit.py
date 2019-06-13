@@ -49,8 +49,12 @@ class TestAstrometricFitter:
                            expected_vec)
 
 
-@mock.patch('htof.fit.fractional_year_epoch_to_jd', side_effect=int)
+@mock.patch('htof.fit.fractional_year_epoch_to_jd')
 def test_verify_epoch(fake_convert):
+    def convert(time, *args, **kwargs):
+        return int(time)
+    fake_convert.side_effect = convert
+
     ranew, decnew = _verify_epoch(0, 0, 'MJD')
     assert np.allclose([ranew, decnew], 0)
     ranew, decnew = _verify_epoch(2000.1, 2001.2, 'frac_year')
