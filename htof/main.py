@@ -30,6 +30,8 @@ class Astrometry(object):
                                        central_epoch_fmt=central_epoch_fmt)
         self.data = data
         self.fitter = fitter
+        # NOTE: AstrometricFitter stores central_epoch_dec and central_epoch_fmt as 'MJD'.
+        # If central_epoch_fmt = 'frac_year', AstrometricFitter will convert them to MJD first.
 
     def fit(self, ra_vs_epoch, dec_vs_epoch):
         solution_vector = self.fitter.fit_line(ra_vs_epoch=ra_vs_epoch,
