@@ -49,22 +49,9 @@ class TestAstrometry:
         for star_id, data_choice in zip(stars, data_choices):
             test_data_directory = os.path.join(base_directory, data_choice)
 
-            fitter = Astrometry(data_choice, star_id, test_data_directory)
+            fitter = Astrometry(data_choice, star_id, test_data_directory, central_epoch_ra=2000,
+                                central_epoch_dec=2001, central_epoch_fmt='frac_year')
             num_pts = len(fitter.data.julian_day_epoch())
             ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch=np.ones(num_pts),
                                                   dec_vs_epoch=np.ones(num_pts))
             assert True
-
-    def test_shift_line_to_central_epoch(self):
-        ra0, dec0, mu_ra, mu_dec = 1, 2, 10, 20
-        solution = np.array([ra0, dec0, mu_ra, mu_dec])
-        ra0s, dec0s, mu_ras, mu_decs = Astrometry._shift_to_central_epoch(solution, central_epoch_dec=1,
-                                                            central_epoch_ra=1, central_epoch_fmt='MJD')
-        assert np.allclose([mu_ras, mu_decs], [mu_ra, mu_dec])
-        assert np.isclose(ra0s, ra0 + 1*mu_ra)
-        assert np.isclose(dec0s, dec0 + 1 * mu_dec)
-
-    def test_shift_warns_on_large_fractional_year(self):
-        with pytest.warns(UserWarning):
-            Astrometry._shift_to_central_epoch(np.array([0, 0, 0, 0]), central_epoch_dec=5000,
-                                               central_epoch_ra=5000, central_epoch_fmt='frac_year')

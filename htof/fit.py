@@ -1,4 +1,6 @@
 import numpy as np
+import warnings
+from htof.parse import fractional_year_epoch_to_jd
 
 
 class AstrometricFitter(object):
@@ -8,9 +10,13 @@ class AstrometricFitter(object):
     :param epoch_times: 1D ndarray with the times for each epoch.
     """
     def __init__(self, inverse_covariance_matrices=None, epoch_times=None,
-                 astrometric_chi_squared_matrices=None, astrometric_solution_vector_components=None):
+                 astrometric_chi_squared_matrices=None, astrometric_solution_vector_components=None,
+                 central_epoch_ra=0, central_epoch_dec=0, central_epoch_fmt='MJD'):
         self.inverse_covariance_matrices = inverse_covariance_matrices
         self.epoch_times = epoch_times
+        self.central_epoch_dec, self.central_epoch_ra = _verify_epoch(central_epoch_dec,
+                                                                      central_epoch_ra,
+                                                                      central_epoch_fmt)
         if astrometric_solution_vector_components is None:
             self.astrometric_solution_vector_components = self._init_astrometric_solution_vectors()
         if astrometric_chi_squared_matrices is None:
@@ -20,7 +26,8 @@ class AstrometricFitter(object):
         """
         :param ra_vs_epoch: 1d array of right ascension, ordered the same as the covariance matrices and epochs.
         :param dec_vs_epoch: 1d array of declination, ordered the same as the covariance matrices and epochs.
-        :return:
+        :return: Array:
+                 [ra0, dec0, mu_ra, mu_dec]
         """
         return np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch,
                                                                     dec_vs_epoch=dec_vs_epoch))
@@ -39,14 +46,16 @@ class AstrometricFitter(object):
             d, b, c, a = unpack_elements_of_matrix(self.inverse_covariance_matrices[epoch])
             b, c = -b, -c
             epoch_time = self.epoch_times[epoch]
+            dec_time = epoch_time - self.central_epoch_dec
+            ra_time = epoch_time - self.central_epoch_ra
             ra_vec, dec_vec = np.zeros(4).astype(np.float64), np.zeros(4).astype(np.float64)
-            ra_vec[0] = -(-2 * d * epoch_time)
-            ra_vec[1] = -((b + c) * epoch_time)
+            ra_vec[0] = -(-2 * d * ra_time)
+            ra_vec[1] = -((b + c) * ra_time)
             ra_vec[2] = -(-2 * d)
             ra_vec[3] = -(b + c)
 
-            dec_vec[0] = -((b + c) * epoch_time)
-            dec_vec[1] = -(- 2 * a * epoch_time)
+            dec_vec[0] = -((b + c) * dec_time)
+            dec_vec[1] = -(- 2 * a * dec_time)
             dec_vec[2] = -(b + c)
             dec_vec[3] = -(- 2 * a)
 
@@ -61,25 +70,27 @@ class AstrometricFitter(object):
             d, b, c, a = unpack_elements_of_matrix(self.inverse_covariance_matrices[epoch])
             b, c = -b, -c
             epoch_time = self.epoch_times[epoch]
+            dec_time = epoch_time - self.central_epoch_dec
+            ra_time = epoch_time - self.central_epoch_ra
 
             A = np.zeros((4, 4))
 
-            A[:, 0] = np.array([2 * d * epoch_time,
-                                (-b - c) * epoch_time,
+            A[:, 0] = np.array([2 * d * ra_time,
+                                (-b - c) * ra_time,
                                 2 * d,
                                 (-b - c)])
-            A[:, 1] = np.array([(-b - c) * epoch_time,
-                                2 * a * epoch_time,
+            A[:, 1] = np.array([(-b - c) * dec_time,
+                                2 * a * dec_time,
                                 (-b - c),
                                 2 * a])
-            A[:, 2] = np.array([2 * d * epoch_time ** 2,
-                                (-b - c) * epoch_time ** 2,
-                                2 * d * epoch_time,
-                                (-b - c) * epoch_time])
-            A[:, 3] = np.array([(-b - c) * epoch_time ** 2,
-                                2 * a * epoch_time ** 2,
-                                (-b - c) * epoch_time,
-                                2 * a * epoch_time])
+            A[:, 2] = np.array([2 * d * ra_time ** 2,
+                                (-b - c) * ra_time ** 2,
+                                2 * d * ra_time,
+                                (-b - c) * ra_time])
+            A[:, 3] = np.array([(-b - c) * dec_time ** 2,
+                                2 * a * dec_time ** 2,
+                                (-b - c) * dec_time,
+                                2 * a * dec_time])
 
             astrometric_chi_squared_matrices[epoch] = A
         return np.sum(astrometric_chi_squared_matrices, axis=0)
@@ -87,3 +98,14 @@ class AstrometricFitter(object):
 
 def unpack_elements_of_matrix(matrix):
     return matrix.flatten()
+
+
+def _verify_epoch(central_epoch_dec, central_epoch_ra, central_epoch_fmt):
+    if central_epoch_fmt == 'frac_year':
+        if central_epoch_dec > 3000 or central_epoch_ra > 3000:
+            warnings.warn('central epoch in RA or DEC was chosen to be > 3000. Are you sure this'
+                          'is a fractional year date and not a MJD? If MJD, set central_epoch_fmt=MJD.',
+                          UserWarning)
+        central_epoch_dec = fractional_year_epoch_to_jd(central_epoch_dec, half_day_correction=True)
+        central_epoch_ra = fractional_year_epoch_to_jd(central_epoch_ra, half_day_correction=True)
+    return central_epoch_dec, central_epoch_ra
