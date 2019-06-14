@@ -36,7 +36,7 @@ are 'GaiaDR2', 'Hip1' and 'Hip2'. The following lines parse the intermediate dat
     fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/')  # parse
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)  # fit
 
-If you want to specify a central epoch in fractional year, instead call:
+If you want to specify a central epoch in major Julian day, instead call:
 
 .. code-block:: python
 
