@@ -49,15 +49,14 @@ The above would set the central epoch for the right ascension (ra) to 56000 MJD,
 One could also set the central epochs to years using the 'frac_year' keyword and supplying a year:
 .. code-block:: python
     from htof.main import Astrometry
-
     fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/',
                         central_epoch_ra=2000, central_epoch_dec=2000, central_epoch_fmt='frac_year')
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)
 
 One can then access the MJD central epochs via
 .. code-block:: python
-    fitter.central_epoch_dec
-    fitter.central_epoch_ra
+     fitter.central_epoch_dec
+     fitter.central_epoch_ra
 
 The following appendix describes in more detail how to perform the above operations without
 using the Astrometry object, if you ever desired to do so.
@@ -67,27 +66,24 @@ Appendix: Loading data
 This section describes how to reproduce the fit from Astrometry.fit from the Usage section. The
 Astrometry object is essentially just a wrapper for data parsing and fitting all in one.
 
-from htof.parse import HipparcosOriginalData # or GaiaData or HipparcosReReduction
-data = HipparcosOriginalData()
-data.parse(star_id='049699',
-           intermediate_data_directory='Hip1/IntermediateData/)
-data.calculate_inverse_covariance_matrices()
+.. code-block:: python
 
-# data now has a variety of intermediate data products such as the scan angles, the epochs when each
-# data point was collected, the inverse covariance matrices describing the errors of the scan,
-# and the MJD epochs accessible through data.julian_day_epoch() .
+    from htof.parse import HipparcosOriginalData # or GaiaData or HipparcosReReduction
+    data = HipparcosOriginalData()
+    data.parse(star_id='049699',
+               intermediate_data_directory='Hip1/IntermediateData/)
+    data.calculate_inverse_covariance_matrices()
 
-# Sec 3: Fitting a line to the astrometry. Given a parsed data object (described in Sec 1) to fit
-# a line to the a given set of ra_vs_epoch, dec_vs_epoch positions we simply call:
+data now has a variety of intermediate data products such as the scan angles, the epochs when each
+data point was collected, the inverse covariance matrices describing the errors of the scan,
+and the MJD epochs accessible through data.julian_day_epoch() .
+
+Now to fit a line to the astrometry. Given a parsed data object, we simply call:
+
+.. code-block:: python
     fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix,
                                epoch_times=data.julian_day_epoch())
     solution_vector = fitter.fit_line(ra_vs_epoch, dec_vs_epoch)
     ra0, dec0, mu_ra, mu_dec = solution_vector
-# where ra(mjd) = ra0 + mu_ra * mjd, and same for dec.
 
-.. code-block:: python
-
-    from banzai.dbs import create_db
-    create_db('.', db_address='sqlite:///banzai.db')
-
-
+where ra(mjd) = ra0 + mu_ra * mjd, and same for dec.
