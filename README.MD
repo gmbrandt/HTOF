@@ -1,0 +1,1 @@
+[![Coverage Status](https://coveralls.io/repos/github/gmbrandt/HTOF/badge.svg?branch=master)](https://coveralls.io/github/gmbrandt/HTOF?branch=master)
