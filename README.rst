@@ -64,7 +64,7 @@ One can then access the MJD central epochs via
 The following appendix describes in more detail how to perform the above operations without
 using the Astrometry object, if you ever desired to do so.
 
-Appendix:
+Appendix
 -----
 This section describes how to reproduce the fit from Astrometry.fit from the Usage section. The
 Astrometry object is essentially just a wrapper for data parsing and fitting all in one.
@@ -89,3 +89,8 @@ Now to fit a line to the astrometry. Given a parsed data object, we simply call:
     ra0, dec0, mu_ra, mu_dec = solution_vector
 
 where ra(mjd) = ra0 + mu_ra * mjd, and same for dec.
+
+License
+------
+
+MIT. See the LICENSE file for information on the MIT license.
