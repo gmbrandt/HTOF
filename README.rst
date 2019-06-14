@@ -32,7 +32,6 @@ are 'GaiaDR2', 'Hip1' and 'Hip2'. The following lines parse the intermediate dat
 
 .. code-block:: python
     from htof.main import Astrometry
-
     fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/')  # parse
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)  # fit
 
@@ -55,8 +54,8 @@ One could also set the central epochs to years using the 'frac_year' keyword and
 
 One can then access the MJD central epochs via
 .. code-block:: python
-     fitter.central_epoch_dec
-     fitter.central_epoch_ra
+    fitter.central_epoch_dec
+    fitter.central_epoch_ra
 
 The following appendix describes in more detail how to perform the above operations without
 using the Astrometry object, if you ever desired to do so.
@@ -70,8 +69,7 @@ Astrometry object is essentially just a wrapper for data parsing and fitting all
 
     from htof.parse import HipparcosOriginalData # or GaiaData or HipparcosReReduction
     data = HipparcosOriginalData()
-    data.parse(star_id='049699',
-               intermediate_data_directory='Hip1/IntermediateData/)
+    data.parse(star_id='049699', intermediate_data_directory='Hip1/IntermediateData/)
     data.calculate_inverse_covariance_matrices()
 
 data now has a variety of intermediate data products such as the scan angles, the epochs when each
