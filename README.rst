@@ -31,6 +31,7 @@ Assume we want to fit to data from GaiaDR2 on the star with hip id 027321. The c
 are 'GaiaDR2', 'Hip1' and 'Hip2'. The following lines parse the intermediate data and fit a line.
 
 .. code-block:: python
+
     from htof.main import Astrometry
     fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/')  # parse
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)  # fit
@@ -38,22 +39,25 @@ are 'GaiaDR2', 'Hip1' and 'Hip2'. The following lines parse the intermediate dat
 If you want to specify a central epoch in fractional year, instead call:
 
 .. code-block:: python
+
     from htof.main import Astrometry
 
-    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/',
-                        central_epoch_ra=56000, central_epoch_dec=56200, central_epoch_fmt='MJD')
+    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=56000, central_epoch_dec=56200, central_epoch_fmt='MJD')
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)
 
 The above would set the central epoch for the right ascension (ra) to 56000 MJD, and declination (dec) to 56200 MJD.
 One could also set the central epochs to years using the 'frac_year' keyword and supplying a year:
+
 .. code-block:: python
+
     from htof.main import Astrometry
-    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/',
-                        central_epoch_ra=2000, central_epoch_dec=2000, central_epoch_fmt='frac_year')
+    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2000, central_epoch_dec=2000, central_epoch_fmt='frac_year')
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)
 
 One can then access the MJD central epochs via
+
 .. code-block:: python
+
     fitter.central_epoch_dec
     fitter.central_epoch_ra
 
@@ -79,8 +83,8 @@ and the MJD epochs accessible through data.julian_day_epoch() .
 Now to fit a line to the astrometry. Given a parsed data object, we simply call:
 
 .. code-block:: python
-    fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix,
-                               epoch_times=data.julian_day_epoch())
+
+    fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix, epoch_times=data.julian_day_epoch())
     solution_vector = fitter.fit_line(ra_vs_epoch, dec_vs_epoch)
     ra0, dec0, mu_ra, mu_dec = solution_vector
 
