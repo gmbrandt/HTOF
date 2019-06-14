@@ -1,3 +1,4 @@
 astropy
 pandas
 numpy
+python-coveralls

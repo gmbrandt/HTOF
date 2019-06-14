@@ -10,3 +10,6 @@ install:
 # command to run tests
 script:
   - pytest
+# coveralls
+after_success:
+  - coveralls
