@@ -42,10 +42,10 @@ class AstrometricFitter(object):
         num_epochs = len(self.epoch_times)
         astrometric_solution_vector_components = {'ra': np.zeros((num_epochs, 4)),
                                                   'dec': np.zeros((num_epochs, 4))}
-        for epoch in range(num_epochs):
-            d, b, c, a = unpack_elements_of_matrix(self.inverse_covariance_matrices[epoch])
+        for obs in range(num_epochs):
+            d, b, c, a = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
             b, c = -b, -c
-            epoch_time = self.epoch_times[epoch]
+            epoch_time = self.epoch_times[obs]
             dec_time = epoch_time - self.central_epoch_dec
             ra_time = epoch_time - self.central_epoch_ra
             ra_vec, dec_vec = np.zeros(4).astype(np.float64), np.zeros(4).astype(np.float64)
@@ -59,17 +59,17 @@ class AstrometricFitter(object):
             dec_vec[2] = -(b + c)
             dec_vec[3] = -(- 2 * a)
 
-            astrometric_solution_vector_components['ra'][epoch] = ra_vec
-            astrometric_solution_vector_components['dec'][epoch] = dec_vec
+            astrometric_solution_vector_components['ra'][obs] = ra_vec
+            astrometric_solution_vector_components['dec'][obs] = dec_vec
         return astrometric_solution_vector_components
 
     def _init_astrometric_chi_squared_matrix(self):
         num_epochs = len(self.epoch_times)
         astrometric_chi_squared_matrices = np.zeros((num_epochs, 4, 4))
-        for epoch in range(num_epochs):
-            d, b, c, a = unpack_elements_of_matrix(self.inverse_covariance_matrices[epoch])
+        for obs in range(num_epochs):
+            d, b, c, a = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
             b, c = -b, -c
-            epoch_time = self.epoch_times[epoch]
+            epoch_time = self.epoch_times[obs]
             dec_time = epoch_time - self.central_epoch_dec
             ra_time = epoch_time - self.central_epoch_ra
 
@@ -92,7 +92,7 @@ class AstrometricFitter(object):
                                 (-b - c) * dec_time,
                                 2 * a * dec_time])
 
-            astrometric_chi_squared_matrices[epoch] = A
+            astrometric_chi_squared_matrices[obs] = A
         return np.sum(astrometric_chi_squared_matrices, axis=0)
 
 

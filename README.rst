@@ -19,7 +19,7 @@ htof can be installed in the usual way, by running
 
     pip install .
 
-While in the directory of this repo.
+While in the root directory of this repo.
 
 Usage
 -----
