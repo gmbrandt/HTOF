@@ -127,10 +127,8 @@ class HipparcosOriginalData(IntermediateDataParser):
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
 
     @staticmethod
-    def _fix_unnamed_column(data_frame, correct_key='IA2'):
-        for colname in data_frame.columns:
-            if 'IA' not in colname and 'A1' not in colname:
-                data_frame.rename(columns={colname: correct_key}, inplace=True)
+    def _fix_unnamed_column(data_frame, correct_key='IA2', col_idx=1):
+        data_frame.rename(columns={data_frame.columns[col_idx]: correct_key}, inplace=True)
         return data_frame
 
 
