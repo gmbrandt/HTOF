@@ -33,7 +33,10 @@ class Astrometry(object):
         # NOTE: AstrometricFitter stores central_epoch_dec and central_epoch_fmt as 'MJD'.
         # If central_epoch_fmt = 'frac_year', AstrometricFitter will convert them to MJD first.
 
-    def fit(self, ra_vs_epoch, dec_vs_epoch):
+    def fit(self, ra_vs_epoch, dec_vs_epoch, pm_units='mas_per_day'):
         solution_vector = self.fitter.fit_line(ra_vs_epoch=ra_vs_epoch,
                                                dec_vs_epoch=dec_vs_epoch)
-        return solution_vector
+        if pm_units == 'mas_per_day':
+            return solution_vector
+        if pm_units == 'mas_per_year':
+            return solution_vector * np.array([1, 1, 365.25, 365.25])

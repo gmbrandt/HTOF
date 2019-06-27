@@ -1,6 +1,7 @@
 import pytest
 import os
 import numpy as np
+import mock
 
 from htof.parse import GaiaData, HipparcosRereductionData, HipparcosOriginalData
 from htof.fit import AstrometricFitter
@@ -55,3 +56,9 @@ class TestAstrometry:
             ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch=np.ones(num_pts),
                                                   dec_vs_epoch=np.ones(num_pts))
             assert True
+
+    @mock.patch('htof.main.AstrometricFitter.fit_line', return_value=np.ones(4))
+    def test_conversion_to_mas_per_year(self, fake_fitter):
+        fitter = Astrometry('Hip1', '', '', data='', fitter=AstrometricFitter('', '', '', ''))
+        assert np.allclose(fitter.fit(None, None, pm_units='mas_per_year'), [1, 1, 365.25, 365.25])
+        assert np.allclose(fitter.fit(None, None, pm_units='mas_per_day'), np.ones(4))

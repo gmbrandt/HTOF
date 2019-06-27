@@ -65,6 +65,16 @@ One can then access the MJD central epochs via
     fitter.central_epoch_dec
     fitter.central_epoch_ra
 
+Both Hipparcos and Gaia catalogs list parallaxes in milli-arcseconds (mas). We convert all three
+catalog epochs to major julian day by default, therefore a fit to astrometry has proper motions
+with units of mas/day by default. If you want mas/year, then use the keyword :code:`pm_units` (proper motion units):
+
+.. code-block:: python
+
+    ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch, pm_units='mas_per_year')
+
+Which will return the same mu_ra and mu_dec as with :code:`pm_units='mas_per_day'` but multiplied by 365.25.
+
 The following appendix describes in more detail how to perform the above operations without
 using the Astrometry object, if you ever desired to do so.
 
