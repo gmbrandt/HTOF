@@ -128,8 +128,9 @@ class HipparcosOriginalData(IntermediateDataParser):
 
     @staticmethod
     def _fix_unnamed_column(data_frame, correct_key='IA2'):
-        if 'Unnamed: 1' in data_frame.columns:
-            data_frame.rename(columns={'Unnamed: 1': correct_key}, inplace=True)
+        for colname in data_frame.columns:
+            if 'IA' not in colname and 'A1' not in colname:
+                data_frame.rename(columns={colname: correct_key}, inplace=True)
         return data_frame
 
 
