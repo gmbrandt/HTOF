@@ -37,6 +37,9 @@ are :code:`GaiaDR2`, :code:`Hip1` and :code:`Hip2`. The following lines parse th
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)  # fit
 
 For Hipparcos 2, the path to the intermediate data would point to :code:`IntermediateData/resrec/`.
+Note that the intermediate data files must be in the same format as the test intermediate data files found in this
+repository under :code:`htof/test/data_for_tests/`.
+
 If you want to specify a central epoch in major Julian day, instead call:
 
 .. code-block:: python
