@@ -1,4 +1,14 @@
-IA1  |IA2 |IA3    |IA4    |IA5    |IA6    |IA7    |IA8     |IA9    |IA10 
+IH1   :    27321             Hipparcos Catalogue (HIP) identifier
+IH2   :        3.91          Provisional Hp magnitude used for the merging (mag)
+IH3   :       86.82118054    Right ascension alpha (deg)
+IH4   :      -51.06671329    Declination delta (deg)
+IH5   :       51.87          Trigonometric parallax pi (mas)
+IH6   :        4.65          Proper motion in right ascension mu_alpha* (mas/year)
+IH7   :       81.96          Proper motion in declination mu_delta (mas/year)
+IH8   : 5                    Code for adopted solution (5, 7, 9, C, O, V, X, -)
+IH9   :       66             Number of following abscissae records, N_A
+ABCISSAE
+A1  | |IA3    |IA4    |IA5    |IA6    |IA7    |IA8     |IA9    |IA10 
  133|F|-0.9053|-0.4248| 0.6270| 1.1264| 0.5285|   -2.50|   2.21|0.393
  133|N|-0.9051|-0.4252| 0.6263| 1.1265| 0.5291|   -1.18|   1.59|0.393
  194|F|-0.0721| 0.9974|-0.6469| 0.0844|-1.1670|   -4.07|   2.26|0.392
@@ -65,4 +75,3 @@ IA1  |IA2 |IA3    |IA4    |IA5    |IA6    |IA7    |IA8     |IA9    |IA10
 2506|N|-0.9779| 0.2092|-0.6306|-1.6026| 0.3428|   -4.08|   3.67|0.481
 2677|F|-0.9904| 0.1380| 0.6496|-1.8287| 0.2548|   -4.44|   2.90|0.334
 2677|N|-0.9900| 0.1415| 0.6472|-1.8280| 0.2613|   -1.78|   5.40|0.334
-

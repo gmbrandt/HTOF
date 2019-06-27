@@ -5,7 +5,7 @@ import mock
 import os
 
 from htof.parse import HipparcosOriginalData, HipparcosRereductionData, GaiaData, IntermediateDataParser
-from htof.parse import calculate_covariance_matrices, fractional_year_epoch_to_jd
+from htof.parse import calculate_covariance_matrices, fractional_year_epoch_to_jd, _match_filename_to_star_id
 
 
 class TestHipparcosOriginalData:
@@ -38,33 +38,43 @@ class TestHipparcosOriginalData:
                        data_choice='something')
 
 
-def test_parse_rereduced_data():
-    test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
-    data = HipparcosRereductionData()
-    data.parse(star_id='027321',
-               intermediate_data_directory=test_data_directory, convert_to_jd=False)
-    assert len(data._epoch) == 111
-    assert np.isclose(data._epoch[0], 1990.005)
-    assert np.isclose(data.scan_angle[0], -2.006668)
-    assert np.isclose(data._epoch[84], 1991.952)
-    assert np.isclose(data.scan_angle[84], -0.941235)
-
-
-def test_parse_warns_on_short_name():
-    with pytest.warns(SyntaxWarning):
+class TestLoad:
+    def test_parse_rereduced_data(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
         data = HipparcosRereductionData()
-        data.parse(star_id='27321',
-                   intermediate_data_directory=test_data_directory, convert_to_jd=False)
-
-
-@mock.patch('htof.parse.glob.glob', return_value=['file1', 'file2'])
-def test_parse_raises_error_on_files_found(fake_glob):
-    test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
-    data = HipparcosRereductionData()
-    with pytest.raises(Exception):
         data.parse(star_id='027321',
                    intermediate_data_directory=test_data_directory, convert_to_jd=False)
+        assert len(data._epoch) == 111
+        assert np.isclose(data._epoch[0], 1990.005)
+        assert np.isclose(data.scan_angle[0], -2.006668)
+        assert np.isclose(data._epoch[84], 1991.952)
+        assert np.isclose(data.scan_angle[84], -0.941235)
+
+    def test_parse_raises_file_not_found_error(self):
+        with pytest.raises(FileNotFoundError):
+            test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
+            data = HipparcosRereductionData()
+            data.parse(star_id='12gjas2',
+                       intermediate_data_directory=test_data_directory, convert_to_jd=False)
+
+    @mock.patch('htof.parse.glob.glob', return_value=['path/027321.dat', 'path/027321.dat'])
+    def test_parse_raises_error_on_many_files_found(self, fake_glob):
+        test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
+        data = HipparcosRereductionData()
+        with pytest.raises(ValueError):
+            data.parse(star_id='027321',
+                       intermediate_data_directory=test_data_directory, convert_to_jd=False)
+
+    @mock.patch('htof.parse.pd.read_csv', return_value=None)
+    @mock.patch('htof.parse.glob.glob', return_value=['path/127321.dat', 'path/27321.dat'])
+    def test_read_matches_filename_if_needed(self, fake_glob, fake_load):
+        test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
+        data = IntermediateDataParser()
+        assert data.read_intermediate_data_file('27321', test_data_directory, None, None, None) is None
+
+    def test_match_filename_to_star_id(self):
+        paths = _match_filename_to_star_id('232', ['/fake/path/1232.dat', '/fake/path/23211.dat', '/fake/path/232.dat'])
+        assert paths == ['/fake/path/232.dat']
 
 
 def test_convert_dates_to_jd():

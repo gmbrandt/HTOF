@@ -3,6 +3,8 @@ import pandas as pd
 import os
 import glob
 import datetime
+import errno
+
 import warnings
 
 from astropy.time import Time
@@ -26,13 +28,16 @@ class IntermediateDataParser(object):
 
     @staticmethod
     def read_intermediate_data_file(star_id, intermediate_data_directory, skiprows, header, sep):
-        if len(star_id) < 6:
-            warnings.warn("If a Hip ID, star id has not been fully specified "
-                          "(e.g. 3865 instead of 003865). Search may fail.", SyntaxWarning)
         filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id + '*')
         filepath_list = glob.glob(filepath, recursive=True)
+        if len(filepath_list) == 0:
+            raise FileNotFoundError('No file with name containing {0}'
+                                    ' found in {1}'.format(str(star_id), intermediate_data_directory))
         if len(filepath_list) > 1:
-            raise ValueError('More than one input file with hip id {0} found'.format(star_id))
+            filepath_list = _match_filename_to_star_id(star_id, filepath_list)
+        if len(filepath_list) > 1:
+            raise ValueError('More than one filename containing {0}'
+                             'found in {1}'.format(str(star_id), intermediate_data_directory))
         data = pd.read_csv(filepath_list[0], sep=sep, skiprows=skiprows, header=header, engine='python')
         return data
 
@@ -68,6 +73,10 @@ def fractional_year_epoch_to_jd(epoch, half_day_correction=True):
         utc_time += datetime.timedelta(days=0.5)
     jd_epoch = Time(utc_time).jd
     return jd_epoch
+
+
+def _match_filename_to_star_id(star_id, filepath_list):
+    return [path for path in filepath_list if os.path.basename(path).split('.')[0] == str(star_id)]
 
 
 def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1E5):
@@ -108,13 +117,20 @@ class HipparcosOriginalData(IntermediateDataParser):
         if (data_choice is not 'NDAC') and (data_choice is not 'FAST'):
             raise ValueError('data choice has to be either NDAC or FAST')
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
-                                                skiprows=0, header='infer', sep='\s*\|\s*')
+                                                skiprows=10, header='infer', sep='\s*\|\s*')
+        data = self._fix_unnamed_column(data)
         # select either the data from the NDAC or the FAST consortium.
         data = data[data['IA2'] == data_choice[0]]
         # compute scan angles and observations epochs according to van Leeuwen & Evans 1997, eq. 11 & 12.
         self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians
         self._epoch = data['IA6'] / data['IA3'] + 1991.25
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
+
+    @staticmethod
+    def _fix_unnamed_column(data_frame, correct_key='IA2'):
+        if 'Unnamed: 1' in data_frame.columns:
+            data_frame.rename(columns={'Unnamed: 1': correct_key}, inplace=True)
+        return data_frame
 
 
 class HipparcosRereductionData(IntermediateDataParser):
