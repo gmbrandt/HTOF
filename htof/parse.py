@@ -158,18 +158,21 @@ class HipparcosRereductionData(IntermediateDataParser):
 
 
 class GaiaData(IntermediateDataParser):
-    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None):
+    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
+                 min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch):
         super(GaiaData, self).__init__(scan_angle=scan_angle,
                                        epoch=epoch, residuals=residuals,
                                        inverse_covariance_matrix=inverse_covariance_matrix)
+        self.min_epoch = min_epoch
+        self.max_epoch = max_epoch
 
     def parse(self, star_id, intermediate_data_directory, **kwargs):
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=0, header='infer', sep='\s*,\s*')
         self._epoch = data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]']
         self.scan_angle = data['scanAngle[rad]']
-        self._epoch, self.scan_angle = self.trim_data(self._epoch, st.GaiaDR2_min_epoch,
-                                                      st.GaiaDR2_max_epoch, [self.scan_angle])
+        self._epoch, self.scan_angle = self.trim_data(self._epoch, self.min_epoch,
+                                                      self.max_epoch, [self.scan_angle])
 
     def julian_day_epoch(self):
         return self._epoch.values.flatten()

@@ -7,5 +7,5 @@ NOTE: Gaia DR2 is based on data collected from the start of the nominal observat
  or 1.75 yr (therefore until 2016 May 23, or BJD 2457532.375).
 """
 
-GaiaDR2_min_epoch = 2456892.375  # Baryocentric Julian Day (BJD)
-GaiaDR2_max_epoch = 2457532.375  # Baryocentric Julian Day (BJD)
+GaiaDR2_min_epoch = 2456892.375  # Barycentric Julian Day (BJD)
+GaiaDR2_max_epoch = 2457532.375  # Barycentric Julian Day (BJD)

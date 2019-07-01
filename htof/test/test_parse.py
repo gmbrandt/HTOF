@@ -123,11 +123,9 @@ def test_calculate_inverse_covariances(mock_cov_matrix):
 
 class TestParseGaiaDR2:
     @pytest.mark.integration
-    @mock.patch('htof.settings.GaiaDR2_min_epoch', new=-np.inf)
-    @mock.patch('htof.settings.GaiaDR2_max_epoch', new=np.inf)
     def test_parse_all_epochs(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
-        data = GaiaData()
+        data = GaiaData(max_epoch=np.inf, min_epoch=-np.inf)
         data.parse(intermediate_data_directory=test_data_directory,
                    star_id='049699')
         assert len(data._epoch) == 72
@@ -137,11 +135,9 @@ class TestParseGaiaDR2:
         assert np.isclose(data.scan_angle[70], 2.821818345385301)
 
     @pytest.mark.integration
-    @mock.patch('htof.settings.GaiaDR2_min_epoch', new=2457143.4935643710)
-    @mock.patch('htof.settings.GaiaDR2_max_epoch', new=2458426.7784441218)
     def test_parse_selects_valid_epochs(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
-        data = GaiaData()
+        data = GaiaData(max_epoch=2458426.7784441218, min_epoch=2457143.4935643710)
         data.parse(intermediate_data_directory=test_data_directory,
                    star_id='049699')
 

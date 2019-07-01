@@ -40,7 +40,7 @@ For Hipparcos 2, the path to the intermediate data would point to :code:`Interme
 Note that the intermediate data files must be in the same format as the test intermediate data files found in this
 repository under :code:`htof/test/data_for_tests/`.
 
-If you want to specify a central epoch in baryocentric Julian day, instead call:
+If you want to specify a central epoch in barycentric Julian day, instead call:
 
 .. code-block:: python
 
@@ -66,7 +66,7 @@ One can then access the BJD central epochs via
     fitter.central_epoch_ra
 
 Both Hipparcos and Gaia catalogs list parallaxes in milli-arcseconds (mas). We convert all three
-catalog epochs to baryocentric julian day by default, therefore a fit to astrometry has proper motions
+catalog epochs to barycentric julian day by default, therefore a fit to astrometry has proper motions
 with units of mas/day by default. If you want mas/year, then use the keyword :code:`pm_units` (proper motion units):
 
 .. code-block:: python
