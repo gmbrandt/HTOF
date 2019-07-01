@@ -46,10 +46,10 @@ If you want to specify a central epoch in major Julian day, instead call:
 
     from htof.main import Astrometry
 
-    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=56000, central_epoch_dec=56200, central_epoch_fmt='MJD')
+    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2456892, central_epoch_dec=2456892, central_epoch_fmt='BJD')
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)
 
-The above would set the central epoch for the right ascension (ra) to 56000 MJD, and declination (dec) to 56200 MJD.
+The above would set the central epoch for the right ascension (ra) to 2456892 BJD, and declination (dec) to 2456892 BJD.
 One could also set the central epochs to years using the :code:`frac_year` keyword and supplying a year:
 
 .. code-block:: python
@@ -58,7 +58,7 @@ One could also set the central epochs to years using the :code:`frac_year` keywo
     fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2000, central_epoch_dec=2000, central_epoch_fmt='frac_year')
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)
 
-One can then access the MJD central epochs via
+One can then access the BJD central epochs via
 
 .. code-block:: python
 
@@ -92,7 +92,7 @@ Astrometry object is essentially just a wrapper for data parsing and fitting all
 
 data now has a variety of intermediate data products such as the scan angles, the epochs when each
 data point was collected, the inverse covariance matrices describing the errors of the scan,
-and the MJD epochs accessible through :code:`data.julian_day_epoch()`.
+and the BJD epochs accessible through :code:`data.julian_day_epoch()`.
 
 Now to fit a line to the astrometry. Given a parsed data object, we simply call:
 

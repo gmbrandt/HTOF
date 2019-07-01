@@ -105,6 +105,15 @@ def test_call_jd_dates_gaia():
     assert np.isclose(jd_epochs[1], 2447893)
 
 
+def test_trim_gaia_data():
+    parser = GaiaData()
+    datemin, datemax = 3, 5
+    epochs = pd.DataFrame(data=[datemin - 1, datemin, datemax, datemax + 1], index=[3, 4, 5, 6])
+    epochs, other = parser.trim_data(epochs, datemin, datemax, other_data=[epochs])
+    assert np.allclose(epochs.values.flatten(), [datemin, datemax])
+    assert np.allclose(other.values.flatten(), [datemin, datemax])
+
+
 @mock.patch('htof.parse.calculate_covariance_matrices', return_value=np.array([np.ones((2, 2))]))
 def test_calculate_inverse_covariances(mock_cov_matrix):
     parser = IntermediateDataParser()
@@ -112,16 +121,35 @@ def test_calculate_inverse_covariances(mock_cov_matrix):
     assert np.allclose(parser.inverse_covariance_matrix[0], 1/4 * np.ones((2, 2)))
 
 
-def test_parse_gaia_data():
-    test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
-    data = GaiaData()
-    data.parse(intermediate_data_directory=test_data_directory,
-               star_id='049699')
-    assert len(data._epoch) == 72
-    assert np.isclose(data._epoch[0], 2456951.7659301492)
-    assert np.isclose(data.scan_angle[0], -1.8904696884345342)
-    assert np.isclose(data._epoch[70], 2458426.7784441216)
-    assert np.isclose(data.scan_angle[70], 2.821818345385301)
+class TestParseGaiaDR2:
+    @pytest.mark.integration
+    @mock.patch('htof.settings.GaiaDR2_min_epoch', new=-np.inf)
+    @mock.patch('htof.settings.GaiaDR2_max_epoch', new=np.inf)
+    def test_parse_all_epochs(self):
+        test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
+        data = GaiaData()
+        data.parse(intermediate_data_directory=test_data_directory,
+                   star_id='049699')
+        assert len(data._epoch) == 72
+        assert np.isclose(data._epoch[0], 2456951.7659301492)
+        assert np.isclose(data.scan_angle[0], -1.8904696884345342)
+        assert np.isclose(data._epoch[70], 2458426.7784441216)
+        assert np.isclose(data.scan_angle[70], 2.821818345385301)
+
+    @pytest.mark.integration
+    @mock.patch('htof.settings.GaiaDR2_min_epoch', new=2457143.4935643710)
+    @mock.patch('htof.settings.GaiaDR2_max_epoch', new=2458426.7784441218)
+    def test_parse_selects_valid_epochs(self):
+        test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
+        data = GaiaData()
+        data.parse(intermediate_data_directory=test_data_directory,
+                   star_id='049699')
+
+        assert len(data._epoch) == 68
+        assert np.isclose(data._epoch.iloc[0], 2457143.4935643715)
+        assert np.isclose(data.scan_angle.iloc[0], -0.3066803677989655)
+        assert np.isclose(data._epoch.iloc[67], 2458426.7784441216)
+        assert np.isclose(data.scan_angle.iloc[67], 2.821818345385301)
 
 
 def test_calculating_covariance_matrices():

@@ -55,7 +55,7 @@ def test_verify_epoch(fake_convert):
         return int(time)
     fake_convert.side_effect = convert
 
-    ranew, decnew = _verify_epoch(0, 0, 'MJD')
+    ranew, decnew = _verify_epoch(0, 0, 'BJD')
     assert np.allclose([ranew, decnew], 0)
     ranew, decnew = _verify_epoch(2000.1, 2001.2, 'frac_year')
     assert np.allclose([ranew, decnew], [2000, 2001])

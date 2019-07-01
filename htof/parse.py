@@ -8,6 +8,7 @@ import errno
 import warnings
 
 from astropy.time import Time
+from htof import settings as st
 
 import abc
 
@@ -167,6 +168,12 @@ class GaiaData(IntermediateDataParser):
                                                 skiprows=0, header='infer', sep='\s*,\s*')
         self._epoch = data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]']
         self.scan_angle = data['scanAngle[rad]']
+        self._epoch, self.scan_angle = self.trim_data(self._epoch, st.GaiaDR2_min_epoch,
+                                                      st.GaiaDR2_max_epoch, [self.scan_angle])
 
     def julian_day_epoch(self):
         return self._epoch.values.flatten()
+
+    def trim_data(self, epochs, min_mjd, max_mjd, other_data=()):
+        valid = np.logical_and(epochs >= min_mjd, epochs <= max_mjd)
+        return tuple(data[valid].dropna() for data in [epochs, *other_data])
