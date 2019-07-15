@@ -78,9 +78,9 @@ class TestLoad:
 
 
 def test_convert_dates_to_jd():
-    parser = IntermediateDataParser()
-    epochs = pd.DataFrame(data=[1990.0, 1990.25], index=[5, 6])
-    jd_epochs = parser.convert_hip_style_epochs_to_julian_day(epochs)
+    epoch = pd.DataFrame(data=[1990.0, 1990.25], index=[5, 6])
+    parser = IntermediateDataParser(epoch=epoch)
+    jd_epochs = parser.julian_day_epoch()
     assert np.isclose(jd_epochs[0], 2447892.5)
     assert np.isclose(jd_epochs[1], 2447892.5 + 0.25*365.25)
 

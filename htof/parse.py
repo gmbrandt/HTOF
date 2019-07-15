@@ -47,11 +47,7 @@ class IntermediateDataParser(object):
         pass
 
     def julian_day_epoch(self):
-        return self.convert_hip_style_epochs_to_julian_day(self._epoch)
-
-    @staticmethod
-    def convert_hip_style_epochs_to_julian_day(epochs, half_day_correction=True):
-        return fractional_year_epoch_to_jd(epochs.values.flatten(), half_day_correction=True)
+        return fractional_year_epoch_to_jd(self._epoch.values.flatten(), half_day_correction=True)
 
     def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=1E5):
         cov_matrices = calculate_covariance_matrices(self.scan_angle,
