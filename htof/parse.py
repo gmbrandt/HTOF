@@ -51,11 +51,7 @@ class IntermediateDataParser(object):
 
     @staticmethod
     def convert_hip_style_epochs_to_julian_day(epochs, half_day_correction=True):
-        jd_epochs = []
-        for epoch in epochs.values:
-            jd_epoch = fractional_year_epoch_to_jd(epoch, half_day_correction=half_day_correction)
-            jd_epochs.append(jd_epoch)
-        return np.array(jd_epochs)
+        return fractional_year_epoch_to_jd(epochs.values.flatten(), half_day_correction=True)
 
     def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=1E5):
         cov_matrices = calculate_covariance_matrices(self.scan_angle,
@@ -67,13 +63,7 @@ class IntermediateDataParser(object):
 
 
 def fractional_year_epoch_to_jd(epoch, half_day_correction=True):
-    epoch_year = int(epoch)
-    fraction = epoch - int(epoch)
-    utc_time = datetime.datetime(year=epoch_year, month=1, day=1) + datetime.timedelta(days=365.25) * fraction
-    if half_day_correction:
-        utc_time += datetime.timedelta(days=0.5)
-    jd_epoch = Time(utc_time).jd
-    return jd_epoch
+    return Time(epoch, format='decimalyear').jd + half_day_correction * 0.5
 
 
 def _match_filename_to_star_id(star_id, filepath_list):

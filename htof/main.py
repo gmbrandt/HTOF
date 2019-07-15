@@ -8,7 +8,7 @@ import numpy as np
 import warnings
 
 from htof.fit import AstrometricFitter
-from htof.parse import HipparcosRereductionData, GaiaData, HipparcosOriginalData, fractional_year_epoch_to_jd
+from htof.parse import HipparcosRereductionData, GaiaData, HipparcosOriginalData
 
 
 class Astrometry(object):
