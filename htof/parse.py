@@ -2,10 +2,6 @@ import numpy as np
 import pandas as pd
 import os
 import glob
-import datetime
-import errno
-
-import warnings
 
 from astropy.time import Time
 from htof import settings as st
