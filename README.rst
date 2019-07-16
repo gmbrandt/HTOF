@@ -10,6 +10,8 @@ Hipparcos Satellites, and reproducing linear fits to their astrometry.
 .. image:: https://travis-ci.org/gmbrandt/HTOF.svg?branch=master
     :target: https://travis-ci.org/gmbrandt/HTOF
 
+Parallax is handled by the :code:`sky_path` module which was written by Anthony Brown
+as a part of his astrometric-sky-path package: https://github.com/agabrown/astrometric-sky-path/
 
 Installation
 ------------
