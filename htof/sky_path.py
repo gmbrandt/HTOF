@@ -51,15 +51,17 @@ def earth_sun_l2_ephemeris(t):
     Times at which to calculate the ephemeris in Julian years TCB.
     :return: float array.
     Array of shape (3,t.size) representing the xyz components of the ephemeris at times t.
+
+    Note: 1.511 / 1.496 is the ratio of L2 semi-major axis to the earth's semi-major axis.
     """
-    return earth_ephemeris(t)
+    return earth_ephemeris(t) * 1.511 / 1.496
 
 
 def epoch_topocentric_coordinates(alpha, delta, parallax, mura, mudec, vrad, t, refepoch, ephem):
     """
-    For each observation epoch calculate the topocentric coordinate directions (alpha(t), delta(t)) given
-    the astrometric parameters of a source, the observation times, and the ephemeris (in the BCRS) for
-    the observer. Also calculate the local plane coordinates xi(t) and eta(t).
+    For each observation epoch calculate the topocentric (as seen from a location on the earth's surface)
+    coordinate directions (alpha(t), delta(t)) given the astrometric parameters of a source, the observation times,
+    and the ephemeris (in the BCRS) for the observer. Also calculate the local plane coordinates xi(t) and eta(t).
 
     The code is partly based on the SOFA library (http://www.iausofa.org/) pmpx.c code.
 
@@ -83,9 +85,9 @@ def epoch_topocentric_coordinates(alpha, delta, parallax, mura, mudec, vrad, t, 
     refepoch : float
         Reference epoch (Julian year TCB)
     ephem : function
-        Funtion providing the observer's ephemeris in BCRS at times t (units of AU)
+        Function providing the observer's ephemeris in BCRS at times t (units of AU)
                 
-    Returns
+    Returns (array, array, array, array)
     -------
     
     Arrays alpha, delta, xi, eta. Units are radians for (alpha, delta) and mas for (xi, eta).
