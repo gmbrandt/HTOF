@@ -4,7 +4,7 @@ observer in orbit around the solar system barycentre. That is, the topocentric c
 function of time are calculated.
 
 Anthony Brown Nov 2018 - Nov 2018
-From https://github.com/agabrown/astrometric-sky-path/  commit: 039768eae04dca0b9b6615cccfc021e6a381bf4d
+From https://github.com/agabrown/astrometric-sky-path/  from commit: 039768eae04dca0b9b6615cccfc021e6a381bf4d
 Reproduced with permission of the author.
 """
 
@@ -20,9 +20,9 @@ _mastorad = np.pi/(180*3600*1000)
 _kmps_to_aupyr = (units.year.to(units.s)*units.km.to(units.m))/constants.au.value
 
 
-def ephemeris_earth_astropy(t):
+def earth_ephemeris(t):
     """
-    Calculate the ephemeris for "earth" in the BCRS using astropy tools.    
+    Calculate the ephemeris for the earth in the BCRS using astropy tools.
     
     NOTE: There are several versions of the solar system ephemeris available in astropy and others can be
     provided through a URL (see the documentation of astropy.coordinates.solar_system_ephemeris).
@@ -40,8 +40,19 @@ def ephemeris_earth_astropy(t):
     Array of shape (3,t.size) representing the xyz components of the ephemeris at times t.
     """
     times = Time(t, format='jyear', scale='tcb')
-    earthEph = get_body_barycentric('earth', times)
-    return np.vstack((earthEph.x.value, earthEph.y.value, earthEph.z.value))
+    ephemeris = get_body_barycentric('earth', times)
+    return np.vstack((ephemeris.x.value, ephemeris.y.value, ephemeris.z.value))
+
+
+def earth_sun_l2_ephemeris(t):
+    """
+    Calculate the ephemeris for earth-sun L2 point in the BCRS using astropy tools.
+    :param t: float array.
+    Times at which to calculate the ephemeris in Julian years TCB.
+    :return: float array.
+    Array of shape (3,t.size) representing the xyz components of the ephemeris at times t.
+    """
+    return earth_ephemeris(t)
 
 
 def epoch_topocentric_coordinates(alpha, delta, parallax, mura, mudec, vrad, t, refepoch, ephem):
@@ -82,14 +93,14 @@ def epoch_topocentric_coordinates(alpha, delta, parallax, mura, mudec, vrad, t, 
     
     # Normal triad, defined at the reference epoch.
     p = np.array([-np.sin(alpha), np.cos(alpha), 0.0])
-    q = np.array([-np.sin(delta)*np.cos(alpha), -np.sin(delta)*np.sin(alpha), np.cos(delta)])
-    r = np.array([np.cos(delta)*np.cos(alpha), np.cos(delta)*np.sin(alpha), np.sin(delta)])
+    q = np.array([-np.sin(delta) * np.cos(alpha), -np.sin(delta) * np.sin(alpha), np.cos(delta)])
+    r = np.array([np.cos(delta) * np.cos(alpha), np.cos(delta) * np.sin(alpha), np.sin(delta)])
    
     # Calculate observer's ephemeris.
     bO_bcrs = ephem(t)
 
     # Calculate the Roemer delay, take units into account.
-    tB = t + np.dot(r, bO_bcrs)*constants.au.value/constants.c.value/units.year.to(units.s)
+    tB = t + np.dot(r, bO_bcrs) * constants.au.value / constants.c.value / units.year.to(units.s)
     
     plxrad = parallax*_mastorad
     murarad = mura*_mastorad
@@ -97,67 +108,7 @@ def epoch_topocentric_coordinates(alpha, delta, parallax, mura, mudec, vrad, t, 
     mur = vrad*_kmps_to_aupyr*np.abs(plxrad)
 
     uO = np.repeat(r, t.size).reshape((r.size, t.size))
-    uO = uO + np.tensordot((p*murarad + q*mudecrad + r*mur),(tB-refepoch),axes=0) - plxrad*bO_bcrs
-    
-    # Local plane coordinates which approximately equal delta_alpha*cos(delta) and delta_delta
-    xi = np.dot(p,uO)/np.dot(r,uO)*_radtomas
-    eta = np.dot(q,uO)/np.dot(r,uO)*_radtomas
-
-    alpha_obs = np.arctan2(uO[1,:], uO[0,:])
-    delta_obs = np.arctan2(uO[2,:],np.sqrt(uO[0,:]**2+uO[1,:]**2))
-                 
-    return alpha_obs, delta_obs, xi, eta
-
-
-def epoch_barycentric_coordinates(alpha, delta, parallax, mura, mudec, vrad, t, refepoch):
-    """
-    For each observation epoch calculate the barycentric coordinate directions (alpha(t), delta(t)) given
-    the astrometric parameters of a source, the observation times. Also calculate the local plane
-    coordinates xi(t) and eta(t). 
-    
-    HERE THE PARALLACTIC MOTION IS THUS NOT INCLUDED and one obtains a sky path as seen by an observer at
-    the solar system barycentre.
-
-    The code is partly based on the SOFA library (http://www.iausofa.org/) pmpx.c code.
-
-    Parameters
-    ----------
-    
-    alpha : float
-        Right ascension at reference epoch (radians)
-    delta : float
-        Declination at reference epoch (radians)
-    parallax : float
-        Parallax (mas), negative values allowed
-    mura : float
-        Proper motion in right ascension, including cos(delta) factor (mas/yr)
-    mudec : float
-        Proper motion in declination (mas/yr)
-    vrad : float
-        Radial velocity (km/s)
-    t : float array
-        Observation times (Julian year TCB)
-    refepoch : float
-        Reference epoch (Julian year TCB)
-                
-    Returns
-    -------
-    
-    Arrays alpha, delta, xi, eta. Units are radians for (alpha, delta) and mas for (xi, eta).
-    """
-    
-    # Normal triad, defined at the reference epoch.
-    p = np.array([-np.sin(alpha), np.cos(alpha), 0.0])
-    q = np.array([-np.sin(delta)*np.cos(alpha), -np.sin(delta)*np.sin(alpha), np.cos(delta)])
-    r = np.array([np.cos(delta)*np.cos(alpha), np.cos(delta)*np.sin(alpha), np.sin(delta)])
-   
-    plxrad = parallax*_mastorad
-    murarad = mura*_mastorad
-    mudecrad = mudec*_mastorad
-    mur = vrad*_kmps_to_aupyr*np.abs(plxrad)
-
-    uO = np.repeat(r, t.size).reshape((r.size, t.size))
-    uO = uO + np.tensordot((p*murarad + q*mudecrad + r*mur),(t-refepoch),axes=0)
+    uO = uO + np.tensordot((p*murarad + q*mudecrad + r*mur), (tB-refepoch), axes=0) - plxrad*bO_bcrs
     
     # Local plane coordinates which approximately equal delta_alpha*cos(delta) and delta_delta
     xi = np.dot(p, uO)/np.dot(r, uO)*_radtomas
