@@ -40,7 +40,7 @@ class IntermediateDataParser(object):
 
     @abc.abstractmethod
     def parse(self, star_id, intermediate_data_parent_directory, **kwargs):
-        pass
+        pass    # pragma: no cover
 
     def julian_day_epoch(self):
         return fractional_year_epoch_to_jd(self._epoch.values.flatten(), half_day_correction=True)

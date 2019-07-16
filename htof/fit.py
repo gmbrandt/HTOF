@@ -105,7 +105,7 @@ def _verify_epoch(central_epoch_dec, central_epoch_ra, central_epoch_fmt):
         if central_epoch_dec > 3000 or central_epoch_ra > 3000:
             warnings.warn('central epoch in RA or DEC was chosen to be > 3000. Are you sure this'
                           'is a fractional year date and not a BJD? If BJD, set central_epoch_fmt=BJD.',
-                          UserWarning)
+                          UserWarning)  # pragma: no cover
         central_epoch_dec = fractional_year_epoch_to_jd(central_epoch_dec, half_day_correction=True)
         central_epoch_ra = fractional_year_epoch_to_jd(central_epoch_ra, half_day_correction=True)
     return central_epoch_dec, central_epoch_ra
