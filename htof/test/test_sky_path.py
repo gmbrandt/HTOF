@@ -21,7 +21,6 @@ class TestEpochTopocentricCoordinates:
     def test_parallactic_motion_linear_in_parallax(self):
         alphadeg = np.random.random() * 360 - 180  # random float between -180 and 180
         deltadeg = np.random.random() * 180 - 90  # random float between -90 and 90
-        print(alphadeg, deltadeg)
         mura = 0  # mas/yr
         parallax = 1  # mas
         mudec = 0  # mas/yr
