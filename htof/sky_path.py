@@ -3,7 +3,8 @@ This module provides functions for calculating the astrometric paths of stars on
 observer in orbit around the solar system barycentre. That is, the topocentric coordinate directions as a
 function of time are calculated.
 
-Anthony Brown Nov 2018 - Nov 2018
+Author: Anthony Brown Nov 2018 - Nov 2018
+
 From https://github.com/agabrown/astrometric-sky-path/  from commit: 039768eae04dca0b9b6615cccfc021e6a381bf4d
 Reproduced with permission of the author.
 """
@@ -14,10 +15,6 @@ from astropy import constants
 from astropy import units
 from astropy.time import Time
 from astropy.coordinates import get_body_barycentric
-
-_radtomas = (180*3600*1000)/np.pi
-_mastorad = np.pi/(180*3600*1000)
-_kmps_to_aupyr = (units.year.to(units.s)*units.km.to(units.m))/constants.au.value
 
 
 def earth_ephemeris(t):
@@ -31,22 +28,26 @@ def earth_ephemeris(t):
     Parameters
     ----------
     
-    t : float array
-        Times at which to calculate the ephemeris in Julian years TCB.
+    t : array
+        Barycentric Julian Year times at which to calculate the ephemeris.
         
     Returns
     -------
-    
+
     Array of shape (3,t.size) representing the xyz components of the ephemeris at times t.
+
+    Note: the units of angle should be radians and the units of time Julian years ('jyear'),
+    while the distance unit is the AU.
     """
-    times = Time(t, format='jyear', scale='tcb')
-    ephemeris = get_body_barycentric('earth', times)
+    times = Time(t, format='jyear', scale='tcb')  # 'tcb': Barycentric Coordinate Time (TCB)
+    ephemeris = get_body_barycentric('earth', times)  # unit A.U.
     return np.vstack((ephemeris.x.value, ephemeris.y.value, ephemeris.z.value))
 
 
 def earth_sun_l2_ephemeris(t):
     """
     Calculate the ephemeris for earth-sun L2 point in the BCRS using astropy tools.
+
     :param t: float array.
     Times at which to calculate the ephemeris in Julian years TCB.
     :return: float array.
@@ -92,7 +93,11 @@ def epoch_topocentric_coordinates(alpha, delta, parallax, mura, mudec, vrad, t, 
     
     Arrays alpha, delta, xi, eta. Units are radians for (alpha, delta) and mas for (xi, eta).
     """
-    
+    # unit conversions
+    _radtomas = (180 * 3600 * 1000) / np.pi
+    _mastorad = np.pi / (180 * 3600 * 1000)
+    _kmps_to_aupyr = (units.year.to(units.s) * units.km.to(units.m)) / constants.au.value
+
     # Normal triad, defined at the reference epoch.
     p = np.array([-np.sin(alpha), np.cos(alpha), 0.0])
     q = np.array([-np.sin(delta) * np.cos(alpha), -np.sin(delta) * np.sin(alpha), np.cos(delta)])

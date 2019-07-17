@@ -1,3 +1,9 @@
+"""
+Module for fitting astrometric data.
+
+Author: G. Mirek Brandt
+"""
+
 import numpy as np
 import warnings
 from htof.parse import fractional_year_epoch_to_jd

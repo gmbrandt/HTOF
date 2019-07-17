@@ -7,10 +7,15 @@ from astropy.time import Time
 from htof import settings as st
 
 import abc
+"""
+Module for parsing astrometric data.
 
+Note: For Hipparcos (both reductions) and Gaia, the scan angle theta is measured as east
+of the north equatorial pole
 
-# For Hipparcos (both reductions) and Gaia, the scan angle theta is measured as
-# east of the north equatorial pole
+Author: G. Mirek Brandt
+"""
+
 
 class IntermediateDataParser(object):
     """

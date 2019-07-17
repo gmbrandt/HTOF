@@ -2,6 +2,8 @@
 Driver script for htof.
 The Fitter class is what a user should use to both parse intermediate data and fit data
 to the intermediate epochs.
+
+Author: G. Mirek Brandt
 """
 
 import numpy as np
