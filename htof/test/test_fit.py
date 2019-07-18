@@ -33,25 +33,22 @@ class TestAstrometricFitter:
             print(expected_chi2_matrix[np.where(~agreement)])
             assert False
 
-    def test_chi2_matrix_many_epoch(self):
-        covariance_matrix = np.array([[5, 1], [12, 2]])
-        epoch_time = 30
-        expected_A = np.array([[-60, 195, -1800, 5850],
-                               [195, -150, 5850, -4500],
-                               [-2, 13/2, -60, 195],
-                               [13/2, -5, 195, -150]])
-        fitter = AstrometricFitter(inverse_covariance_matrices=[np.linalg.pinv(covariance_matrix)], epoch_times=[epoch_time],
+    @mock.patch('htof.fit.chi2_matrix', return_value=np.ones((9, 9)))
+    def test_chi2_matrix_many_epoch(self, fake_chi2_matrix_per_epoch):
+        ivar = np.ones((2, 2))
+        fitter = AstrometricFitter(inverse_covariance_matrices=[ivar, ivar, ivar], epoch_times=[2, 2, 2],
                                    astrometric_solution_vector_components=[])
-        assert np.allclose(expected_A, fitter._chi2_matrix)
+        assert np.allclose(np.ones((9, 9)) * 3, fitter._init_astrometric_chi_squared_matrix(9))
+        assert np.allclose(np.ones((7, 7)) * 3, fitter._init_astrometric_chi_squared_matrix(7))
 
-    def test_chi2_solution_vector_many_epoch(self):
+    def test_chi2_vector(self):
         covariance_matrix = np.array([[5, 1], [12, 2]])
         ra, dec = 91, 82
         epoch_time = 30
-        expected_c = (-1)*np.array([-10530, -5445, -351, -363/2])
+        expected_c = [351, 363.0/2, 10530, 5445]
         fitter = AstrometricFitter(inverse_covariance_matrices=np.array([np.linalg.pinv(covariance_matrix)]),
                                    epoch_times=np.array([epoch_time]),
-                                   astrometric_chi_squared_matrices=[])
+                                   astrometric_chi_squared_matrices=[], parameters=4)
         assert np.allclose(expected_c, fitter._chi2_vector(ra_vs_epoch=np.array([ra]),
                                                            dec_vs_epoch=np.array([dec])))
 
@@ -68,6 +65,7 @@ class TestAstrometricFitter:
     def test_fitting_with_nonzero_central_epoch(self):
         ra_cnt = np.random.randint(1, 100)
         dec_cnt = np.random.randint(1, 100)
+        print(ra_cnt, dec_cnt)
         astrometric_data = generate_linear_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1)
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
                                    epoch_times=astrometric_data['epoch_delta_t'],
@@ -75,8 +73,13 @@ class TestAstrometricFitter:
         expected_vec = astrometric_data['linear_solution']
         expected_vec[0] += ra_cnt * expected_vec[2]  # r0 = ra_central_time * mu_ra
         expected_vec[1] += dec_cnt * expected_vec[3]  # dec0 = dec_central_time * mu_dec
-        assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
-                           expected_vec)
+        import matplotlib.pyplot as plt
+        fit = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'])
+        plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['ra'], 'r+')
+        plt.plot(astrometric_data['epoch_delta_t'], (astrometric_data['epoch_delta_t'] - ra_cnt) * fit[2] + fit[0])
+        plt.plot(astrometric_data['epoch_delta_t'], (astrometric_data['epoch_delta_t'] - ra_cnt) * expected_vec[2] + expected_vec[0])
+        plt.show()
+        assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']), expected_vec)
 
 
 @mock.patch('htof.fit.fractional_year_epoch_to_jd')

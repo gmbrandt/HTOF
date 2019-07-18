@@ -7,7 +7,7 @@ Author: G. Mirek Brandt
 import numpy as np
 import warnings
 from htof.parse import fractional_year_epoch_to_jd
-import htof.utils.fit_utils as util
+from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix
 
 
 class AstrometricFitter(object):
@@ -39,7 +39,7 @@ class AstrometricFitter(object):
         if parameters not in [4, 5, 7, 9]:
             raise ValueError('parameters argument of AstrometricFitter not equal to any one of 4, 5, 7, or 9.')
         if parallactic_pertubations is None:
-            self.parallactic_pertubations = np.zeros_like(epoch_times)
+            self.parallactic_pertubations = [np.zeros_like(epoch_times), np.zeros_like(epoch_times)]
             if parameters > 4:
                 warnings.warn('{0} parameter fit specified but no parallactic motion given.'
                               ' Assuming parallactic motion is 0.', UserWarning)
@@ -67,32 +67,34 @@ class AstrometricFitter(object):
     def _init_astrometric_solution_vectors(self, parameters):
         # order of variables: 0, 1, 2, ... = \[Alpha]o, \[Delta]o, \[Mu]\[Alpha], \[Mu]\[Delta],  a\[Alpha], a\[Delta]
         # j\[Alpha], j\[Delta], \[Omega]
-        num_epochs = len(self.epoch_times)
-        astrometric_solution_vector_components = {'ra': np.zeros((num_epochs, 4)),
-                                                  'dec': np.zeros((num_epochs, 4))}
         p = parameters
+        num_epochs = len(self.epoch_times)
+        astrometric_solution_vector_components = {'ra': np.zeros((num_epochs, p)),
+                                                  'dec': np.zeros((num_epochs, p))}
         for obs in range(num_epochs):
             a, b, c, d = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
             epoch_time = self.epoch_times[obs]
             dec_time = epoch_time - self.central_epoch_dec
             ra_time = epoch_time - self.central_epoch_ra
-
-            astrometric_solution_vector_components['ra'][obs] = util.ra_sol_vec(a, b, c, d, ra_time)[:p, :p]
-            astrometric_solution_vector_components['dec'][obs] = util.dec_sol_vec(a, b, c, d, dec_time)[:p, :p]
+            w_ra, w_dec = self.parallactic_pertubations[0][obs], self.parallactic_pertubations[1][obs]
+            astrometric_solution_vector_components['ra'][obs] = ra_sol_vec(a, b, c, d, ra_time, dec_time,
+                                                                           w_ra, w_dec)[:p]
+            astrometric_solution_vector_components['dec'][obs] = dec_sol_vec(a, b, c, d, ra_time, dec_time,
+                                                                             w_ra, w_dec)[:p]
         return astrometric_solution_vector_components
 
     def _init_astrometric_chi_squared_matrix(self, parameters):
         # order of variables column-wise: 0, 1, 2, ... = \[Alpha]o, \[Delta]o, \[Mu]\[Alpha], \[Mu]\[Delta],
         # a\[Alpha], a\[Delta], j\[Alpha], j\[Delta], \[Omega]
-        num_epochs = len(self.epoch_times)
-        astrometric_chi_squared_matrices = np.zeros((num_epochs, 4, 4))
         p = parameters
+        num_epochs = len(self.epoch_times)
+        astrometric_chi_squared_matrices = np.zeros((num_epochs, p, p))
         for obs in range(num_epochs):
             a, b, c, d = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
             epoch_time = self.epoch_times[obs]
             dec_time = epoch_time - self.central_epoch_dec
             ra_time = epoch_time - self.central_epoch_ra
-            astrometric_chi_squared_matrices[obs] = util.chi2_matrix(a, b, c, d, dec_time, ra_time)[:p, :p]
+            astrometric_chi_squared_matrices[obs] = chi2_matrix(a, b, c, d, dec_time, ra_time)[:p, :p]
         return np.sum(astrometric_chi_squared_matrices, axis=0)
 
 
