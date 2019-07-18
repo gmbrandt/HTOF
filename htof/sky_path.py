@@ -14,6 +14,7 @@ import numpy as np
 from astropy import constants
 from astropy import units
 from astropy.time import Time
+from astropy.coordinates import Angle
 from astropy.coordinates import get_body_barycentric
 
 
@@ -127,15 +128,24 @@ def epoch_topocentric_coordinates(alpha, delta, parallax, mura, mudec, vrad, t, 
     return alpha_obs, delta_obs, xi, eta
 
 
-def parallax_motion(cntr_ra, cntr_dec, unit, parallax=1):
+def parallactic_motion(epochs, cntr_ra, cntr_dec, unit, refepoch, ephemeris=earth_ephemeris, parallax=1):
     """
+    :param epochs: array of times in Julian year. Use astropy.time.Time.jyear to convert outside of this.
     :param cntr_ra: right ascension coordinate about which to calculate the parallactic motion. Should be in
                     the appropriate form for having units of unit.
     :param cntr_dec: declination coordinate about which to calculate the parallactic motion. Should be in
                     the appropriate form for having units of unit.
-    :param unit: the unit for ra and dec. COPY here the guidelines for ARGUMENT of astropy.TBD
+    :param unit: from Astropy.unit. Must be such that astropy.coordinates.Angle(cntr_ra, unit=unit) is sensical.
     :param parallax: float. The parallax angle in milli-arcseconds.
-    :return: array, array
+    :param ephemeris: function.
+          Function which intakes an array of Julian years and returns an array of shape (3,t.size)
+          with the xyz components of the ephemeris at times t (along rows 0, 1 and 2 respectively).
+    :return: [array, array]
     parallax motion about the center coordinate. E.g. Parallax_ra - cntr_ra and Parallax_dec - cntr_dec
     Where Parallax_ra would be an array of RA coordinates for parallax motion alone
     """
+    cntr_ra, cntr_dec = Angle(cntr_ra, unit=unit).rad, Angle(cntr_dec, unit=unit).rad
+    ra_obs, dec_obs = epoch_topocentric_coordinates(cntr_ra, cntr_dec, parallax,
+                                                    mura=0, mudec=0, vrad=0, t=epochs,
+                                                    refepoch=refepoch, ephem=ephemeris)[:2]
+    return ra_obs - cntr_ra, dec_obs - cntr_dec
