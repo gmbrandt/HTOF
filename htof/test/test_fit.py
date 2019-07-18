@@ -13,13 +13,24 @@ class TestAstrometricFitter:
         assert np.allclose([30, 10, 900, 350, 13500, 6125, 135000, 214375.0/3, 490], dec_sol_vec(1, 10, 20, 5, 30, 35, 13, 10))
 
     def test_chi2_matrix(self):
-        expected_chi2_matrix = 0
-        agreement = np.isclose(expected_chi2_matrix, chi2_matrix())
+        expected_chi2_matrix = np.array([[2, 30, 60, 1050, 900, 18375, 9000, 214375, 326],
+                                         [30, 10, 900, 350, 13500, 6125, 135000, 214375.0/3, 490],
+                                         [60, 900, 1800, 31500, 27000, 551250, 270000, 6431250, 9780],
+                                         [1050, 350, 31500, 12250, 472500, 214375, 4725000, 7503125.0/3, 17150],
+                                         [900, 13500, 27000, 472500, 405000, 8268740, 4050000, 96468750, 146700],
+                                         [18375, 6125, 551250, 214375, 8268750, 7503125.0/2, 82687500, 262609375.0/6, 300125],
+                                         [9000, 135000, 270000, 4725000, 4050000, 82687500, 40500000, 964687500, 1467000],
+                                         [214375, 214375.0/3, 6431250, 7503125.0/3, 96468750, 262609375.0/6, 964687500, 9191328125.0/18, 10504375.0/3],
+                                         [326, 490, 9780, 17150, 146700, 300125, 1467000, 10504375.0/3, 9138]])
+        agreement = np.isclose(expected_chi2_matrix, chi2_matrix(1, 10, 20, 5, 30, 35, 13, 10))
         if np.all(agreement):
             assert True
         else:
-            print('disagreeing chi2 elements:')
+            print('disagreeing chi2 positions:')
             print(np.where(~agreement))
+            print('yours and expected:')
+            print(chi2_matrix(1, 10, 20, 5, 30, 35, 13, 10)[np.where(~agreement)])
+            print(expected_chi2_matrix[np.where(~agreement)])
             assert False
 
     def test_chi2_matrix_many_epoch(self):
