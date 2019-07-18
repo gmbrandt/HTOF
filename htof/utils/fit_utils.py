@@ -61,17 +61,26 @@ def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0):
     :param ra_t: delta t for declination
     :param w_ra: pertubation from parallax alone for right ascension
     :param w_dec: pertubation from parallax alone for declination
-    :return:
+    :return: chi^2 matrix for the 9 parameter linear fit
     """
     A = np.zeros((9, 9))
 
-    A[0] = 0
-    A[1] = 0
-    A[2] = 0
-    A[3] = 0
-    A[4] = 0
-    A[5] = 0
-    A[6] = 0
-    A[7] = 0
-    A[8] = 0
-    return A
+    A[:, 0] = [2*a, b+c, 2*a*ra_t, (b + c)*dec_t, a*ra_t**2, (b/2 + c/2)*dec_t**2,
+               1/3*a*ra_t**3, (b/6+c/6)*dec_t**3, 2*a*w_ra + b*w_dec + c*w_dec]
+    A[:, 1] = [b+c, 2*d, (b + c)*ra_t, 2*d*dec_t, (b/2 + c/2)*ra_t**2, d*dec_t**2,
+               (b/6 + c/6)*ra_t**3, 1/3*d*dec_t**3, b*w_ra + c*w_ra + 2*d*w_dec]
+    A[:, 2] = [2*a*ra_t, (b+c)*ra_t, 2*a*ra_t**2, (b+c)*ra_t*dec_t, a*ra_t**3,
+               1/2*(b+c)*ra_t*dec_t**2, 1/3*a*ra_t**4, 1/6*(b + c)*ra_t*dec_t**3,
+               ra_t*(2*a*w_ra + w_dec*(b+c))]
+    A[:, 3] = [ra_t*(b+c), 2*d*dec_t, dec_t*ra_t*(b+c), 2*d*dec_t**2, 1/2*ra_t**2*dec_t*(b+c),
+               d*dec_t**3, 1/6*ra_t**3*dec_t*(b+c), 1/3*d*dec_t**4, dec_t*(w_ra*(b+c)+2*d*w_dec)]
+    A[:, 4] = [a*ra_t**2, 1/2*ra_t**2*(b+c), 1/2*ra_t**2*dec_t*(b+c), 1/2*a*ra_t**4,
+               1/2*ra_t**2**dec_t**2*(b+c), 1/6*a*ra_t**5, 1/12*ra_t**2*dec_t**3*(b+c),
+               1/2*ra_t**2*(2*a*w_ra + w_dec*(b+c))]
+    A[:, 5] = [1/2*dec_t**2*(b+c), d*dec_t**2, 1/2*dec_t**2*ra_t*(b+c), d*dec_t**3,
+               1/4*dec_t**2*ra_t**2*(b+c), 1/2*d*dec_t**4, 1/12*dec_t**2*ra_t**3, 1/6*d*dec_t**5,
+               1/2*dec_t**2*(w_ra*(b+c)+2*d*w_dec)]
+    A[:, 6] = 0
+    A[:, 7] = 0
+    A[:, 8] = 0
+    return np.array(A)

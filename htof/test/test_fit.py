@@ -13,15 +13,14 @@ class TestAstrometricFitter:
         assert np.allclose([30, 10, 900, 350, 13500, 6125, 135000, 214375.0/3, 490], dec_sol_vec(1, 10, 20, 5, 30, 35, 13, 10))
 
     def test_chi2_matrix(self):
-        ivar = np.array([[5, 1], [12, 2]])
-        epoch_time = 30
-        expected_A = np.array([[-60, 195, -1800, 5850],
-                               [195, -150, 5850, -4500],
-                               [-2, 13/2, -60, 195],
-                               [13/2, -5, 195, -150]])
-        fitter = AstrometricFitter(inverse_covariance_matrices=[np.linalg.pinv(covariance_matrix)], epoch_times=[epoch_time],
-                                   astrometric_solution_vector_components=[])
-        assert np.allclose(expected_A, fitter._chi2_matrix)
+        expected_chi2_matrix = 0
+        agreement = np.isclose(expected_chi2_matrix, chi2_matrix())
+        if np.all(agreement):
+            assert True
+        else:
+            print('disagreeing chi2 elements:')
+            print(np.where(~agreement))
+            assert False
 
     def test_chi2_matrix_many_epoch(self):
         covariance_matrix = np.array([[5, 1], [12, 2]])
@@ -52,6 +51,8 @@ class TestAstrometricFitter:
 
         assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
                            astrometric_data['linear_solution'])
+    # we should have another test where central epochs from our fit differs, but the evaluated ra and dec points
+    # should agree with the test data set.
 
     def test_fitting_with_nonzero_central_epoch(self):
         ra_cnt = np.random.randint(1, 100)
