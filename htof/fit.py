@@ -31,24 +31,29 @@ class AstrometricFitter(object):
                  astrometric_chi_squared_matrices=None, astrometric_solution_vector_components=None,
                  parallactic_pertubations=None, parameters=4,
                  central_epoch_ra=0, central_epoch_dec=0, central_epoch_fmt='BJD'):
+        if parameters not in [4, 5, 7, 9]:
+            raise ValueError('parameters argument of AstrometricFitter not equal to any one of 4, 5, 7, or 9.')
+        if parallactic_pertubations is None:
+            parallactic_pertubations = [np.zeros_like(epoch_times), np.zeros_like(epoch_times)]
+            #TODO the below pattern is bad. Instead do something like ignore_parallax=True.
+            if parameters > 4:
+                parameters -= 1
+
+        self.parallactic_pertubations = parallactic_pertubations
         self.inverse_covariance_matrices = inverse_covariance_matrices
         self.epoch_times = epoch_times
         self.central_epoch_dec, self.central_epoch_ra = _verify_epoch(central_epoch_dec,
                                                                       central_epoch_ra,
                                                                       central_epoch_fmt)
-        if parameters not in [4, 5, 7, 9]:
-            raise ValueError('parameters argument of AstrometricFitter not equal to any one of 4, 5, 7, or 9.')
-        if parallactic_pertubations is None:
-            self.parallactic_pertubations = [np.zeros_like(epoch_times), np.zeros_like(epoch_times)]
-            if parameters > 4:
-                warnings.warn('{0} parameter fit specified but no parallactic motion given.'
-                              ' Assuming parallactic motion is 0.', UserWarning)
+
         if astrometric_solution_vector_components is None:
             self.astrometric_solution_vector_components = self._init_astrometric_solution_vectors(parameters)
         if astrometric_chi_squared_matrices is None:
             self._chi2_matrix = self._init_astrometric_chi_squared_matrix(parameters)
 
     def fit_line(self, ra_vs_epoch, dec_vs_epoch):
+        #TODO rename to fit, since this fits for jerks now. Make sure this does not cause
+        # issues in Tim's orbit code.
         """
         :param ra_vs_epoch: 1d array of right ascension, ordered the same as the covariance matrices and epochs.
         :param dec_vs_epoch: 1d array of declination, ordered the same as the covariance matrices and epochs.

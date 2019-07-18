@@ -53,7 +53,7 @@ class TestAstrometricFitter:
                                                            dec_vs_epoch=np.array([dec])))
 
     def test_fitting_to_linear_astrometric_data(self):
-        astrometric_data = generate_linear_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1)
+        astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1)
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
                                    epoch_times=astrometric_data['epoch_delta_t'])
 
@@ -65,7 +65,7 @@ class TestAstrometricFitter:
     def test_fitting_with_nonzero_central_epoch(self):
         ra_cnt = np.random.randint(1, 100)
         dec_cnt = np.random.randint(1, 100)
-        astrometric_data = generate_linear_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1)
+        astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1)
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
                                    epoch_times=astrometric_data['epoch_delta_t'],
                                    central_epoch_dec=dec_cnt, central_epoch_ra=ra_cnt)
@@ -73,6 +73,27 @@ class TestAstrometricFitter:
         expected_vec[0] += ra_cnt * expected_vec[2]  # r0 = ra_central_time * mu_ra
         expected_vec[1] += dec_cnt * expected_vec[3]  # dec0 = dec_central_time * mu_dec
         assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']), expected_vec)
+
+    def test_fitting_to_non_linear_astrometric_data_without_parallax(self):
+        astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1,
+                                                     acc=True, jerk=True)
+        fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+                                   epoch_times=astrometric_data['epoch_delta_t'], parameters=9,
+                                   parallactic_pertubations=None)
+        assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
+                           astrometric_data['nonlinear_solution'], rtol=1E-2)
+
+    def test_fitting_to_non_linear_astrometric_data_with_parallax(self):
+        assert True
+
+    def test_fitter_removes_parallax(self):
+        astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1)
+        fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+                                   epoch_times=astrometric_data['epoch_delta_t'], parameters=9,
+                                   parallactic_pertubations=None)
+        assert fitter._chi2_matrix.shape == (8, 8)
+        assert fitter.astrometric_solution_vector_components['ra'][0].shape == (8,)
+        assert fitter.astrometric_solution_vector_components['dec'][0].shape == (8,)
 
 
 @mock.patch('htof.fit.fractional_year_epoch_to_jd')
@@ -103,16 +124,19 @@ Utility functions
 """
 
 
-def generate_linear_astrometric_data(correlation_coefficient=0.0, sigma_ra=0.1, sigma_dec=0.1):
+def generate_astrometric_data(correlation_coefficient=0.0, sigma_ra=0.1, sigma_dec=0.1, acc=False, jerk=False):
     astrometric_data = {}
     num_measurements = 20
     mu_ra, mu_dec = 1, 2
+    acc_ra, acc_dec = acc * 2E-2, acc * 1E-2
+    jerk_ra, jerk_dec = jerk * 2E-3, jerk * 1E-3
     ra0, dec0 = 30, 40
     epoch_start = 0
     epoch_end = 200
-    astrometric_data['epoch_delta_t'] = np.linspace(epoch_start, epoch_end, num=num_measurements)
-    astrometric_data['dec'] = dec0 + astrometric_data['epoch_delta_t']*mu_dec
-    astrometric_data['ra'] = ra0 + astrometric_data['epoch_delta_t']*mu_ra
+    t = np.linspace(epoch_start, epoch_end, num=num_measurements)
+    astrometric_data['epoch_delta_t'] = t
+    astrometric_data['dec'] = dec0 + t * mu_dec + 1/2 * acc_dec * t ** 2 + 1/6 * jerk_dec * t ** 3
+    astrometric_data['ra'] = ra0 + t * mu_ra + 1/2 * acc_ra * t ** 2 + 1/6 * jerk_ra * t ** 3
     cc = correlation_coefficient
     astrometric_data['covariance_matrix'] = np.zeros((num_measurements, 2, 2))
     astrometric_data['inverse_covariance_matrix'] = np.zeros((num_measurements, 2, 2))
@@ -121,5 +145,6 @@ def generate_linear_astrometric_data(correlation_coefficient=0.0, sigma_ra=0.1, 
     for i in range(len(astrometric_data)):
         astrometric_data['inverse_covariance_matrix'][i] = np.linalg.pinv(astrometric_data['covariance_matrix'][i])
     astrometric_data['linear_solution'] = np.array([ra0, dec0, mu_ra, mu_dec])
+    astrometric_data['nonlinear_solution'] = np.array([ra0, dec0, mu_ra, mu_dec, acc_ra, acc_dec, jerk_ra, jerk_dec])
 
     return astrometric_data
