@@ -65,7 +65,6 @@ class TestAstrometricFitter:
     def test_fitting_with_nonzero_central_epoch(self):
         ra_cnt = np.random.randint(1, 100)
         dec_cnt = np.random.randint(1, 100)
-        print(ra_cnt, dec_cnt)
         astrometric_data = generate_linear_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1)
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
                                    epoch_times=astrometric_data['epoch_delta_t'],
@@ -73,12 +72,6 @@ class TestAstrometricFitter:
         expected_vec = astrometric_data['linear_solution']
         expected_vec[0] += ra_cnt * expected_vec[2]  # r0 = ra_central_time * mu_ra
         expected_vec[1] += dec_cnt * expected_vec[3]  # dec0 = dec_central_time * mu_dec
-        import matplotlib.pyplot as plt
-        fit = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'])
-        plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['ra'], 'r+')
-        plt.plot(astrometric_data['epoch_delta_t'], (astrometric_data['epoch_delta_t'] - ra_cnt) * fit[2] + fit[0])
-        plt.plot(astrometric_data['epoch_delta_t'], (astrometric_data['epoch_delta_t'] - ra_cnt) * expected_vec[2] + expected_vec[0])
-        plt.show()
         assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']), expected_vec)
 
 

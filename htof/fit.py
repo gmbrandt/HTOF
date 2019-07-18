@@ -77,6 +77,7 @@ class AstrometricFitter(object):
             dec_time = epoch_time - self.central_epoch_dec
             ra_time = epoch_time - self.central_epoch_ra
             w_ra, w_dec = self.parallactic_pertubations[0][obs], self.parallactic_pertubations[1][obs]
+
             astrometric_solution_vector_components['ra'][obs] = ra_sol_vec(a, b, c, d, ra_time, dec_time,
                                                                            w_ra, w_dec)[:p]
             astrometric_solution_vector_components['dec'][obs] = dec_sol_vec(a, b, c, d, ra_time, dec_time,
@@ -94,7 +95,10 @@ class AstrometricFitter(object):
             epoch_time = self.epoch_times[obs]
             dec_time = epoch_time - self.central_epoch_dec
             ra_time = epoch_time - self.central_epoch_ra
-            astrometric_chi_squared_matrices[obs] = chi2_matrix(a, b, c, d, dec_time, ra_time)[:p, :p]
+            w_ra, w_dec = self.parallactic_pertubations[0][obs], self.parallactic_pertubations[1][obs]
+
+            astrometric_chi_squared_matrices[obs] = chi2_matrix(a, b, c, d, ra_time, dec_time,
+                                                                w_ra, w_dec)[:p, :p]
         return np.sum(astrometric_chi_squared_matrices, axis=0)
 
 
