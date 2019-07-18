@@ -2,10 +2,28 @@ import numpy as np
 import pytest
 import mock
 from htof.fit import unpack_elements_of_matrix, AstrometricFitter, _verify_epoch
+from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix
 
 
 class TestAstrometricFitter:
-    def test_chi2_matrix_single_epoch(self):
+    def test_ra_solution_vector(self):
+        assert np.allclose([2, 30, 60, 1050, 900, 18375, 9000, 214375, 326], ra_sol_vec(1, 10, 20, 5, 30, 35, 13, 10))
+
+    def test_dec_solution_vector(self):
+        assert np.allclose([30, 10, 900, 350, 13500, 6125, 135000, 214375.0/3, 490], dec_sol_vec(1, 10, 20, 5, 30, 35, 13, 10))
+
+    def test_chi2_matrix(self):
+        ivar = np.array([[5, 1], [12, 2]])
+        epoch_time = 30
+        expected_A = np.array([[-60, 195, -1800, 5850],
+                               [195, -150, 5850, -4500],
+                               [-2, 13/2, -60, 195],
+                               [13/2, -5, 195, -150]])
+        fitter = AstrometricFitter(inverse_covariance_matrices=[np.linalg.pinv(covariance_matrix)], epoch_times=[epoch_time],
+                                   astrometric_solution_vector_components=[])
+        assert np.allclose(expected_A, fitter._chi2_matrix)
+
+    def test_chi2_matrix_many_epoch(self):
         covariance_matrix = np.array([[5, 1], [12, 2]])
         epoch_time = 30
         expected_A = np.array([[-60, 195, -1800, 5850],
@@ -16,7 +34,7 @@ class TestAstrometricFitter:
                                    astrometric_solution_vector_components=[])
         assert np.allclose(expected_A, fitter._chi2_matrix)
 
-    def test_chi2_solution_vector_single_epoch(self):
+    def test_chi2_solution_vector_many_epoch(self):
         covariance_matrix = np.array([[5, 1], [12, 2]])
         ra, dec = 91, 82
         epoch_time = 30
@@ -68,7 +86,7 @@ def test_verify_warns_on_large_fractional_year():
 
 
 def test_unpack_elements_of_matrix():
-    A = np.arange(4).reshape((2, 2))
+    A = np.array([[0, 1], [2, 3]])
     assert np.allclose(np.arange(4), unpack_elements_of_matrix(A))
 
 

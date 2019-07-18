@@ -125,3 +125,17 @@ def epoch_topocentric_coordinates(alpha, delta, parallax, mura, mudec, vrad, t, 
     delta_obs = np.arctan2(uO[2, :], np.sqrt(uO[0, :]**2+uO[1, :]**2))
                  
     return alpha_obs, delta_obs, xi, eta
+
+
+def parallax_motion(cntr_ra, cntr_dec, unit, parallax=1):
+    """
+    :param cntr_ra: right ascension coordinate about which to calculate the parallactic motion. Should be in
+                    the appropriate form for having units of unit.
+    :param cntr_dec: declination coordinate about which to calculate the parallactic motion. Should be in
+                    the appropriate form for having units of unit.
+    :param unit: the unit for ra and dec. COPY here the guidelines for ARGUMENT of astropy.TBD
+    :param parallax: float. The parallax angle in milli-arcseconds.
+    :return: array, array
+    parallax motion about the center coordinate. E.g. Parallax_ra - cntr_ra and Parallax_dec - cntr_dec
+    Where Parallax_ra would be an array of RA coordinates for parallax motion alone
+    """
