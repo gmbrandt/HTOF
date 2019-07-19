@@ -50,11 +50,11 @@ class AstrometricFitter(object):
             ra_time = epoch_time - self.central_epoch_ra
             ra_vec, dec_vec = np.zeros(4).astype(np.float64), np.zeros(4).astype(np.float64)
             ra_vec[0] = -(-2 * d * ra_time)
-            ra_vec[1] = -((b + c) * ra_time)
+            ra_vec[1] = -((b + c) * dec_time)
             ra_vec[2] = -(-2 * d)
             ra_vec[3] = -(b + c)
 
-            dec_vec[0] = -((b + c) * dec_time)
+            dec_vec[0] = -((b + c) * ra_time)
             dec_vec[1] = -(- 2 * a * dec_time)
             dec_vec[2] = -(b + c)
             dec_vec[3] = -(- 2 * a)
@@ -76,18 +76,18 @@ class AstrometricFitter(object):
             A = np.zeros((4, 4))
 
             A[:, 0] = np.array([2 * d * ra_time,
-                                (-b - c) * ra_time,
+                                (-b - c) * dec_time,
                                 2 * d,
                                 (-b - c)])
-            A[:, 1] = np.array([(-b - c) * dec_time,
+            A[:, 1] = np.array([(-b - c) * ra_time,
                                 2 * a * dec_time,
                                 (-b - c),
                                 2 * a])
             A[:, 2] = np.array([2 * d * ra_time ** 2,
-                                (-b - c) * ra_time ** 2,
+                                (-b - c) * ra_time * dec_time,
                                 2 * d * ra_time,
                                 (-b - c) * ra_time])
-            A[:, 3] = np.array([(-b - c) * dec_time ** 2,
+            A[:, 3] = np.array([(-b - c) * ra_time * dec_time,
                                 2 * a * dec_time ** 2,
                                 (-b - c) * dec_time,
                                 2 * a * dec_time])
@@ -105,7 +105,7 @@ def _verify_epoch(central_epoch_dec, central_epoch_ra, central_epoch_fmt):
         if central_epoch_dec > 3000 or central_epoch_ra > 3000:
             warnings.warn('central epoch in RA or DEC was chosen to be > 3000. Are you sure this'
                           'is a fractional year date and not a BJD? If BJD, set central_epoch_fmt=BJD.',
-                          UserWarning)
+                          UserWarning)  # pragma: no cover
         central_epoch_dec = fractional_year_epoch_to_jd(central_epoch_dec, half_day_correction=True)
         central_epoch_ra = fractional_year_epoch_to_jd(central_epoch_ra, half_day_correction=True)
     return central_epoch_dec, central_epoch_ra
