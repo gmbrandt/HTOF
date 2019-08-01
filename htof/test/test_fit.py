@@ -51,7 +51,8 @@ class TestAstrometricFitter:
         expected_c = [351, 363.0/2, 10530, 5445]
         fitter = AstrometricFitter(inverse_covariance_matrices=np.array([np.linalg.pinv(covariance_matrix)]),
                                    epoch_times=np.array([epoch_time]),
-                                   astrometric_chi_squared_matrices=[], parameters=4)
+                                   astrometric_chi_squared_matrices=[], parameters=5,
+                                   parallactic_pertubations=None)
         assert np.allclose(expected_c, fitter._chi2_vector(ra_vs_epoch=np.array([ra]),
                                                            dec_vs_epoch=np.array([dec])))
 
@@ -87,15 +88,14 @@ class TestAstrometricFitter:
                            astrometric_data['nonlinear_solution'], rtol=1E-2)
 
     def test_fitting_to_non_linear_astrometric_data_with_parallax(self):
-        real_plx = 1000
+        real_plx = 10
         astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1,
                                                      acc=False, jerk=False)
         jyear_epochs = Time(astrometric_data['epoch_delta_t'] + 2448090, format='jd').jyear
-        #ra_pert, dec_pert = parallactic_motion(jyear_epochs, 45, 45, 'degree', 1991.25, parallax=real_plx)
-        t = astrometric_data['epoch_delta_t']
+        ra_pert, dec_pert = parallactic_motion(jyear_epochs, 45, 45, 'degree', 1991.25, parallax=real_plx)
         import matplotlib.pyplot as plt
-        ra_pert, dec_pert = 1E-11 * t**2, 1E-11 * t**2
-        #ra_pert, dec_pert = 1E-5 * np.sin(t/100), 1E-5 * np.sin(t/100)
+        t = astrometric_data['epoch_delta_t']
+        ra_pert, dec_pert = 1E-11 * t**2.1, 1E-11 * t**2  # 1E-11 * t**2, 1E-11 * t**2
         plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['ra'], 'r')
         astrometric_data['dec'] += dec_pert
         astrometric_data['ra'] += ra_pert
@@ -109,10 +109,12 @@ class TestAstrometricFitter:
         plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['ra'])
         t = astrometric_data['epoch_delta_t']
         ra0, dec0, mu_ra, mu_dec, acc_ra, acc_dec, jerk_ra, jerk_dec, fp = fit
+        print(fp)
         best_fit_ra = ra0 + t * mu_ra + 1/2 * acc_ra * t ** 2 + 1/6 * jerk_ra * t ** 3 + fp * ra_pert
         best_fit_dec = dec0 + t * mu_dec + 1 / 2 * acc_dec * t ** 2 + 1 / 6 * jerk_dec * t ** 3 + fp * dec_pert
         plt.plot(t, best_fit_ra, 'k--')
         plt.show()
+
         assert np.allclose(best_fit_dec, astrometric_data['dec'], rtol=1E-4)
         assert np.allclose(best_fit_ra, astrometric_data['ra'], rtol=1E-4)
 
@@ -157,10 +159,10 @@ Utility functions
 def generate_astrometric_data(correlation_coefficient=0.0, sigma_ra=0.1, sigma_dec=0.1, acc=False, jerk=False):
     astrometric_data = {}
     num_measurements = 50
-    mu_ra, mu_dec = 1E-8, 2E-8
-    acc_ra, acc_dec = acc * 2E-11, acc * 1E-11
-    jerk_ra, jerk_dec = jerk * 2E-13, jerk * 1E-13
-    ra0, dec0 = 2E-5, 1E-5
+    mu_ra, mu_dec = 1E-9, 2E-9
+    acc_ra, acc_dec = acc * 2E-12, acc * 1E-12
+    jerk_ra, jerk_dec = jerk * 2E-14, jerk * 1E-14
+    ra0, dec0 = 2E-9, 1E-9
     epoch_start = 0
     epoch_end = 1000
     t = np.linspace(epoch_start, epoch_end, num=num_measurements)

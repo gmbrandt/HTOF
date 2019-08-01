@@ -29,15 +29,13 @@ class AstrometricFitter(object):
     """
     def __init__(self, inverse_covariance_matrices=None, epoch_times=None,
                  astrometric_chi_squared_matrices=None, astrometric_solution_vector_components=None,
-                 parallactic_pertubations=None, parameters=4,
+                 parallactic_pertubations=None, parameters=5,
                  central_epoch_ra=0, central_epoch_dec=0, central_epoch_fmt='BJD'):
-        if parameters not in [4, 5, 7, 9]:
-            raise ValueError('parameters argument of AstrometricFitter not equal to any one of 4, 5, 7, or 9.')
+        if parameters not in [5, 7, 9]:
+            raise ValueError('parameters argument of AstrometricFitter not equal to any one of 5, 7, or 9.')
         if parallactic_pertubations is None:
             parallactic_pertubations = [np.zeros_like(epoch_times), np.zeros_like(epoch_times)]
-            #TODO the below pattern is bad. Instead do something like ignore_parallax=True.
-            if parameters > 4:
-                parameters -= 1
+            parameters -= 1
 
         self.parallactic_pertubations = parallactic_pertubations
         self.inverse_covariance_matrices = inverse_covariance_matrices
@@ -51,15 +49,17 @@ class AstrometricFitter(object):
         if astrometric_chi_squared_matrices is None:
             self._chi2_matrix = self._init_astrometric_chi_squared_matrix(parameters)
 
-    def fit_line(self, ra_vs_epoch, dec_vs_epoch):
+    def fit_line(self, ra_vs_epoch, dec_vs_epoch, full_output=False):
         #TODO rename to fit, since this fits for jerks now. Make sure this does not cause
         # issues in Tim's orbit code.
         """
         :param ra_vs_epoch: 1d array of right ascension, ordered the same as the covariance matrices and epochs.
         :param dec_vs_epoch: 1d array of declination, ordered the same as the covariance matrices and epochs.
+        :param full_output: bool. True to return the solution vector as well as chi_squared for the fit.
         :return: Array:
                  [ra0, dec0, mu_ra, mu_dec]
         """
+        print(np.linalg.cond(self._chi2_matrix))
         return np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch,
                                                                     dec_vs_epoch=dec_vs_epoch))
 
@@ -105,6 +105,21 @@ class AstrometricFitter(object):
             astrometric_chi_squared_matrices[obs] = chi2_matrix(a, b, c, d, ra_time, dec_time,
                                                                 w_ra, w_dec)[:p, :p]
         return np.sum(astrometric_chi_squared_matrices, axis=0)
+
+    def _chisq_of_fit(self, sol_vector, ra_vs_epoch, dec_vs_epoch):
+        if self.use_parallax:
+            plx = sol_vector[-1]
+            ra_sol, dec_sol = sol_vector[:-1][::2], sol_vector[:-1][1::2]
+        else:
+            plx = 0
+            ra_sol, dec_sol = sol_vector[::2], sol_vector[1::2]
+        dec_time = self.epoch_times - self.central_epoch_dec
+        ra_time = self.epoch_times - self.central_epoch_ra
+        model_ra = np.polynomial.polynomial.polyval(ra_time, ra_sol * np.array([1, 1, 1/2, 1/6])[:num_p])
+        model_dec = np.polynomial.polynomial.polyval(dec_time, dec_sol * np.array([1, 1, 1/2, 1/6])[:num_p])
+        model_minus_data = np.array([model_ra - ra_vs_epoch, model_dec - dec_vs_epoch])
+        return np.sum([np.dot(np.dot(model_minus_data[:, i].T, self.inverse_covariance_matrices[i]),
+                              model_minus_data[:, i]) for i in range(model_minus_data.shape[1])])
 
 
 def unpack_elements_of_matrix(matrix):
