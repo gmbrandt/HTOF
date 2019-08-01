@@ -144,8 +144,9 @@ def parallactic_motion(epochs, cntr_ra, cntr_dec, unit, refepoch, ephemeris=eart
     parallax motion about the center coordinate. E.g. Parallax_ra - cntr_ra and Parallax_dec - cntr_dec
     Where Parallax_ra would be an array of RA coordinates for parallax motion alone
     """
-    cntr_ra, cntr_dec = Angle(cntr_ra, unit=unit).rad, Angle(cntr_dec, unit=unit).rad
-    ra_obs, dec_obs = epoch_topocentric_coordinates(cntr_ra, cntr_dec, parallax,
+    ra_obs, dec_obs = epoch_topocentric_coordinates(Angle(cntr_ra, unit=unit).rad,
+                                                    Angle(cntr_dec, unit=unit).rad, parallax,
                                                     mura=0, mudec=0, vrad=0, t=epochs,
                                                     refepoch=refepoch, ephem=ephemeris)[:2]
+    ra_obs, dec_obs = Angle(ra_obs, unit='radian').to(unit).value, Angle(dec_obs, unit='radian').to(unit).value
     return ra_obs - cntr_ra, dec_obs - cntr_dec
