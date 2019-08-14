@@ -80,7 +80,7 @@ class TestAstrometricFitter:
         expected_vec[1] += dec_cnt * expected_vec[3]  # dec0 = dec_central_time * mu_dec
         assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']), expected_vec)
 
-    def test_fitting_to_non_linear_astrometric_data_without_parallax(self):
+    def test_fitting_to_cubic_astrometric_data_without_parallax(self):
         astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1,
                                                      acc=True, jerk=True)
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
@@ -88,7 +88,15 @@ class TestAstrometricFitter:
         assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
                            astrometric_data['nonlinear_solution'], rtol=1E-2)
 
-    def test_fitting_to_non_linear_astrometric_data_with_parallax(self):
+    def test_fitting_to_linear_astrometric_data_with_parallax(self):
+        astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1,
+                                                     acc=False, jerk=False)
+        fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+                                   epoch_times=astrometric_data['epoch_delta_t'], use_parallax=True, fit_degree=1)
+        assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
+                           astrometric_data['nonlinear_solution'], rtol=1E-2)
+
+    def test_fitting_to_cubic_astrometric_data_with_parallax(self):
         real_plx = 10
         astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1,
                                                      acc=False, jerk=False)
