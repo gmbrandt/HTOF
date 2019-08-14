@@ -71,7 +71,7 @@ def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.po
     :return:
     """
 
-    A = np.zeros((9, 9), dtype=np.float32)
+    A = np.zeros((2*deg + 3, 2*deg + 3), dtype=np.float32)
     f, g = _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, basis=basis, deg=deg)
     for k in range(A.shape[0]):
         A[k] = [2 * f[i] * a * f[k] + g[i] * (b+c) * f[k] + 

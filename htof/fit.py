@@ -29,14 +29,11 @@ class AstrometricFitter(object):
     """
     def __init__(self, inverse_covariance_matrices=None, epoch_times=None,
                  astrometric_chi_squared_matrices=None, astrometric_solution_vector_components=None,
-                 parallactic_pertubations=None, parameters=5,
+                 parallactic_pertubations=None, fit_degree=1, use_parallax=False,
                  central_epoch_ra=0, central_epoch_dec=0, central_epoch_fmt='BJD'):
-        if parameters not in [5, 7, 9]:
-            raise ValueError('parameters argument of AstrometricFitter not equal to any one of 5, 7, or 9.')
         if parallactic_pertubations is None:
             parallactic_pertubations = [np.zeros_like(epoch_times), np.zeros_like(epoch_times)]
-            parameters -= 1
-
+        self.use_parallax = use_parallax
         self.parallactic_pertubations = parallactic_pertubations
         self.inverse_covariance_matrices = inverse_covariance_matrices
         self.epoch_times = epoch_times
@@ -45,9 +42,9 @@ class AstrometricFitter(object):
                                                                       central_epoch_fmt)
 
         if astrometric_solution_vector_components is None:
-            self.astrometric_solution_vector_components = self._init_astrometric_solution_vectors(parameters)
+            self.astrometric_solution_vector_components = self._init_astrometric_solution_vectors(fit_degree)
         if astrometric_chi_squared_matrices is None:
-            self._chi2_matrix = self._init_astrometric_chi_squared_matrix(parameters)
+            self._chi2_matrix = self._init_astrometric_chi_squared_matrix(fit_degree)
 
     def fit_line(self, ra_vs_epoch, dec_vs_epoch, full_output=False):
         #TODO rename to fit, since this fits for jerks now. Make sure this does not cause
@@ -69,43 +66,41 @@ class AstrometricFitter(object):
         # sum together the individual solution vectors for each epoch
         return np.dot(ra_vs_epoch, ra_solution_vecs) + np.dot(dec_vs_epoch, dec_solution_vecs)
 
-    def _init_astrometric_solution_vectors(self, parameters):
+    def _init_astrometric_solution_vectors(self, fit_degree):
         # order of variables: 0, 1, 2, ... = \[Alpha]o, \[Delta]o, \[Mu]\[Alpha], \[Mu]\[Delta],  a\[Alpha], a\[Delta]
         # j\[Alpha], j\[Delta], \[Omega]
-        p = parameters
         num_epochs = len(self.epoch_times)
-        astrometric_solution_vector_components = {'ra': np.zeros((num_epochs, p)),
-                                                  'dec': np.zeros((num_epochs, p))}
+        plx = 1 * self.use_parallax
+        astrometric_solution_vector_components = {'ra': np.zeros((num_epochs, 2 * fit_degree + 2 + plx)),
+                                                  'dec': np.zeros((num_epochs, 2 * fit_degree + 2 + plx))}
         for obs in range(num_epochs):
             a, b, c, d = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
             epoch_time = self.epoch_times[obs]
             dec_time = epoch_time - self.central_epoch_dec
             ra_time = epoch_time - self.central_epoch_ra
             w_ra, w_dec = self.parallactic_pertubations[0][obs], self.parallactic_pertubations[1][obs]
-
+            clip_i = 0 if self.use_parallax else 1
             astrometric_solution_vector_components['ra'][obs] = ra_sol_vec(a, b, c, d, ra_time, dec_time,
-                                                                           w_ra, w_dec)
+                                                                           w_ra, w_dec, deg=fit_degree)[clip_i:]
             astrometric_solution_vector_components['dec'][obs] = dec_sol_vec(a, b, c, d, ra_time, dec_time,
-                                                                             w_ra, w_dec)
-            # todo truncate vectors according to num params and if parallax is used.
+                                                                             w_ra, w_dec, deg=fit_degree)[clip_i:]
         return astrometric_solution_vector_components
 
-    def _init_astrometric_chi_squared_matrix(self, parameters):
+    def _init_astrometric_chi_squared_matrix(self, fit_degree):
         # order of variables column-wise: 0, 1, 2, ... = \[Alpha]o, \[Delta]o, \[Mu]\[Alpha], \[Mu]\[Delta],
         # a\[Alpha], a\[Delta], j\[Alpha], j\[Delta], \[Omega]
-        p = parameters
         num_epochs = len(self.epoch_times)
-        astrometric_chi_squared_matrices = np.zeros((num_epochs, p, p))
+        plx = 1 * self.use_parallax
+        astrometric_chi_squared_matrices = np.zeros((num_epochs, 2 * fit_degree + 2 + plx, 2 * fit_degree + 2 + plx))
         for obs in range(num_epochs):
             a, b, c, d = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
             epoch_time = self.epoch_times[obs]
             dec_time = epoch_time - self.central_epoch_dec
             ra_time = epoch_time - self.central_epoch_ra
             w_ra, w_dec = self.parallactic_pertubations[0][obs], self.parallactic_pertubations[1][obs]
-
+            clip_i = 0 if self.use_parallax else 1
             astrometric_chi_squared_matrices[obs] = chi2_matrix(a, b, c, d, ra_time, dec_time,
-                                                                w_ra, w_dec)
-            # todo truncate matrix according to num params and if parallax is used. e.g [1:p, 1:p]
+                                                                w_ra, w_dec, deg=fit_degree)[clip_i:, clip_i:]
         return np.sum(astrometric_chi_squared_matrices, axis=0)
 
 

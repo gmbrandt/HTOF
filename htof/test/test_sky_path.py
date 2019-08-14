@@ -38,23 +38,11 @@ def test_epoch_topocentric_coordinates():
 
 
 def test_parallactic_motion():
-    #time = [1991.25 1991.75]
-    #RA = [0.34906686 0.34906513]
-    #Dec = [0.34906462 0.34906722]
     alphadeg = 20
     deltadeg = 20
     parallax = 1000  # mas
     refepoch = Time(1991.25, format='decimalyear', scale='tcb').jyear
-    #refepoch = 1991.25
-    #times = np.linspace(refepoch - 1, refepoch + 1, num=100)
-    times = np.linspace(refepoch, refepoch + 0.5, num=2)
-    print(times)
-
-    print(Time(2200, format='decimalyear', scale='tcb').jyear)
-
+    times = np.linspace(refepoch - 1, refepoch + 1, num=100)
     ra, dec = parallactic_motion(times, alphadeg, deltadeg, 'degree', refepoch, earth_ephemeris, parallax)
     ra2, dec2 = parallactic_motion(times, alphadeg, deltadeg, 'degree', refepoch, earth_ephemeris, 2 * parallax)
-    print('\n')
-    print(((ra + alphadeg) * units.degree).to(units.rad))
-    print(((dec + deltadeg) * units.degree).to(units.rad))
     assert np.allclose([ra2, dec2], 2 * np.array([ra, dec]), rtol=1E-5)

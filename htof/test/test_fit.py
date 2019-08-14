@@ -42,9 +42,10 @@ class TestAstrometricFitter:
     def test_chi2_matrix_many_epoch(self, fake_chi2_matrix_per_epoch):
         ivar = np.ones((2, 2))
         fitter = AstrometricFitter(inverse_covariance_matrices=[ivar, ivar, ivar], epoch_times=[2, 2, 2],
-                                   astrometric_solution_vector_components=[])
-        assert np.allclose(np.ones((9, 9)) * 3, fitter._init_astrometric_chi_squared_matrix(9))
-        assert np.allclose(np.ones((7, 7)) * 3, fitter._init_astrometric_chi_squared_matrix(7))
+                                   astrometric_solution_vector_components=[], use_parallax=True, fit_degree=3)
+        assert np.allclose(np.ones((9, 9)) * 3, fitter._init_astrometric_chi_squared_matrix(3))
+        fake_chi2_matrix_per_epoch.return_value = np.ones((7, 7))
+        assert np.allclose(np.ones((7, 7)) * 3, fitter._init_astrometric_chi_squared_matrix(2))
 
     def test_chi2_vector(self):
         covariance_matrix = np.array([[5, 1], [12, 2]])
@@ -52,9 +53,8 @@ class TestAstrometricFitter:
         epoch_time = 30
         expected_c = [351, 363.0/2, 10530, 5445]
         fitter = AstrometricFitter(inverse_covariance_matrices=np.array([np.linalg.pinv(covariance_matrix)]),
-                                   epoch_times=np.array([epoch_time]),
-                                   astrometric_chi_squared_matrices=[], parameters=5,
-                                   parallactic_pertubations=None)
+                                   epoch_times=np.array([epoch_time]), astrometric_chi_squared_matrices=[],
+                                   fit_degree=1, use_parallax=False)
         assert np.allclose(expected_c, fitter._chi2_vector(ra_vs_epoch=np.array([ra]),
                                                            dec_vs_epoch=np.array([dec])))
 
@@ -84,8 +84,7 @@ class TestAstrometricFitter:
         astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1,
                                                      acc=True, jerk=True)
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
-                                   epoch_times=astrometric_data['epoch_delta_t'], parameters=9,
-                                   parallactic_pertubations=None)
+                                   epoch_times=astrometric_data['epoch_delta_t'], use_parallax=False, fit_degree=3)
         assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
                            astrometric_data['nonlinear_solution'], rtol=1E-2)
 
@@ -105,8 +104,8 @@ class TestAstrometricFitter:
         plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['ra'], 'b', lw=3)
         plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['dec'], 'b--', lw=3)
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
-                                   epoch_times=astrometric_data['epoch_delta_t'], parameters=5,
-                                   parallactic_pertubations=[ra_pert, dec_pert])
+                                   epoch_times=astrometric_data['epoch_delta_t'], use_parallax=True,
+                                   parallactic_pertubations=[ra_pert, dec_pert], fit_degree=3)
         fit = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'])
 
         import matplotlib.pyplot as plt
@@ -127,8 +126,7 @@ class TestAstrometricFitter:
     def test_fitter_removes_parallax(self):
         astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1)
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
-                                   epoch_times=astrometric_data['epoch_delta_t'], parameters=9,
-                                   parallactic_pertubations=None)
+                                   epoch_times=astrometric_data['epoch_delta_t'], use_parallax=False, fit_degree=3)
         assert fitter._chi2_matrix.shape == (8, 8)
         assert fitter.astrometric_solution_vector_components['ra'][0].shape == (8,)
         assert fitter.astrometric_solution_vector_components['dec'][0].shape == (8,)
