@@ -10,21 +10,23 @@ from htof.sky_path import parallactic_motion
 
 class TestAstrometricFitter:
     def test_ra_solution_vector(self):
-        assert np.allclose([2, 30, 60, 1050, 900, 18375, 9000, 214375, 326], ra_sol_vec(1, 10, 20, 5, 30, 35, 13, 10))
+        assert np.allclose([326, 2, 30, 60, 1050, 1800, 36750, 54000, 1286250], ra_sol_vec(1, 10, 20, 5, 30, 35, 13, 10))
 
     def test_dec_solution_vector(self):
-        assert np.allclose([30, 10, 900, 350, 13500, 6125, 135000, 214375.0/3, 490], dec_sol_vec(1, 10, 20, 5, 30, 35, 13, 10))
+        assert np.allclose([490, 30, 10, 900, 350, 27000, 12250, 810000, 428750], dec_sol_vec(1, 10, 20, 5, 30, 35, 13, 10))
 
     def test_chi2_matrix(self):
-        expected_chi2_matrix = np.array([[2, 30, 60, 1050, 900, 18375, 9000, 214375, 326],
-                                         [30, 10, 900, 350, 13500, 6125, 135000, 214375.0/3, 490],
-                                         [60, 900, 1800, 31500, 27000, 551250, 270000, 6431250, 9780],
-                                         [1050, 350, 31500, 12250, 472500, 214375, 4725000, 7503125.0/3, 17150],
-                                         [900, 13500, 27000, 472500, 405000, 8268740, 4050000, 96468750, 146700],
-                                         [18375, 6125, 551250, 214375, 8268750, 7503125.0/2, 82687500, 262609375.0/6, 300125],
-                                         [9000, 135000, 270000, 4725000, 4050000, 82687500, 40500000, 964687500, 1467000],
-                                         [214375, 214375.0/3, 6431250, 7503125.0/3, 96468750, 262609375.0/6, 964687500, 9191328125.0/18, 10504375.0/3],
-                                         [326, 490, 9780, 17150, 146700, 300125, 1467000, 10504375.0/3, 9138]])
+        expected_chi2_matrix = np.array([
+        [9138, 326, 490, 9780, 17150, 293400, 600250, 8802000, 21008750],
+        [326, 2, 30, 60, 1050, 1800, 36750, 54000, 1286250],
+        [490, 30, 10, 900, 350, 27000, 12250, 810000, 428750],
+        [9780, 60, 900, 1800, 31500, 54000, 1102500, 1620000, 38587500],
+        [17150, 1050, 350, 31500, 12250, 945000, 428750, 28350000, 15006250],
+        [293400, 1800, 27000, 54000, 945000, 1620000, 33075000, 48600000, 1157625000],
+        [600250, 36750, 12250, 1102500, 428750, 33075000, 15006250, 992250000, 525218750],
+        [8802000, 54000, 810000, 1620000, 28350000, 48600000, 992250000, 1458000000, 34728750000],
+        [21008750, 1286250, 428750, 38587500, 15006250, 1157625000, 525218750, 34728750000, 18382656250]
+        ])
         agreement = np.isclose(expected_chi2_matrix, chi2_matrix(1, 10, 20, 5, 30, 35, 13, 10))
         if np.all(agreement):
             assert True
@@ -95,26 +97,30 @@ class TestAstrometricFitter:
         ra_pert, dec_pert = parallactic_motion(jyear_epochs, 45, 45, 'degree', 1991.25, parallax=real_plx)
         import matplotlib.pyplot as plt
         t = astrometric_data['epoch_delta_t']
-        ra_pert, dec_pert = 1E-11 * t**2.1, 1E-11 * t**2  # 1E-11 * t**2, 1E-11 * t**2
-        plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['ra'], 'r')
+        ra_pert, dec_pert = 3E-11 * t**2.3, 1E-11 * t**2.2  # 1E-11 * t**2, 1E-11 * t**2
+        #ra_pert, dec_pert = 1E-11*np.sin(t/100), 1E-11*np.sin(t/100)
+        #plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['ra'], 'r')
         astrometric_data['dec'] += dec_pert
         astrometric_data['ra'] += ra_pert
-        plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['ra'], 'b')
+        plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['ra'], 'b', lw=3)
+        plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['dec'], 'b--', lw=3)
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
-                                   epoch_times=astrometric_data['epoch_delta_t'], parameters=9,
+                                   epoch_times=astrometric_data['epoch_delta_t'], parameters=5,
                                    parallactic_pertubations=[ra_pert, dec_pert])
         fit = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'])
 
         import matplotlib.pyplot as plt
-        plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['ra'])
         t = astrometric_data['epoch_delta_t']
-        ra0, dec0, mu_ra, mu_dec, acc_ra, acc_dec, jerk_ra, jerk_dec, fp = fit
-        print(fp)
-        best_fit_ra = ra0 + t * mu_ra + 1/2 * acc_ra * t ** 2 + 1/6 * jerk_ra * t ** 3 + fp * ra_pert
-        best_fit_dec = dec0 + t * mu_dec + 1 / 2 * acc_dec * t ** 2 + 1 / 6 * jerk_dec * t ** 3 + fp * dec_pert
-        plt.plot(t, best_fit_ra, 'k--')
+        fp = fit[-1]
+        ra0, dec0, mu_ra, mu_dec = fit[:-1]
+        print(fit)
+        best_fit_ra = ra0 + t * mu_ra + fp * ra_pert
+        best_fit_dec = dec0 + t * mu_dec + fp * dec_pert
+        plt.plot(t, best_fit_ra, 'k')
+        plt.plot(t, best_fit_dec, 'k--')
+        plt.figure()
+        plt.plot(t, (best_fit_ra - astrometric_data['ra']) / best_fit_ra, 'r+')
         plt.show()
-
         assert np.allclose(best_fit_dec, astrometric_data['dec'], rtol=1E-4)
         assert np.allclose(best_fit_ra, astrometric_data['ra'], rtol=1E-4)
 

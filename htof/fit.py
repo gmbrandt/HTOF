@@ -84,9 +84,10 @@ class AstrometricFitter(object):
             w_ra, w_dec = self.parallactic_pertubations[0][obs], self.parallactic_pertubations[1][obs]
 
             astrometric_solution_vector_components['ra'][obs] = ra_sol_vec(a, b, c, d, ra_time, dec_time,
-                                                                           w_ra, w_dec)[:p]
+                                                                           w_ra, w_dec)
             astrometric_solution_vector_components['dec'][obs] = dec_sol_vec(a, b, c, d, ra_time, dec_time,
-                                                                             w_ra, w_dec)[:p]
+                                                                             w_ra, w_dec)
+            # todo truncate vectors according to num params and if parallax is used.
         return astrometric_solution_vector_components
 
     def _init_astrometric_chi_squared_matrix(self, parameters):
@@ -103,23 +104,9 @@ class AstrometricFitter(object):
             w_ra, w_dec = self.parallactic_pertubations[0][obs], self.parallactic_pertubations[1][obs]
 
             astrometric_chi_squared_matrices[obs] = chi2_matrix(a, b, c, d, ra_time, dec_time,
-                                                                w_ra, w_dec)[:p, :p]
+                                                                w_ra, w_dec)
+            # todo truncate matrix according to num params and if parallax is used. e.g [1:p, 1:p]
         return np.sum(astrometric_chi_squared_matrices, axis=0)
-
-    def _chisq_of_fit(self, sol_vector, ra_vs_epoch, dec_vs_epoch):
-        if self.use_parallax:
-            plx = sol_vector[-1]
-            ra_sol, dec_sol = sol_vector[:-1][::2], sol_vector[:-1][1::2]
-        else:
-            plx = 0
-            ra_sol, dec_sol = sol_vector[::2], sol_vector[1::2]
-        dec_time = self.epoch_times - self.central_epoch_dec
-        ra_time = self.epoch_times - self.central_epoch_ra
-        model_ra = np.polynomial.polynomial.polyval(ra_time, ra_sol * np.array([1, 1, 1/2, 1/6])[:num_p])
-        model_dec = np.polynomial.polynomial.polyval(dec_time, dec_sol * np.array([1, 1, 1/2, 1/6])[:num_p])
-        model_minus_data = np.array([model_ra - ra_vs_epoch, model_dec - dec_vs_epoch])
-        return np.sum([np.dot(np.dot(model_minus_data[:, i].T, self.inverse_covariance_matrices[i]),
-                              model_minus_data[:, i]) for i in range(model_minus_data.shape[1])])
 
 
 def unpack_elements_of_matrix(matrix):

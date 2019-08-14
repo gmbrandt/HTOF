@@ -136,6 +136,7 @@ def parallactic_motion(epochs, cntr_ra, cntr_dec, unit, refepoch, ephemeris=eart
     :param cntr_dec: declination coordinate about which to calculate the parallactic motion. Should be in
                     the appropriate form for having units of unit.
     :param unit: from Astropy.unit. Must be such that astropy.coordinates.Angle(cntr_ra, unit=unit) is sensical.
+    :param refepoch: reference epoch in julian year.
     :param parallax: float. The parallax angle in milli-arcseconds.
     :param ephemeris: function.
           Function which intakes an array of Julian years and returns an array of shape (3,t.size)
