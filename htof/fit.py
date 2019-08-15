@@ -9,7 +9,7 @@ import warnings
 from htof.parse import fractional_year_epoch_to_jd
 from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix, transform_coefficients_to_unnormalized_domain
 
-NORM = False
+NORM = True
 
 
 # TODO the fitter object fits ra0 + mura * t + acc_ra * t ^2 . Not 1/2 acc_ra * t^2, so this will return double the acc.
@@ -50,9 +50,7 @@ class AstrometricFitter(object):
         if astrometric_chi_squared_matrices is None:
             self._chi2_matrix = self._init_astrometric_chi_squared_matrix(fit_degree)
 
-    def fit_line(self, ra_vs_epoch, dec_vs_epoch, full_output=False):
-        #TODO rename to fit, since this fits for jerks now. Make sure this does not cause
-        # issues in Tim's orbit code.
+    def fit_line(self, ra_vs_epoch, dec_vs_epoch):
         """
         :param ra_vs_epoch: 1d array of right ascension, ordered the same as the covariance matrices and epochs.
         :param dec_vs_epoch: 1d array of declination, ordered the same as the covariance matrices and epochs.
@@ -63,9 +61,12 @@ class AstrometricFitter(object):
         print(np.linalg.cond(self._chi2_matrix))
         solution = np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch))
         if NORM:
-            t = np.max(self.epoch_times)
-            solution = transform_coefficients_to_unnormalized_domain(solution, t - self.central_epoch_ra,
-                                                                     t - self.central_epoch_dec, self.fit_degree,
+            t = self.epoch_times
+            solution = transform_coefficients_to_unnormalized_domain(solution, t.min() - self.central_epoch_ra,
+                                                                     t.max() - self.central_epoch_ra,
+                                                                     t.min() - self.central_epoch_dec,
+                                                                     t.max() - self.central_epoch_dec,
+                                                                     self.fit_degree,
                                                                      self.use_parallax)
 
         return solution

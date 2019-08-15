@@ -81,7 +81,20 @@ def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=FIT_BASIS, deg=3
     return np.array(A, dtype=float)
 
 
-def transform_coefficients_to_unnormalized_domain(coeffs, ra_t, dec_t, deg, use_parallax, basis=FIT_BASIS):
-    f, g = _evaluate_basis_functions(1/2, 1/2, ra_t, dec_t, basis=basis, deg=deg)
-    unnormed = np.array([f[i] + g[i] for i in range(2 * deg + 3)], dtype=float)
-    return coeffs / unnormed[1*use_parallax:]
+def transform_coefficients_to_unnormalized_domain(coeffs, ra_min_t, ra_max_t, dec_min_t, dec_max_t,
+                                                  deg, use_parallax):
+    temp_coeffs = coeffs[1 * use_parallax:]
+    fa, ga, fb, gb, fc, gc, fd, gd = np.pad(temp_coeffs, (0, 2 * 3 + 2 - len(temp_coeffs)),
+                                            mode='constant', constant_values=0)
+    coeffs[1 * use_parallax:][::2] = _transform(fa, fb, fc, fd, ra_min_t, ra_max_t)[:deg + 1]
+    coeffs[1 * use_parallax:][1::2] = _transform(ga, gb, gc, gd, dec_min_t, dec_max_t)[:deg + 1]
+    return coeffs
+
+
+def _transform(ap, bp, cp, dp, minx, maxx):
+    j, h = 2/(maxx - minx), -2*minx/(maxx - minx) - 1
+    a = ap + bp*h + cp*h**2 + dp*h**3
+    b = bp*j + 2*cp*h*j + 3*dp*h**2*j
+    c = cp*j**2 + 3*dp*h*j**2
+    d = dp*j**3
+    return a, b, c, d
