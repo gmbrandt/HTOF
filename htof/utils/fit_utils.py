@@ -4,6 +4,8 @@ Module for generating the chi-squared matrix (and vectors) for the 9 parameter f
 
 import numpy as np
 
+FIT_BASIS = np.polynomial.polynomial.polyvander
+
 
 def _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, basis, deg):
     f = np.hstack([[w_ra], np.zeros(2*deg + 2)])
@@ -12,7 +14,7 @@ def _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, basis, deg):
     return f, g
 
 
-def ra_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.legendre.legvander, deg=3):
+def ra_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=FIT_BASIS, deg=3):
     """
     :params floats a,b,c,d: components of the inverse covariance matrix for the observation.
             i.e. the ivar matrix should be np.array([[a, b],[c, d]])
@@ -33,7 +35,7 @@ def ra_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.leg
     return ra_vec
 
 
-def dec_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.legendre.legvander, deg=3):
+def dec_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=FIT_BASIS, deg=3):
     """
     :params floats a,b,c,d: components of the inverse covariance matrix for the observation.
             i.e. the ivar matrix should be np.array([[a, b],[c, d]])
@@ -54,7 +56,7 @@ def dec_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.le
     return dec_vec
 
 
-def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.legendre.legvander, deg=3):
+def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=FIT_BASIS, deg=3):
     """
     :params floats a,b,c,d: components of the inverse covariance matrix for the observation.
             i.e. the ivar matrix should be np.array([[a, b],[c, d]])
@@ -77,3 +79,9 @@ def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.le
         A[k] = [2 * f[i] * a * f[k] + g[i] * (b+c) * f[k] + 
                 f[i] * (b+c) * g[k] + 2 * g[i] * d * g[k] for i in range(2*deg + 3)]
     return np.array(A, dtype=float)
+
+
+def transform_coefficients_to_unnormalized_domain(coeffs, ra_t, dec_t, deg, use_parallax, basis=FIT_BASIS):
+    f, g = _evaluate_basis_functions(1/2, 1/2, ra_t, dec_t, basis=basis, deg=deg)
+    unnormed = np.array([f[i] + g[i] for i in range(2 * deg + 3)], dtype=float)
+    return coeffs / unnormed[1*use_parallax:]
