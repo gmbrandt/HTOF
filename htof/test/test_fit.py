@@ -10,10 +10,12 @@ from htof.sky_path import parallactic_motion
 
 class TestAstrometricFitter:
     def test_ra_solution_vector(self):
-        assert np.allclose([326, 2, 30, 60, 1050, 1800, 36750, 54000, 1286250], ra_sol_vec(1, 10, 20, 5, 30, 35, 13, 10))
+        assert np.allclose([326, 2, 30, 60, 1050, 1800, 36750, 54000, 1286250],
+                           ra_sol_vec(1, 10, 20, 5, 30, 35, 13, 10, basis=np.polynomial.polynomial.polyvander, deg=3))
 
     def test_dec_solution_vector(self):
-        assert np.allclose([490, 30, 10, 900, 350, 27000, 12250, 810000, 428750], dec_sol_vec(1, 10, 20, 5, 30, 35, 13, 10))
+        assert np.allclose([490, 30, 10, 900, 350, 27000, 12250, 810000, 428750],
+                           dec_sol_vec(1, 10, 20, 5, 30, 35, 13, 10, basis=np.polynomial.polynomial.polyvander, deg=3))
 
     def test_chi2_matrix(self):
         expected_chi2_matrix = np.array([
@@ -27,7 +29,8 @@ class TestAstrometricFitter:
         [8802000, 54000, 810000, 1620000, 28350000, 48600000, 992250000, 1458000000, 34728750000],
         [21008750, 1286250, 428750, 38587500, 15006250, 1157625000, 525218750, 34728750000, 18382656250]
         ])
-        agreement = np.isclose(expected_chi2_matrix, chi2_matrix(1, 10, 20, 5, 30, 35, 13, 10))
+        agreement = np.isclose(expected_chi2_matrix,
+                               chi2_matrix(1, 10, 20, 5, 30, 35, 13, 10, basis=np.polynomial.polynomial.polyvander, deg=3))
         if np.all(agreement):
             assert True
         else:
@@ -89,47 +92,40 @@ class TestAstrometricFitter:
                            astrometric_data['nonlinear_solution'], rtol=1E-2)
 
     def test_fitting_to_linear_astrometric_data_with_parallax(self):
-        astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1,
-                                                     acc=False, jerk=False)
-        fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
-                                   epoch_times=astrometric_data['epoch_delta_t'], use_parallax=True, fit_degree=1)
-        assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
-                           astrometric_data['nonlinear_solution'], rtol=1E-2)
-
-    def test_fitting_to_cubic_astrometric_data_with_parallax(self):
         real_plx = 10
         astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1,
                                                      acc=False, jerk=False)
         jyear_epochs = Time(astrometric_data['epoch_delta_t'] + 2448090, format='jd').jyear
         ra_pert, dec_pert = parallactic_motion(jyear_epochs, 45, 45, 'degree', 1991.25, parallax=real_plx)
-        import matplotlib.pyplot as plt
         t = astrometric_data['epoch_delta_t']
-        ra_pert, dec_pert = 3E-11 * t**2.3, 1E-11 * t**2.2  # 1E-11 * t**2, 1E-11 * t**2
-        #ra_pert, dec_pert = 1E-11*np.sin(t/100), 1E-11*np.sin(t/100)
-        #plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['ra'], 'r')
         astrometric_data['dec'] += dec_pert
         astrometric_data['ra'] += ra_pert
-        plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['ra'], 'b', lw=3)
-        plt.plot(astrometric_data['epoch_delta_t'], astrometric_data['dec'], 'b--', lw=3)
+        fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+                                   epoch_times=astrometric_data['epoch_delta_t'], use_parallax=True,
+                                   parallactic_pertubations=[ra_pert, dec_pert], fit_degree=1)
+        fit = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'])
+        best_fit_dec = 0
+        best_fit_ra = 0
+        assert np.allclose(best_fit_dec, astrometric_data['dec'])
+        assert np.allclose(best_fit_ra, astrometric_data['ra'])
+
+    def test_fitting_to_cubic_astrometric_data_with_parallax(self):
+        real_plx = 10
+        astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1,
+                                                     acc=True, jerk=True)
+        jyear_epochs = Time(astrometric_data['epoch_delta_t'] + 2448090, format='jd').jyear
+        ra_pert, dec_pert = parallactic_motion(jyear_epochs, 45, 45, 'degree', 1991.25, parallax=real_plx)
+        t = astrometric_data['epoch_delta_t']
+        astrometric_data['dec'] += dec_pert
+        astrometric_data['ra'] += ra_pert
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
                                    epoch_times=astrometric_data['epoch_delta_t'], use_parallax=True,
                                    parallactic_pertubations=[ra_pert, dec_pert], fit_degree=3)
         fit = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'])
-
-        import matplotlib.pyplot as plt
-        t = astrometric_data['epoch_delta_t']
-        fp = fit[-1]
-        ra0, dec0, mu_ra, mu_dec = fit[:-1]
-        print(fit)
-        best_fit_ra = ra0 + t * mu_ra + fp * ra_pert
-        best_fit_dec = dec0 + t * mu_dec + fp * dec_pert
-        plt.plot(t, best_fit_ra, 'k')
-        plt.plot(t, best_fit_dec, 'k--')
-        plt.figure()
-        plt.plot(t, (best_fit_ra - astrometric_data['ra']) / best_fit_ra, 'r+')
-        plt.show()
-        assert np.allclose(best_fit_dec, astrometric_data['dec'], rtol=1E-4)
-        assert np.allclose(best_fit_ra, astrometric_data['ra'], rtol=1E-4)
+        best_fit_dec = 0
+        best_fit_ra = 0
+        assert np.allclose(best_fit_dec, astrometric_data['dec'])
+        assert np.allclose(best_fit_ra, astrometric_data['ra'])
 
     def test_fitter_removes_parallax(self):
         astrometric_data = generate_astrometric_data(correlation_coefficient=0, sigma_ra=0.1, sigma_dec=0.1)

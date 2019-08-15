@@ -117,3 +117,15 @@ def _verify_epoch(central_epoch_dec, central_epoch_ra, central_epoch_fmt):
         central_epoch_dec = fractional_year_epoch_to_jd(central_epoch_dec, half_day_correction=True)
         central_epoch_ra = fractional_year_epoch_to_jd(central_epoch_ra, half_day_correction=True)
     return central_epoch_dec, central_epoch_ra
+
+
+def normalize(coordinates, max_value, min_value):
+    """
+    :param coordinates: ndarray
+    :param max_value: max_value coordinates can achieve. e.g. if normalizing pixels, we would have 4096 as max_value
+    :return: coordinates normalized to run from -1 to 1.
+    """
+    if min_value > max_value:
+        raise ValueError('min_value > max_value')
+    coordinates = 2. * (coordinates - min_value)/(max_value - min_value) - 1.
+    return coordinates

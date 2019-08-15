@@ -5,7 +5,7 @@ Module for generating the chi-squared matrix (and vectors) for the 9 parameter f
 import numpy as np
 
 
-def _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, basis=np.polynomial.polynomial.polyvander, deg=3):
+def _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, basis, deg):
     f = np.hstack([[w_ra], np.zeros(2*deg + 2)])
     g = np.hstack([[w_dec], np.zeros(2*deg + 2)])
     f[1:][::2], g[1:][1::2] = basis(ra_t, deg), basis(dec_t, deg)
@@ -22,7 +22,7 @@ def ra_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.pol
     :param w_dec: pertubation from parallax alone for declination
     :param deg: degree for the fit in ra and dec.
     :param basis: method such that basis(t, degree) returns an array of shape (1, degree+1) with the basis
-    functions evaluated at the time t. E.g. the default polynomial basis is such that basis(5, 3) returns
+    functions evaluated at the time t. E.g. if basis= np.polynomial.polynomial.polyvander then basis(5, 3) returns
                   array([[  1.,   5.,  25., 125.]])
     This return is typically called the Vandermonde matrix. E.g. for Legendre polynomial basis we would feed
     basis=np.polynomial.legendre.legvander
@@ -43,7 +43,7 @@ def dec_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.po
     :param w_dec: pertubation from parallax alone for declination
     :param deg: degree for the fit in ra and dec.
     :param basis: method such that basis(t, degree) returns an array of shape (1, degree+1) with the basis
-    functions evaluated at the time t. E.g. the default polynomial basis is such that basis(5, 3) returns
+    functions evaluated at the time t. E.g. if basis= np.polynomial.polynomial.polyvander then basis(5, 3) returns
                   array([[  1.,   5.,  25., 125.]])
     This return is typically called the Vandermonde matrix. E.g. for Legendre polynomial basis we would feed
     basis=np.polynomial.legendre.legvander
@@ -64,7 +64,7 @@ def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.po
     :param w_dec: pertubation from parallax alone for declination
     :param deg: degree for the fit in ra and dec.
     :param basis: method such that basis(t, degree) returns an array of shape (1, degree+1) with the basis
-    functions evaluated at the time t. E.g. the default polynomial basis is such that basis(5, 3) returns
+    functions evaluated at the time t. E.g. if basis= np.polynomial.polynomial.polyvander then basis(5, 3) returns
                   array([[  1.,   5.,  25., 125.]])
     This return is typically called the Vandermonde matrix. E.g. for Legendre polynomial basis we would feed
     basis=np.polynomial.legendre.legvander
