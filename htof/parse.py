@@ -33,8 +33,11 @@ class IntermediateDataParser(object):
         filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id + '*')
         filepath_list = glob.glob(filepath, recursive=True)
         if len(filepath_list) == 0:
-            raise FileNotFoundError('No file with name containing {0}'
-                                    ' found in {1}'.format(str(star_id), intermediate_data_directory))
+            filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id.lstrip('0') + '*')
+            filepath_list = glob.glob(filepath, recursive=True)
+        if len(filepath_list) == 0:
+            raise FileNotFoundError('No file with name containing {0} or {1}'
+                                    ' found in {2}'.format(str(star_id), str(star_id).lstrip('0'), intermediate_data_directory))
         if len(filepath_list) > 1:
             filepath_list = _match_filename_to_star_id(star_id, filepath_list)
         if len(filepath_list) > 1:
