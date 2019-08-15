@@ -9,7 +9,7 @@ import warnings
 from htof.parse import fractional_year_epoch_to_jd
 from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix
 
-
+# TODO the fitter object fits ra0 + mura * t + acc_ra * t ^2 . Not 1/2 acc_ra * t^2, so this will return double the acc.
 class AstrometricFitter(object):
     """
     :param inverse_covariance_matrices: ndarray of length epoch times with the 2x2 inverse covariance matrices
@@ -57,8 +57,9 @@ class AstrometricFitter(object):
                  [ra0, dec0, mu_ra, mu_dec]
         """
         print(np.linalg.cond(self._chi2_matrix))
-        return np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch,
-                                                                    dec_vs_epoch=dec_vs_epoch))
+        solution = np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch))
+        # TODO need to correct for earlier normalization
+        return solution
 
     def _chi2_vector(self, ra_vs_epoch, dec_vs_epoch):
         ra_solution_vecs = self.astrometric_solution_vector_components['ra']
@@ -73,11 +74,14 @@ class AstrometricFitter(object):
         plx = 1 * self.use_parallax
         astrometric_solution_vector_components = {'ra': np.zeros((num_epochs, 2 * fit_degree + 2 + plx)),
                                                   'dec': np.zeros((num_epochs, 2 * fit_degree + 2 + plx))}
+
+        normed_epochs = normalize(self.epoch_times, np.max(self.epoch_times), np.min(self.epoch_times))
+        print(normed_epochs)
+        # DO we need to normalize epoch_times - dec_time?  (and same for RA) or does this not matter
+        # since we are normalizing the coordinates?
         for obs in range(num_epochs):
             a, b, c, d = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
-            epoch_time = self.epoch_times[obs]
-            dec_time = epoch_time - self.central_epoch_dec
-            ra_time = epoch_time - self.central_epoch_ra
+            dec_time, ra_time = normed_epochs[obs], normed_epochs[obs]
             w_ra, w_dec = self.parallactic_pertubations[0][obs], self.parallactic_pertubations[1][obs]
             clip_i = 0 if self.use_parallax else 1
             astrometric_solution_vector_components['ra'][obs] = ra_sol_vec(a, b, c, d, ra_time, dec_time,
@@ -92,11 +96,12 @@ class AstrometricFitter(object):
         num_epochs = len(self.epoch_times)
         plx = 1 * self.use_parallax
         astrometric_chi_squared_matrices = np.zeros((num_epochs, 2 * fit_degree + 2 + plx, 2 * fit_degree + 2 + plx))
+        normed_epochs = normalize(self.epoch_times, np.max(self.epoch_times), np.min(self.epoch_times))
+        # DO we need to normalize epoch_times - dec_time?  (and same for RA) or does this not matter
+        # since we are normalizing the coordinates?
         for obs in range(num_epochs):
             a, b, c, d = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
-            epoch_time = self.epoch_times[obs]
-            dec_time = epoch_time - self.central_epoch_dec
-            ra_time = epoch_time - self.central_epoch_ra
+            dec_time, ra_time = normed_epochs[obs], normed_epochs[obs]
             w_ra, w_dec = self.parallactic_pertubations[0][obs], self.parallactic_pertubations[1][obs]
             clip_i = 0 if self.use_parallax else 1
             astrometric_chi_squared_matrices[obs] = chi2_matrix(a, b, c, d, ra_time, dec_time,

@@ -89,7 +89,7 @@ class TestAstrometricFitter:
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
                                    epoch_times=astrometric_data['epoch_delta_t'], use_parallax=False, fit_degree=3)
         assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
-                           astrometric_data['nonlinear_solution'], rtol=1E-2)
+                           astrometric_data['nonlinear_solution'])
 
     def test_fitting_to_linear_astrometric_data_with_parallax(self):
         real_plx = 10

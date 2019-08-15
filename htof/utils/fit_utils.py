@@ -12,7 +12,7 @@ def _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, basis, deg):
     return f, g
 
 
-def ra_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.polynomial.polyvander, deg=3):
+def ra_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.legendre.legvander, deg=3):
     """
     :params floats a,b,c,d: components of the inverse covariance matrix for the observation.
             i.e. the ivar matrix should be np.array([[a, b],[c, d]])
@@ -33,7 +33,7 @@ def ra_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.pol
     return ra_vec
 
 
-def dec_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.polynomial.polyvander, deg=3):
+def dec_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.legendre.legvander, deg=3):
     """
     :params floats a,b,c,d: components of the inverse covariance matrix for the observation.
             i.e. the ivar matrix should be np.array([[a, b],[c, d]])
@@ -54,7 +54,7 @@ def dec_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.po
     return dec_vec
 
 
-def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.polynomial.polyvander, deg=3):
+def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=np.polynomial.legendre.legvander, deg=3):
     """
     :params floats a,b,c,d: components of the inverse covariance matrix for the observation.
             i.e. the ivar matrix should be np.array([[a, b],[c, d]])
