@@ -42,7 +42,7 @@ class TestAstrometry:
     def test_astrometric_fit(self):
         """
         Tests fitting a line to fake RA and DEC data which has errors calculated from the real intermediate data
-        from Hip1, Hip2, and GaiaDR2. This only fits a line to the first 11 points.
+        from Hip1, Hip2, and GaiaDR2.
         """
         stars = ['049699', '027321', '027321']
         data_choices = ['GaiaDR2', 'Hip1', 'Hip2']

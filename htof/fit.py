@@ -84,7 +84,6 @@ class AstrometricFitter(object):
         plx = 1 * self.use_parallax
         astrometric_solution_vector_components = {'ra': np.zeros((num_epochs, 2 * fit_degree + 2 + plx)),
                                                   'dec': np.zeros((num_epochs, 2 * fit_degree + 2 + plx))}
-
         if NORM:
             normed_epochs = normalize(self.epoch_times, np.max(self.epoch_times), np.min(self.epoch_times))
         for obs in range(num_epochs):
