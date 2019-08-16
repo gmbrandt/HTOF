@@ -38,6 +38,8 @@ class Astrometry(object):
     def fit(self, ra_vs_epoch, dec_vs_epoch, pm_units='mas_per_day'):
         solution_vector = self.fitter.fit_line(ra_vs_epoch=ra_vs_epoch,
                                                dec_vs_epoch=dec_vs_epoch)
+        # TODO this needs to be amended so that it accepts more than 4 parameter fits.
+        # also one needs to multiply by the 1/2 etc. factors for acceleration
         if pm_units == 'mas_per_day':
             return solution_vector
         if pm_units == 'mas_per_year':

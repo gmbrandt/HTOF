@@ -23,8 +23,8 @@ htof can be installed in the usual way, by running
 
 While in the root directory of this repo.
 
-Usage
------
+Four parameter fits
+-------------------
 The following examples show how one would both load in and fit a line to the astrometric intermediate data
 from either Hipparcos data reduction or Gaia (Currently only data release 2, GaiaDR2).
 
@@ -79,6 +79,12 @@ Which will return the same mu_ra and mu_dec as with :code:`pm_units='mas_per_day
 
 The following appendix describes in more detail how to perform the above operations without
 using the Astrometry object, if you ever desired to do so.
+
+5,7 and 9 parameter fits
+------------------------
+TODO: Change pm_units thing. discuss how to get parallax, how to generate the plx pertubations
+changed format that the fitter returns (should it ever return a different format?, or should
+it always be [0, ra0, dec0, mura, mudec, 0,] for higher order fits?
 
 Appendix
 --------

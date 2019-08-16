@@ -9,10 +9,10 @@ import warnings
 from htof.parse import fractional_year_epoch_to_jd
 from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix, transform_coefficients_to_unnormalized_domain
 
+# TODO remove this and always use normalized coordinates.
 NORM = True
 
 
-# TODO the fitter object fits ra0 + mura * t + acc_ra * t ^2 . Not 1/2 acc_ra * t^2, so this will return double the acc.
 class AstrometricFitter(object):
     """
     :param inverse_covariance_matrices: ndarray of length epoch times with the 2x2 inverse covariance matrices
@@ -58,7 +58,7 @@ class AstrometricFitter(object):
         :return: Array:
                  [ra0, dec0, mu_ra, mu_dec]
         """
-        print(np.linalg.cond(self._chi2_matrix))
+        # TODO one needs to multiply by the 1/2 etc. factors for acceleration
         solution = np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch))
         if NORM:
             t = self.epoch_times
