@@ -17,17 +17,17 @@ class TestHipparcosOriginalData:
                    data_choice='FAST')
         assert len(data._epoch) == 32
         assert np.isclose(data._epoch[0], 1990.005772)
-        assert np.isclose(data.scan_angle[0], -2.009532)
+        assert np.isclose(np.cos(data.scan_angle[0]), -0.9053, rtol=.01)
         assert np.isclose(data._epoch[17], 1990.779865)
-        assert np.isclose(data.scan_angle[17], 2.769795)
+        assert np.isclose(np.cos(data.scan_angle[17]), 0.3633, rtol=.01)
         data.parse(star_id='027321',
                    intermediate_data_directory=test_data_directory,
                    data_choice='NDAC')
         assert len(data._epoch) == 34
         assert np.isclose(data._epoch[1], 1990.005386)
-        assert np.isclose(data.scan_angle[1], -2.009979)
+        assert np.isclose(np.cos(data.scan_angle[1]), -0.9051, rtol=.01)
         assert np.isclose(data._epoch[10], 1990.455515)
-        assert np.isclose(data.scan_angle[10], 0.827485)
+        assert np.isclose(np.cos(data.scan_angle[10]), 0.7362, rtol=.01)
 
     def test_raises_exception_on_bad_data_choice(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip1')
@@ -46,9 +46,9 @@ class TestLoad:
                    intermediate_data_directory=test_data_directory, convert_to_jd=False)
         assert len(data._epoch) == 111
         assert np.isclose(data._epoch[0], 1990.005)
-        assert np.isclose(data.scan_angle[0], -2.006668)
+        assert np.isclose(np.cos(data.scan_angle[0]), -0.9065, rtol=.01)
         assert np.isclose(data._epoch[84], 1991.952)
-        assert np.isclose(data.scan_angle[84], -0.941235)
+        assert np.isclose(np.cos(data.scan_angle[84]), -0.8083, rtol=.01)
 
     def test_parse_raises_file_not_found_error(self):
         with pytest.raises(FileNotFoundError):
@@ -149,11 +149,11 @@ class TestParseGaiaDR2:
 
 
 def test_calculating_covariance_matrices():
-    scan_angles = pd.DataFrame(data=np.linspace(0, 2 * np.pi, 10))
+    scan_angles = pd.DataFrame(data=np.linspace(0, 2 * np.pi, 5))
     covariances = calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=10)
     assert len(covariances) == len(scan_angles)
     assert np.allclose(covariances[-1], covariances[0])
-    assert np.allclose(covariances[0], np.array([[10, 0], [0, 1]]))
+    assert np.allclose(covariances[1], np.array([[10, 0], [0, 1]]))  # angle of pi/2 has AL parallel with dec.
     for cov_matrix, scan_angle in zip(covariances, scan_angles.values.flatten()):
         assert np.isclose(scan_angle % np.pi, angle_of_short_axis_of_error_ellipse(cov_matrix) % np.pi)
         # modulo pi since the scan angle and angle of short axis could differ in sign from one another.
@@ -163,5 +163,5 @@ def angle_of_short_axis_of_error_ellipse(cov_matrix):
     vals, vecs = np.linalg.eigh(cov_matrix)
     # Compute "tilt" of ellipse using first eigenvector
     x, y = vecs[:, 0]
-    theta = np.arctan2(y, x) - np.pi/2
+    theta = np.arctan2(y, x)
     return theta
