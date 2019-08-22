@@ -150,4 +150,4 @@ def parallactic_motion(epochs, cntr_ra, cntr_dec, unit, refepoch, ephemeris=eart
                                                     mura=0, mudec=0, vrad=0, t=epochs,
                                                     refepoch=refepoch, ephem=ephemeris)[:2]
     ra_obs, dec_obs = Angle(ra_obs, unit='radian').to(unit).value, Angle(dec_obs, unit='radian').to(unit).value
-    return ra_obs - cntr_ra, dec_obs - cntr_dec
+    return (ra_obs - cntr_ra) * np.cos(Angle(dec_obs, unit).radian), dec_obs - cntr_dec

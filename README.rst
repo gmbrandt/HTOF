@@ -95,7 +95,7 @@ Astrometry object is essentially just a wrapper for data parsing and fitting all
 
     from htof.parse import HipparcosOriginalData # or GaiaData or HipparcosReReduction
     data = HipparcosOriginalData()
-    data.parse(star_id='049699', intermediate_data_directory='Hip1/IntermediateData/)
+    data.parse(star_id='049699', intermediate_data_directory='Hip1/IntermediateData/')
     data.calculate_inverse_covariance_matrices()
 
 data now has a variety of intermediate data products such as the scan angles, the epochs when each
