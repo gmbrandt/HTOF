@@ -1,3 +1,13 @@
+"""
+  Module for parsing intermediate data from Hipparcos and Gaia.
+  For Hipparcos (both reductions) and Gaia, the scan angle theta is the angle between the north
+  equitorial pole (declination) and the across-scan axis. Or, the angle between RA and the along-scan axis.
+
+  Author:
+    G. Mirek Brandt
+    Daniel Michalik
+"""
+
 import numpy as np
 import pandas as pd
 import os
@@ -7,14 +17,6 @@ from astropy.time import Time
 from htof import settings as st
 
 import abc
-"""
-Module for parsing astrometric data.
-
-Note: For Hipparcos (both reductions) and Gaia, the scan angle theta is measured as east
-of the north equatorial pole
-
-Author: G. Mirek Brandt
-"""
 
 
 class IntermediateDataParser(object):
@@ -89,6 +91,7 @@ def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1
                                          [0, 1]])
     # we define the along scan to be 'y' in the scan basis.
     for theta, err in zip(scan_angles.values.flatten(), along_scan_errs):
+        theta = theta - np.pi/2  # shift to angle between Declination and the along-scan axis.
         c, s = np.cos(theta), np.sin(theta)
         Rccw = np.array([[c, -s], [s, c]])
         cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rccw, (err ** 2) * cov_matrix_in_scan_basis), Rccw.T)
@@ -119,7 +122,7 @@ class HipparcosOriginalData(IntermediateDataParser):
         # select either the data from the NDAC or the FAST consortium.
         data = data[data['IA2'] == data_choice[0]]
         # compute scan angles and observations epochs according to van Leeuwen & Evans 1997, eq. 11 & 12.
-        self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians
+        self.scan_angle = np.arctan2(data['IA4'], data['IA3'])  # unit radians
         self._epoch = data['IA6'] / data['IA3'] + 1991.25
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
 
@@ -148,7 +151,7 @@ class HipparcosRereductionData(IntermediateDataParser):
         """
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=1, header=None, sep='\s+')
-        self.scan_angle = np.arctan2(data[3], data[4])  # data[3] = cos(psi), data[4] = sin(psi)
+        self.scan_angle = np.arctan2(data[4], data[3])  # data[3] = cos(psi), data[4] = sin(psi)
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
         self.along_scan_err = data[6]  # unit milli-arcseconds (mas)
