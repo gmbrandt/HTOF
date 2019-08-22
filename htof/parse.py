@@ -91,9 +91,9 @@ def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1
                                          [0, 1]])
     # we define the along scan to be 'y' in the scan basis.
     for theta, err in zip(scan_angles.values.flatten(), along_scan_errs):
-        theta = theta - np.pi/2  # shift to angle between Declination and the along-scan axis.
+        # see Eq 3 of F. Spoto et al.:GaiaData Release 2. Solar system
         c, s = np.cos(theta), np.sin(theta)
-        Rccw = np.array([[c, -s], [s, c]])
+        Rccw = np.array([[s, c], [-c, s]])
         cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rccw, (err ** 2) * cov_matrix_in_scan_basis), Rccw.T)
         covariance_matrices.append(cov_matrix_in_ra_dec_basis)
     return np.array(covariance_matrices)
