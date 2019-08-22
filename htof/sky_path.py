@@ -92,7 +92,7 @@ def epoch_topocentric_coordinates(alpha, delta, parallax, mura, mudec, vrad, t, 
     Returns (array, array, array, array)
     -------
     
-    Arrays alpha, delta, xi, eta. Units are radians for (alpha, delta) and mas for (xi, eta).
+    Arrays alpha, delta, xi, eta. Units are radians for (alpha, delta) and rad for (xi, eta).
     """
     # unit conversions
     _radtomas = (180 * 3600 * 1000) / np.pi
@@ -119,8 +119,8 @@ def epoch_topocentric_coordinates(alpha, delta, parallax, mura, mudec, vrad, t, 
     uO = uO + np.tensordot((p*murarad + q*mudecrad + r*mur), (tB-refepoch), axes=0) - plxrad*bO_bcrs
     
     # Local plane coordinates which approximately equal delta_alpha*cos(delta) and delta_delta
-    xi = np.dot(p, uO)/np.dot(r, uO)*_radtomas
-    eta = np.dot(q, uO)/np.dot(r, uO)*_radtomas
+    xi = np.dot(p, uO)/np.dot(r, uO)
+    eta = np.dot(q, uO)/np.dot(r, uO)
 
     alpha_obs = np.arctan2(uO[1, :], uO[0, :])
     delta_obs = np.arctan2(uO[2, :], np.sqrt(uO[0, :]**2+uO[1, :]**2))
@@ -145,9 +145,9 @@ def parallactic_motion(epochs, cntr_ra, cntr_dec, unit, refepoch, ephemeris=eart
     parallax motion about the center coordinate. E.g. Parallax_ra - cntr_ra and Parallax_dec - cntr_dec
     Where Parallax_ra would be an array of RA coordinates for parallax motion alone
     """
-    ra_obs, dec_obs = epoch_topocentric_coordinates(Angle(cntr_ra, unit=unit).rad,
+    delta_ra, delta_dec = epoch_topocentric_coordinates(Angle(cntr_ra, unit=unit).rad,
                                                     Angle(cntr_dec, unit=unit).rad, parallax,
                                                     mura=0, mudec=0, vrad=0, t=epochs,
-                                                    refepoch=refepoch, ephem=ephemeris)[:2]
-    ra_obs, dec_obs = Angle(ra_obs, unit='radian').to(unit).value, Angle(dec_obs, unit='radian').to(unit).value
-    return (ra_obs - cntr_ra) * np.cos(Angle(dec_obs, unit).radian), dec_obs - cntr_dec
+                                                    refepoch=refepoch, ephem=ephemeris)[2:]
+    delta_ra, delta_dec = Angle(delta_ra, unit='radian').to(unit).value, Angle(delta_dec, unit='radian').to(unit).value
+    return delta_ra, delta_dec
