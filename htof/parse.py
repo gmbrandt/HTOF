@@ -108,7 +108,7 @@ class HipparcosOriginalData(IntermediateDataParser):
         # select either the data from the NDAC or the FAST consortium.
         data = data[data['IA2'] == data_choice[0]]
         # compute scan angles and observations epochs according to van Leeuwen & Evans 1997, eq. 11 & 12.
-        self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians
+        self.scan_angle = np.arctan2(data['IA4'], data['IA3'])  # unit radians
         self._epoch = data['IA6'] / data['IA3'] + 1991.25
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
 
@@ -137,7 +137,7 @@ class HipparcosRereductionData(IntermediateDataParser):
         """
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=1, header=None, sep='\s+')
-        self.scan_angle = np.arctan2(data[3], data[4])  # data[3] = cos(psi), data[4] = sin(psi)
+        self.scan_angle = np.arctan2(data[4], data[3])  # data[3] = cos(psi), data[4] = sin(psi)
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
 
