@@ -85,7 +85,7 @@ class AstrometricFitter(object):
         astrometric_solution_vector_components = {'ra': np.zeros((num_epochs, 2 * fit_degree + 2 + plx)),
                                                   'dec': np.zeros((num_epochs, 2 * fit_degree + 2 + plx))}
         if NORM:
-            normed_epochs = normalize(self.epoch_times, np.max(self.epoch_times), np.min(self.epoch_times))
+            normed_epochs = normalize(self.epoch_times, [np.max(self.epoch_times), np.min(self.epoch_times)])
         for obs in range(num_epochs):
             a, b, c, d = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
             if NORM:
@@ -108,7 +108,7 @@ class AstrometricFitter(object):
         plx = 1 * self.use_parallax
         astrometric_chi_squared_matrices = np.zeros((num_epochs, 2 * fit_degree + 2 + plx, 2 * fit_degree + 2 + plx))
         if NORM:
-            normed_epochs = normalize(self.epoch_times, np.max(self.epoch_times), np.min(self.epoch_times))
+            normed_epochs = normalize(self.epoch_times, [np.max(self.epoch_times), np.min(self.epoch_times)])
         for obs in range(num_epochs):
             a, b, c, d = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
             if NORM:
@@ -138,13 +138,11 @@ def _verify_epoch(central_epoch_dec, central_epoch_ra, central_epoch_fmt):
     return central_epoch_dec, central_epoch_ra
 
 
-def normalize(coordinates, max_value, min_value):
+def normalize(coordinates, domain):
     """
     :param coordinates: ndarray
-    :param max_value: max_value coordinates can achieve. e.g. if normalizing pixels, we would have 4096 as max_value
+    :param domain: ndarray. max and min value of input coordinates.
     :return: coordinates normalized to run from -1 to 1.
     """
-    if min_value > max_value:
-        raise ValueError('min_value > max_value')
-    coordinates = 2. * (coordinates - min_value)/(max_value - min_value) - 1.
+    coordinates = 2. * (coordinates - min(domain))/(max(domain) - min(domain)) - 1.
     return coordinates

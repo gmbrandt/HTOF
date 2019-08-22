@@ -83,6 +83,8 @@ def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=FIT_BASIS, deg=3
 
 def transform_coefficients_to_unnormalized_domain(coeffs, ra_min_t, ra_max_t, dec_min_t, dec_max_t,
                                                   deg, use_parallax):
+    # refactor using Polynomial.convert or Polynomial.cast:
+    # http://omz-software.com/pythonista/numpy/reference/generated/numpy.polynomial.polynomial.Polynomial.html
     temp_coeffs = coeffs[1 * use_parallax:]
     fa, ga, fb, gb, fc, gc, fd, gd = np.pad(temp_coeffs, (0, 2 * 3 + 2 - len(temp_coeffs)),
                                             mode='constant', constant_values=0)
