@@ -91,7 +91,7 @@ def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1
                                          [0, 1]])
     # we define the along scan to be 'y' in the scan basis.
     for theta, err in zip(scan_angles.values.flatten(), along_scan_errs):
-        theta += np.pi/2
+        theta += np.pi/2  # angle between the along-scan axis and declination.
         c, s = np.cos(theta), np.sin(theta)
         Rccw = np.array([[c, -s], [s, c]])
         cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rccw, (err ** 2) * cov_matrix_in_scan_basis), Rccw.T)
