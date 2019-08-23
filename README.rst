@@ -77,8 +77,7 @@ with units of mas/day by default. If you want mas/year, then use the keyword :co
 
 Which will return the same mu_ra and mu_dec as with :code:`pm_units='mas_per_day'` but multiplied by 365.25.
 
-The following appendix describes in more detail how to perform the above operations without
-using the Astrometry object, if you ever desired to do so.
+TODO: discuss how Hip1 and Hip2 data include the actual errors.
 
 Usage: 5,7 and 9 parameter fits
 -------------------------------

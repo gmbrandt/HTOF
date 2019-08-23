@@ -91,10 +91,10 @@ def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1
                                          [0, 1]])
     # we define the along scan to be 'y' in the scan basis.
     for theta, err in zip(scan_angles.values.flatten(), along_scan_errs):
-        theta += np.pi/2  # angle between the along-scan axis and declination.
+        theta = np.pi/2 - theta  # angle between the along-scan axis and declination.
         c, s = np.cos(theta), np.sin(theta)
-        Rccw = np.array([[c, -s], [s, c]])
-        cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rccw, (err ** 2) * cov_matrix_in_scan_basis), Rccw.T)
+        Rcw = np.array([[c, s], [-s, c]])
+        cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rcw, (err ** 2) * cov_matrix_in_scan_basis), Rcw.T)
         covariance_matrices.append(cov_matrix_in_ra_dec_basis)
     return np.array(covariance_matrices)
 
@@ -125,6 +125,7 @@ class HipparcosOriginalData(IntermediateDataParser):
         self.scan_angle = np.arctan2(data['IA4'], data['IA3'])  # unit radians
         self._epoch = data['IA6'] / data['IA3'] + 1991.25
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
+        self.along_scan_err = data['IA9']  # unit milli-arcseconds
 
     @staticmethod
     def _fix_unnamed_column(data_frame, correct_key='IA2', col_idx=1):
