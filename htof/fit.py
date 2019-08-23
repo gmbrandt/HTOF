@@ -60,6 +60,7 @@ class AstrometricFitter(object):
         """
         # TODO one needs to multiply by the 1/2 etc. factors for acceleration
         solution = np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch))
+        errors = np.sqrt(np.diagonal(np.linalg.pinv(self._chi2_matrix)))
         if NORM:
             t = self.epoch_times
             solution = transform_coefficients_to_unnormalized_domain(solution, t.min() - self.central_epoch_ra,
@@ -68,7 +69,12 @@ class AstrometricFitter(object):
                                                                      t.max() - self.central_epoch_dec,
                                                                      self.fit_degree,
                                                                      self.use_parallax)
-
+            errors = transform_coefficients_to_unnormalized_domain(errors, t.min() - self.central_epoch_ra,
+                                                                     t.max() - self.central_epoch_ra,
+                                                                     t.min() - self.central_epoch_dec,
+                                                                     t.max() - self.central_epoch_dec,
+                                                                     self.fit_degree,
+                                                                     self.use_parallax)
         return solution
 
     def _chi2_vector(self, ra_vs_epoch, dec_vs_epoch):
