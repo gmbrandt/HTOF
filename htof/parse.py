@@ -24,11 +24,13 @@ class IntermediateDataParser(object):
     Base class for parsing Hip1 and Hip2 data. self.epoch, self.covariance_matrix and self.scan_angle are saved
     as panda dataframes. use .values (e.g. self.epoch.values) to call the ndarray version.
     """
-    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None):
+    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
+                 along_scan_errs=None):
         self.scan_angle = scan_angle
         self._epoch = epoch
         self.residuals = residuals
         self.inverse_covariance_matrix = inverse_covariance_matrix
+        self.along_scan_errs = along_scan_errs
 
     @staticmethod
     def read_intermediate_data_file(star_id, intermediate_data_directory, skiprows, header, sep):
@@ -57,7 +59,8 @@ class IntermediateDataParser(object):
 
     def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=1E5):
         cov_matrices = calculate_covariance_matrices(self.scan_angle,
-                                                     cross_scan_along_scan_var_ratio=cross_scan_along_scan_var_ratio)
+                                                     cross_scan_along_scan_var_ratio=cross_scan_along_scan_var_ratio,
+                                                     along_scan_errs=self.along_scan_errs)
         icov_matrices = np.zeros_like(cov_matrices)
         for i in range(len(cov_matrices)):
             icov_matrices[i] = np.linalg.pinv(cov_matrices[i])
@@ -72,7 +75,8 @@ def _match_filename_to_star_id(star_id, filepath_list):
     return [path for path in filepath_list if os.path.basename(path).split('.')[0] == str(star_id)]
 
 
-def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1E5):
+def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1E5,
+                                  along_scan_errs=None):
     """
     :param scan_angles: pandas DataFrame with scan angles, e.g. as-is from the data parsers. scan_angles.values is a
                         numpy array with the scan angles
@@ -80,15 +84,17 @@ def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1
     :return An ndarray with shape (len(scan_angles), 2, 2), e.g. an array of covariance matrices in the same order
     as the scan angles
     """
+    if along_scan_errs is None:
+        along_scan_errs = np.ones_like(scan_angles.values.flatten())
     covariance_matrices = []
     cov_matrix_in_scan_basis = np.array([[cross_scan_along_scan_var_ratio, 0],
                                          [0, 1]])
     # we define the along scan to be 'y' in the scan basis.
-    for theta in scan_angles.values.flatten():
-        theta += np.pi/2  # angle between the along-scan axis and declination.
+    for theta, err in zip(scan_angles.values.flatten(), along_scan_errs):
+        theta = np.pi/2 - theta  # angle between the along-scan axis and declination.
         c, s = np.cos(theta), np.sin(theta)
-        Rccw = np.array([[c, -s], [s, c]])
-        cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rccw, cov_matrix_in_scan_basis), Rccw.T)
+        Rcw = np.array([[c, s], [-s, c]])
+        cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rcw, (err ** 2) * cov_matrix_in_scan_basis), Rcw.T)
         covariance_matrices.append(cov_matrix_in_ra_dec_basis)
     return np.array(covariance_matrices)
 
@@ -119,6 +125,7 @@ class HipparcosOriginalData(IntermediateDataParser):
         self.scan_angle = np.arctan2(data['IA4'], data['IA3'])  # unit radians
         self._epoch = data['IA6'] / data['IA3'] + 1991.25
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
+        self.along_scan_errs = data['IA9']  # unit milli-arcseconds (mas)
 
     @staticmethod
     def _fix_unnamed_column(data_frame, correct_key='IA2', col_idx=1):
@@ -148,6 +155,7 @@ class HipparcosRereductionData(IntermediateDataParser):
         self.scan_angle = np.arctan2(data[4], data[3])  # data[3] = cos(psi), data[4] = sin(psi)
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
+        self.along_scan_errs = data[6]  # unit milli-arcseconds (mas)
 
 
 class GaiaData(IntermediateDataParser):
