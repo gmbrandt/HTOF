@@ -20,6 +20,7 @@ class TestHipparcosOriginalData:
         assert np.isclose(np.cos(data.scan_angle[0]), -0.9053, rtol=.01)
         assert np.isclose(data._epoch[17], 1990.779865)
         assert np.isclose(np.cos(data.scan_angle[17]), 0.3633, rtol=.01)
+        assert np.isclose(data.along_scan_errs.values[0], 2.21)
         data.parse(star_id='027321',
                    intermediate_data_directory=test_data_directory,
                    data_choice='NDAC')
@@ -47,6 +48,7 @@ class TestLoad:
         assert len(data._epoch) == 111
         assert np.isclose(data._epoch[0], 1990.005)
         assert np.isclose(np.cos(data.scan_angle[0]), -0.9065, rtol=.01)
+        assert np.isclose(data.along_scan_errs.values[0], 0.81)
         assert np.isclose(data._epoch[84], 1991.952)
         assert np.isclose(np.cos(data.scan_angle[84]), -0.8083, rtol=.01)
 

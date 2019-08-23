@@ -25,12 +25,12 @@ class IntermediateDataParser(object):
     as panda dataframes. use .values (e.g. self.epoch.values) to call the ndarray version.
     """
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
-                 along_scan_err=None):
+                 along_scan_errs=None):
         self.scan_angle = scan_angle
         self._epoch = epoch
         self.residuals = residuals
         self.inverse_covariance_matrix = inverse_covariance_matrix
-        self.along_scan_err = along_scan_err
+        self.along_scan_errs = along_scan_errs
 
     @staticmethod
     def read_intermediate_data_file(star_id, intermediate_data_directory, skiprows, header, sep):
@@ -60,7 +60,7 @@ class IntermediateDataParser(object):
     def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=1E5):
         cov_matrices = calculate_covariance_matrices(self.scan_angle,
                                                      cross_scan_along_scan_var_ratio=cross_scan_along_scan_var_ratio,
-                                                     along_scan_errs=self.along_scan_err)
+                                                     along_scan_errs=self.along_scan_errs)
         icov_matrices = np.zeros_like(cov_matrices)
         for i in range(len(cov_matrices)):
             icov_matrices[i] = np.linalg.pinv(cov_matrices[i])
@@ -125,7 +125,7 @@ class HipparcosOriginalData(IntermediateDataParser):
         self.scan_angle = np.arctan2(data['IA4'], data['IA3'])  # unit radians
         self._epoch = data['IA6'] / data['IA3'] + 1991.25
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
-        self.along_scan_err = data['IA9']  # unit milli-arcseconds
+        self.along_scan_errs = data['IA9']  # unit milli-arcseconds
 
     @staticmethod
     def _fix_unnamed_column(data_frame, correct_key='IA2', col_idx=1):
@@ -155,7 +155,7 @@ class HipparcosRereductionData(IntermediateDataParser):
         self.scan_angle = np.arctan2(data[4], data[3])  # data[3] = cos(psi), data[4] = sin(psi)
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
-        self.along_scan_err = data[6]  # unit milli-arcseconds (mas)
+        self.along_scan_errs = data[6]  # unit milli-arcseconds (mas)
 
 
 class GaiaData(IntermediateDataParser):
