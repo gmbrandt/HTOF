@@ -1,7 +1,8 @@
 """
   Module for parsing intermediate data from Hipparcos and Gaia.
   For Hipparcos (both reductions) and Gaia, the scan angle theta is the angle between the north
-  equitorial pole (declination) and the across-scan axis. Or, the angle between RA and the along-scan axis.
+  equitorial pole (declination) and the along-scan axis, defined as positive if east of the north pole
+  (positive for increasing RA).
 
   Author:
     G. Mirek Brandt
@@ -89,10 +90,11 @@ def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1
     covariance_matrices = []
     cov_matrix_in_scan_basis = np.array([[cross_scan_along_scan_var_ratio, 0],
                                          [0, 1]])
-    # we define the along scan to be 'y' in the scan basis.
+    # we define the across-scan to be 'y' in the scan basis.
     for theta, err in zip(scan_angles.values.flatten(), along_scan_errs):
-        theta = np.pi/2 - theta  # angle between the along-scan axis and declination.
+        theta = np.pi/2 - theta  # angle between the across-scan axis and declination.
         c, s = np.cos(theta), np.sin(theta)
+        # we rotate the AC axis clock-wise to coincide with the declination axis
         Rcw = np.array([[c, s], [-s, c]])
         cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rcw, (err ** 2) * cov_matrix_in_scan_basis), Rcw.T)
         covariance_matrices.append(cov_matrix_in_ra_dec_basis)
