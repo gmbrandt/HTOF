@@ -155,7 +155,7 @@ def test_calculating_covariance_matrices():
     covariances = calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=10)
     assert len(covariances) == len(scan_angles)
     assert np.allclose(covariances[-1], covariances[0])  # check 2pi is equivalent to 0.
-    assert np.allclose(covariances[0], np.array([[1, 0], [0, 10]]))  # angle of 0 has AL parallel with RA.
+    assert np.allclose(covariances[0], np.array([[10, 0], [0, 1]]))  # angle of 0 has AL parallel with DEC.
     for cov_matrix, scan_angle in zip(covariances, scan_angles.values.flatten()):
         assert np.isclose(scan_angle % np.pi, angle_of_short_axis_of_error_ellipse(cov_matrix) % np.pi)
         # modulo pi since the scan angle and angle of short axis could differ in sign from one another.
@@ -165,5 +165,5 @@ def angle_of_short_axis_of_error_ellipse(cov_matrix):
     vals, vecs = np.linalg.eigh(cov_matrix)
     # Compute "tilt" of ellipse using first eigenvector
     x, y = vecs[:, 0]
-    theta = np.arctan2(y, x)
+    theta = np.arctan2(y, x) - np.pi/2
     return theta
