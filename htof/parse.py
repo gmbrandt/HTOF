@@ -90,13 +90,11 @@ def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1
     covariance_matrices = []
     cov_matrix_in_scan_basis = np.array([[cross_scan_along_scan_var_ratio, 0],
                                          [0, 1]])
-    # we define the across-scan to be 'y' in the scan basis.
     for theta, err in zip(scan_angles.values.flatten(), along_scan_errs):
-        theta = np.pi/2 - theta  # angle between the across-scan axis and declination.
         c, s = np.cos(theta), np.sin(theta)
         # we rotate the AC axis clock-wise to coincide with the declination axis
-        Rcw = np.array([[c, s], [-s, c]])
-        cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rcw, (err ** 2) * cov_matrix_in_scan_basis), Rcw.T)
+        Rot = np.array([[s, -c], [c, s]])
+        cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rot, (err ** 2) * cov_matrix_in_scan_basis), Rot.T)
         covariance_matrices.append(cov_matrix_in_ra_dec_basis)
     return np.array(covariance_matrices)
 
@@ -124,7 +122,7 @@ class HipparcosOriginalData(IntermediateDataParser):
         # select either the data from the NDAC or the FAST consortium.
         data = data[data['IA2'] == data_choice[0]]
         # compute scan angles and observations epochs according to van Leeuwen & Evans 1997, eq. 11 & 12.
-        self.scan_angle = np.arctan2(data['IA4'], data['IA3'])  # unit radians
+        self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians, arctan2(sin, cos)
         self._epoch = data['IA6'] / data['IA3'] + 1991.25
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
         self.along_scan_errs = data['IA9']  # unit milli-arcseconds (mas)
@@ -154,7 +152,7 @@ class HipparcosRereductionData(IntermediateDataParser):
         """
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=1, header=None, sep='\s+')
-        self.scan_angle = np.arctan2(data[4], data[3])  # data[3] = cos(psi), data[4] = sin(psi)
+        self.scan_angle = np.arctan2(data[3], data[4])  # data[3] = sin(psi), data[4] = cos(psi)
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
         self.along_scan_errs = data[6]  # unit milli-arcseconds (mas)
