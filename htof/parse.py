@@ -88,11 +88,10 @@ def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1
     if along_scan_errs is None:
         along_scan_errs = np.ones_like(scan_angles.values.flatten())
     covariance_matrices = []
-    cov_matrix_in_scan_basis = np.array([[cross_scan_along_scan_var_ratio, 0],
-                                         [0, 1]])
+    cov_matrix_in_scan_basis = np.array([[1, 0],
+                                         [0, cross_scan_along_scan_var_ratio]])
     for theta, err in zip(scan_angles.values.flatten(), along_scan_errs):
         c, s = np.cos(theta), np.sin(theta)
-        # we rotate the AC axis clock-wise to coincide with the declination axis
         Rot = np.array([[s, -c], [c, s]])
         cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rot, (err ** 2) * cov_matrix_in_scan_basis), Rot.T)
         covariance_matrices.append(cov_matrix_in_ra_dec_basis)
