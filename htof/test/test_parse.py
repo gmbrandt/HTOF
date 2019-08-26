@@ -17,18 +17,18 @@ class TestHipparcosOriginalData:
                    data_choice='FAST')
         assert len(data._epoch) == 32
         assert np.isclose(data._epoch[0], 1990.005772)
-        assert np.isclose(np.cos(data.scan_angle[0]), -0.9053, rtol=.01)
+        assert np.isclose(np.sin(data.scan_angle[0]), -0.9053, rtol=.01)
         assert np.isclose(data._epoch[17], 1990.779865)
-        assert np.isclose(np.cos(data.scan_angle[17]), 0.3633, rtol=.01)
+        assert np.isclose(np.sin(data.scan_angle[17]), 0.3633, rtol=.01)
         assert np.isclose(data.along_scan_errs.values[0], 2.21)
         data.parse(star_id='027321',
                    intermediate_data_directory=test_data_directory,
                    data_choice='NDAC')
         assert len(data._epoch) == 34
         assert np.isclose(data._epoch[1], 1990.005386)
-        assert np.isclose(np.cos(data.scan_angle[1]), -0.9051, rtol=.01)
+        assert np.isclose(np.sin(data.scan_angle[1]), -0.9051, rtol=.01)
         assert np.isclose(data._epoch[10], 1990.455515)
-        assert np.isclose(np.cos(data.scan_angle[10]), 0.7362, rtol=.01)
+        assert np.isclose(np.sin(data.scan_angle[10]), 0.7362, rtol=.01)
 
     def test_raises_exception_on_bad_data_choice(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip1')
@@ -47,10 +47,10 @@ class TestLoad:
                    intermediate_data_directory=test_data_directory, convert_to_jd=False)
         assert len(data._epoch) == 111
         assert np.isclose(data._epoch[0], 1990.005)
-        assert np.isclose(np.cos(data.scan_angle[0]), -0.9065, rtol=.01)
+        assert np.isclose(np.sin(data.scan_angle[0]), -0.9065, rtol=.01)
         assert np.isclose(data.along_scan_errs.values[0], 0.81)
         assert np.isclose(data._epoch[84], 1991.952)
-        assert np.isclose(np.cos(data.scan_angle[84]), -0.8083, rtol=.01)
+        assert np.isclose(np.sin(data.scan_angle[84]), -0.8083, rtol=.01)
 
     def test_parse_raises_file_not_found_error(self):
         with pytest.raises(FileNotFoundError):
