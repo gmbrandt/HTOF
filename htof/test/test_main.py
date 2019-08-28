@@ -51,14 +51,8 @@ class TestAstrometry:
             test_data_directory = os.path.join(base_directory, data_choice)
 
             fitter = Astrometry(data_choice, star_id, test_data_directory, central_epoch_ra=2000,
-                                central_epoch_dec=2001, central_epoch_fmt='frac_year')
+                                central_epoch_dec=2001, format='decimalyear')
             num_pts = len(fitter.data.julian_day_epoch())
             ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch=np.ones(num_pts),
                                                   dec_vs_epoch=np.ones(num_pts))
             assert True
-
-    @mock.patch('htof.main.AstrometricFitter.fit_line', return_value=np.ones(4))
-    def test_conversion_to_mas_per_year(self, fake_fitter):
-        fitter = Astrometry('Hip1', '', '', data='', fitter=AstrometricFitter('', '', '', ''))
-        assert np.allclose(fitter.fit(None, None, pm_units='mas_per_year'), [1, 1, 365.25, 365.25])
-        assert np.allclose(fitter.fit(None, None, pm_units='mas_per_day'), np.ones(4))

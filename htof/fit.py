@@ -33,7 +33,7 @@ class AstrometricFitter(object):
     def __init__(self, inverse_covariance_matrices=None, epoch_times=None,
                  astrometric_chi_squared_matrices=None, astrometric_solution_vector_components=None,
                  parallactic_pertubations=None, fit_degree=1, use_parallax=False,
-                 central_epoch_ra=0, central_epoch_dec=0, central_epoch_fmt='BJD'):
+                 central_epoch_ra=0, central_epoch_dec=0):
         if parallactic_pertubations is None:
             parallactic_pertubations = [np.zeros_like(epoch_times), np.zeros_like(epoch_times)]
         self.use_parallax = use_parallax
@@ -41,9 +41,8 @@ class AstrometricFitter(object):
         self.inverse_covariance_matrices = inverse_covariance_matrices
         self.epoch_times = epoch_times
         self.fit_degree = fit_degree
-        self.central_epoch_dec, self.central_epoch_ra = _verify_epoch(central_epoch_dec,
-                                                                      central_epoch_ra,
-                                                                      central_epoch_fmt)
+        self.central_epoch_dec = central_epoch_dec
+        self.central_epoch_ra = central_epoch_ra
 
         if astrometric_solution_vector_components is None:
             self.astrometric_solution_vector_components = self._init_astrometric_solution_vectors(fit_degree)
@@ -58,7 +57,6 @@ class AstrometricFitter(object):
         :return: Array:
                  [ra0, dec0, mu_ra, mu_dec]
         """
-        # TODO one needs to multiply by the 1/2 etc. factors for acceleration
         solution = np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch))
         errors = np.sqrt(np.diagonal(np.linalg.pinv(self._chi2_matrix)))
         if NORM:
@@ -131,17 +129,6 @@ class AstrometricFitter(object):
 
 def unpack_elements_of_matrix(matrix):
     return matrix.flatten()
-
-
-def _verify_epoch(central_epoch_dec, central_epoch_ra, central_epoch_fmt):
-    if central_epoch_fmt == 'frac_year' or central_epoch_fmt == 'decimalyear':
-        if central_epoch_dec > 3000 or central_epoch_ra > 3000:
-            warnings.warn('central epoch in RA or DEC was chosen to be > 3000. Are you sure this'
-                          'is a fractional year date and not a BJD? If BJD, set central_epoch_fmt=BJD.',
-                          UserWarning)  # pragma: no cover
-        central_epoch_dec = fractional_year_epoch_to_jd(central_epoch_dec, half_day_correction=True)
-        central_epoch_ra = fractional_year_epoch_to_jd(central_epoch_ra, half_day_correction=True)
-    return central_epoch_dec, central_epoch_ra
 
 
 def normalize(coordinates, domain):

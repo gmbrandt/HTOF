@@ -3,7 +3,7 @@ import pytest
 import mock
 from astropy.time import Time
 
-from htof.fit import unpack_elements_of_matrix, AstrometricFitter, _verify_epoch
+from htof.fit import unpack_elements_of_matrix, AstrometricFitter
 from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix
 from htof.sky_path import parallactic_motion
 
@@ -124,24 +124,6 @@ class TestAstrometricFitter:
         assert fitter._chi2_matrix.shape == (8, 8)
         assert fitter.astrometric_solution_vector_components['ra'][0].shape == (8,)
         assert fitter.astrometric_solution_vector_components['dec'][0].shape == (8,)
-
-
-@mock.patch('htof.fit.fractional_year_epoch_to_jd')
-def test_verify_epoch(fake_convert):
-    def convert(time, *args, **kwargs):
-        return int(time)
-    fake_convert.side_effect = convert
-
-    ranew, decnew = _verify_epoch(0, 0, 'BJD')
-    assert np.allclose([ranew, decnew], 0)
-    ranew, decnew = _verify_epoch(2000.1, 2001.2, 'frac_year')
-    assert np.allclose([ranew, decnew], [2000, 2001])
-
-
-def test_verify_warns_on_large_fractional_year():
-    with pytest.warns(UserWarning):
-        _verify_epoch(central_epoch_dec=5000,
-                      central_epoch_ra=5000, central_epoch_fmt='frac_year')
 
 
 def test_unpack_elements_of_matrix():

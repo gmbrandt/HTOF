@@ -26,7 +26,8 @@ While in the root directory of this repo.
 Usage: Four parameter fits
 --------------------------
 The following examples show how one would both load in and fit a line to the astrometric intermediate data
-from either Hipparcos data reduction or Gaia (Currently only data release 2, GaiaDR2).
+from either Hipparcos data reduction or Gaia (Currently only data release 2, GaiaDR2). A four parameter fit means
+you are fitting a line to the data, without parallax.
 
 Let ra_vs_epoch, dec_vs_epoch be 1d arrays of ra and dec positions.
 Assume we want to fit to data from GaiaDR2 on the star with hip id 027321. The choices of data
@@ -38,29 +39,29 @@ are :code:`GaiaDR2`, :code:`Hip1` and :code:`Hip2`. The following lines parse th
     fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/')  # parse
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)  # fit
 
+ra_vs_epoch and dec_vs_epoch are the positions in right ascension and declination of the object. These arrays must have
+the same shape as fitter.data.julian_day_epoch(), which are the epochs in the intermediate data.
+
 For Hipparcos 2, the path to the intermediate data would point to :code:`IntermediateData/resrec/`.
 Note that the intermediate data files must be in the same format as the test intermediate data files found in this
-repository under :code:`htof/test/data_for_tests/`.
+repository under :code:`htof/test/data_for_tests/`. The best fit parameters have units of mas and mas/day by default.
+The best fit skypath for right ascension is then :code:`ra0 + mu_ra * epochs`
 
-If you want to specify a central epoch in barycentric Julian day, instead call:
-
-.. code-block:: python
-
-    from htof.main import Astrometry
-
-    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2456892, central_epoch_dec=2456892, central_epoch_fmt='BJD')
-    ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)
-
-The above would set the central epoch for the right ascension (ra) to 2456892 BJD, and declination (dec) to 2456892 BJD.
-One could also set the central epochs to years using the :code:`frac_year` keyword and supplying a year:
+If you want to specify a central epoch, you can do so with:
 
 .. code-block:: python
 
     from htof.main import Astrometry
-    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2000, central_epoch_dec=2000, central_epoch_fmt='frac_year')
+
+    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2456892, central_epoch_dec=2456892, format='jd')
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)
 
-One can then access the BJD central epochs via
+The format of the central epochs must be specified along with the central epochs. The possible choices of format
+are the same as the choices for format in astropy.time.Time(val, format=format).
+E.g. :code:`'decimalyear'`, :code:`'jd'` . The best fit sky path in right ascension would then be
+:code:`ra0 + mu_ra * (epochs - centra_epoch_ra)`.
+
+One can access the BJD epochs with
 
 .. code-block:: python
 
@@ -69,19 +70,13 @@ One can then access the BJD central epochs via
 
 Both Hipparcos and Gaia catalogs list parallaxes in milli-arcseconds (mas). We convert all three
 catalog epochs to barycentric julian day by default, therefore a fit to astrometry has proper motions
-with units of mas/day by default. If you want mas/year, then use the keyword :code:`pm_units` (proper motion units):
-
-.. code-block:: python
-
-    ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch, pm_units='mas_per_year')
-
-Which will return the same mu_ra and mu_dec as with :code:`pm_units='mas_per_day'` but multiplied by 365.25.
+with units of mas/day by default.
 
 TODO: discuss how Hip1 and Hip2 data include the actual errors.
 
 Usage: 5,7 and 9 parameter fits
 -------------------------------
-TODO: Change pm_units thing. discuss how to get parallax, how to generate the plx pertubations
+TODO: Discuss how to get parallax, how to generate the plx pertubations
 changed format that the fitter returns (should it ever return a different format?, or should
 it always be [0, ra0, dec0, mura, mudec, 0,] for higher order fits?
 
