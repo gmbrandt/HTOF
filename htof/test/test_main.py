@@ -45,11 +45,11 @@ def test_fit_to_known_system():
     plx = 51.44  # mas
     pmRA = 4.65  # mas/year
     pmDec = 83.10  # mas/year
-    chisq = 81.17  # chi squared of the Hip2 best fit to the sky-path.
     # generate fitter and parse intermediate data
     astro = Astrometry('Hip2', '27321', 'htof/test/data_for_tests/Hip2', central_epoch_ra=1991.25,
                        central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
                        central_ra=cntr_ra, central_dec=cntr_dec)
+    chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
     # generate ra and dec for each observation.
     year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
                   Time(1991.25, format='decimalyear').jyear
@@ -61,7 +61,7 @@ def test_fit_to_known_system():
     dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
     #
     coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
-    assert np.isclose(chisq, round(chisq_found, 2))
+    assert np.isclose(chisq, chisq_found, atol=1E-3)
     assert np.allclose([plx, pmRA, pmDec], np.array([coeffs[0], coeffs[3], coeffs[4]]).round(2))
 
 
