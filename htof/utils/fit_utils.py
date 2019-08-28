@@ -3,6 +3,7 @@ Module for generating the chi-squared matrix (and vectors) for the 9 parameter f
 """
 
 import numpy as np
+from numpy.polynomial.polynomial import polyval
 
 FIT_BASIS = np.polynomial.polynomial.polyvander
 
@@ -99,3 +100,17 @@ def _transform(ap, bp, cp, dp, minx, maxx):
     c = cp*j**2 + 3*dp*h*j**2
     d = dp*j**3
     return a, b, c, d
+
+
+def chisq_of_fit(coeffs, ra, dec, ra_epochs, dec_epochs, inv_covs, ra_plx_motion, dec_plx_motion, use_parallax=True):
+    ra_model = polyval(ra_epochs, coeffs[1 * use_parallax:][::2])
+    dec_model = polyval(dec_epochs, coeffs[1 * use_parallax:][1::2])
+    if use_parallax:
+        ra_model += coeffs[0] * ra_plx_motion
+        dec_model += coeffs[0] * dec_plx_motion
+
+    modelminusdata = np.hstack([(ra_model - ra).reshape(-1, 1), (dec_model - dec).reshape(-1, 1)])
+    chisquared = 0
+    for i in range(len(ra_model)):
+        chisquared += np.matmul(np.matmul(modelminusdata[i], inv_covs[i]), modelminusdata[i])
+    return chisquared

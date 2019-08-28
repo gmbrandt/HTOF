@@ -67,7 +67,7 @@ class TestAstrometricFitter:
         for norm in [True, False]:
             fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
                                        epoch_times=astrometric_data['epoch_delta_t'], norm=norm)
-            sol, errs = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'], return_all=True)
+            sol, errs, chisq = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'], return_all=True)
             assert errs.size == 4
 
     def test_fitting_with_nonzero_central_epoch(self):
@@ -77,11 +77,15 @@ class TestAstrometricFitter:
         expected_vec = astrometric_data['linear_solution']
         expected_vec[0] += ra_cnt * expected_vec[2]  # r0 = ra_central_time * mu_ra
         expected_vec[1] += dec_cnt * expected_vec[3]  # dec0 = dec_central_time * mu_dec
-        for norm in [True, False]:
-            fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
-                                       epoch_times=astrometric_data['epoch_delta_t'],
-                                       central_epoch_dec=dec_cnt, central_epoch_ra=ra_cnt, norm=norm)
-            assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']), expected_vec)
+        fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+                                   epoch_times=astrometric_data['epoch_delta_t'],
+                                   central_epoch_dec=dec_cnt, central_epoch_ra=ra_cnt, norm=True)
+        assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']), expected_vec)
+        # same test but without the internal normalization which improves numerical stability.
+        fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+                                   epoch_times=astrometric_data['epoch_delta_t'],
+                                   central_epoch_dec=dec_cnt, central_epoch_ra=ra_cnt, norm=False)
+        assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']), expected_vec)
 
     def test_fitting_to_cubic_astrometric_data_without_parallax(self):
         for norm in [True, False]:

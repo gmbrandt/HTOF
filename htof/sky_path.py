@@ -144,6 +144,7 @@ def parallactic_motion(epochs, cntr_ra, cntr_dec, unit, refepoch, ephemeris=eart
     :return: [array, array]
     parallax motion about the center coordinate. E.g. Parallax_ra - cntr_ra and Parallax_dec - cntr_dec
     Where Parallax_ra would be an array of RA coordinates for parallax motion alone
+    Output will have units of unit.
     """
     delta_ra, delta_dec = epoch_topocentric_coordinates(Angle(cntr_ra, unit=unit).rad,
                                                     Angle(cntr_dec, unit=unit).rad, parallax,

@@ -6,6 +6,7 @@ Author: G. Mirek Brandt
 
 import numpy as np
 from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix, transform_coefficients_to_unnormalized_domain
+from htof.utils.fit_utils import chisq_of_fit
 
 
 class AstrometricFitter(object):
@@ -14,12 +15,12 @@ class AstrometricFitter(object):
                                         for each epoch
     :param epoch_times: 1D array
                         array with each epoch in Barycentric Julian Date (BJD).
-    :param parallactic_pertubations: dictionary
+    :param parallactic_pertubations: list
     :param parameters: int.
                        number of parameters in the fit. Options are 4, 5, 7, and 9.
                        4 is just offset and proper motion, 5 includes parallax, 7 and 9 include accelerations and jerks.
-    The pertubations due to parallactic motion alone with unit parallax. Where parallactic_pertubations['ra'], and
-    parallactic_pertubations['dec'] are the pertubations for right ascension and declination
+    The pertubations due to parallactic motion alone with unit parallax. Where parallactic_pertubations[0], and
+    parallactic_pertubations[1] are the pertubations for right ascension and declination respectively.
     For each component this should be the quantity which is linear in parallax angle, i.e.:
     Parallax_motion_ra - central_ra.
     The units of this parallactic motion should be exactly the same as the ra's and dec's which you will fit
@@ -55,6 +56,7 @@ class AstrometricFitter(object):
         """
         solution = np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch))
         errors = np.sqrt(np.diagonal(np.linalg.pinv(self._chi2_matrix)))
+
         if self.norm:
             # transforming out of normalized coordinates.
             t = self.epoch_times
@@ -70,7 +72,13 @@ class AstrometricFitter(object):
                                                                      t.max() - self.central_epoch_dec,
                                                                      self.fit_degree,
                                                                      self.use_parallax)
-        return solution if not return_all else (solution, errors)
+
+        chisq = chisq_of_fit(solution, ra_vs_epoch, dec_vs_epoch,
+                             self.epoch_times - self.central_epoch_ra, self.epoch_times - self.central_epoch_dec,
+                             self.inverse_covariance_matrices, *self.parallactic_pertubations,
+                             use_parallax=self.use_parallax)
+
+        return solution if not return_all else (solution, errors, chisq)
 
     def _chi2_vector(self, ra_vs_epoch, dec_vs_epoch):
         ra_solution_vecs = self.astrometric_solution_vector_components['ra']

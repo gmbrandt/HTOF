@@ -6,29 +6,51 @@ to the intermediate epochs.
 Author: G. Mirek Brandt
 """
 
-import numpy as np
 from astropy.time import Time
+from astropy.coordinates import Angle
+import warnings
 
 from htof.fit import AstrometricFitter
 from htof.parse import HipparcosRereductionData, GaiaData, HipparcosOriginalData
+from htof.sky_path import parallactic_motion, earth_ephemeris, earth_sun_l2_ephemeris
 
 
 class Astrometry(object):
-    parsers = {'GaiaDR2': GaiaData, 'Hip1': HipparcosOriginalData, 'Hip2': HipparcosRereductionData}
+    parsers = {'gaiadr2': GaiaData, 'hip1': HipparcosOriginalData, 'hip2': HipparcosRereductionData}
+    ephemeri = {'gaiadr2': earth_sun_l2_ephemeris, 'hip1': earth_ephemeris, 'hip2': earth_ephemeris}
 
     def __init__(self, data_choice, star_id, intermediate_data_directory, fitter=None, data=None,
-                 central_epoch_ra=0, central_epoch_dec=0, format='jd', norm=True):
+                 central_epoch_ra=0, central_epoch_dec=0, format='jd', fit_degree=1,
+                 use_parallax=False, central_ra=None, central_dec=None, norm=True):
+
         if data is None:
-            DataParser = self.parsers[data_choice]
+            DataParser = self.parsers[data_choice.lower()]
             data = DataParser()
             data.parse(star_id=star_id,
                        intermediate_data_directory=intermediate_data_directory)
             data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
+
+        if use_parallax and isinstance(central_ra, Angle) and isinstance(central_dec, Angle):
+            if central_epoch_dec != central_epoch_ra:
+                warnings.warn('central_epoch_dec != central_epoch_ra. '
+                              'Using central_epoch_ra as the central_epoch to compute the parallax motion.',
+                              UserWarning)    # pragma: no cover
+            ra_motion, dec_motion = parallactic_motion(Time(data.julian_day_epoch(), format='jd').jyear,
+                                                       central_ra.mas, central_dec.mas, 'mas',
+                                                       Time(central_epoch_ra, format=format).jyear,
+                                                       ephemeris=self.ephemeri[data_choice.lower()])
+            parallactic_pertubations = [ra_motion, dec_motion]  # order matters. ra first then dec.
+        else:
+            parallactic_pertubations = None
+
         if fitter is None and data is not None:
             fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix,
                                        epoch_times=Time(Time(data.julian_day_epoch(), format='jd'), format=format).value,
                                        central_epoch_dec=Time(central_epoch_dec, format=format).value,
                                        central_epoch_ra=Time(central_epoch_ra, format=format).value,
+                                       fit_degree=fit_degree,
+                                       use_parallax=use_parallax,
+                                       parallactic_pertubations=parallactic_pertubations,
                                        norm=norm)
         self.data = data
         self.fitter = fitter

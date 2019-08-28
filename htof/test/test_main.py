@@ -1,7 +1,8 @@
 import pytest
 import os
 import numpy as np
-import mock
+from astropy.coordinates import Angle
+from astropy.time import Time
 
 from htof.parse import GaiaData, HipparcosRereductionData, HipparcosOriginalData
 from htof.fit import AstrometricFitter
@@ -38,9 +39,30 @@ def test_parse_and_fit_to_line():
 
 
 @pytest.mark.e2e
-def test_fit_to_beta_pic():
-    # TODO
-    assert True
+def test_fit_to_known_system():
+    # Hip 27321 parameters from Snellen+Brown 2018: https://arxiv.org/pdf/1808.06257.pdf
+    cntr_ra, cntr_dec = Angle(86.82118054, 'degree'), Angle(-51.06671341, 'degree')
+    plx = 51.44  # mas
+    pmRA = 4.65  # mas/year
+    pmDec = 83.10  # mas/year
+    chisq = 81.17  # chi squared of the Hip2 best fit to the sky-path.
+    # generate fitter and parse intermediate data
+    astro = Astrometry('Hip2', '27321', 'htof/test/data_for_tests/Hip2', central_epoch_ra=1991.25,
+                       central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
+                       central_ra=cntr_ra, central_dec=cntr_dec)
+    # generate ra and dec for each observation.
+    year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
+                  Time(1991.25, format='decimalyear').jyear
+    ra_motion, dec_motion = astro.fitter.parallactic_pertubations
+    ra = Angle(ra_motion * plx + pmRA * year_epochs, unit='mas')
+    dec = Angle(dec_motion * plx + pmDec * year_epochs, unit='mas')
+    # add residuals
+    ra += Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
+    dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
+    #
+    coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
+    assert np.isclose(chisq, round(chisq_found, 2))
+    assert np.allclose([plx, pmRA, pmDec], np.array([coeffs[0], coeffs[3], coeffs[4]]).round(2))
 
 
 class TestAstrometry:
