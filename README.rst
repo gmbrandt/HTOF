@@ -36,11 +36,17 @@ are :code:`GaiaDR2`, :code:`Hip1` and :code:`Hip2`. The following lines parse th
 .. code-block:: python
 
     from htof.main import Astrometry
-    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/')  # parse
+    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', format='jd')  # parse
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)  # fit
 
-ra_vs_epoch and dec_vs_epoch are the positions in right ascension and declination of the object. These arrays must have
-the same shape as fitter.data.julian_day_epoch(), which are the epochs in the intermediate data.
+ra_vs_epoch and dec_vs_epoch are the positions in right ascension and declination of the object.
+These arrays must have the same shape as fitter.data.julian_day_epoch(),
+which are the epochs in the intermediate data. :code:`format='jd'` specifies
+the time units of the output best fit parameters. The possible choices of format
+are the same as the choices for format in astropy.time.Time(val, format=format).
+E.g. :code:`'decimalyear'`, :code:`'jd'` . If :code:`format='decimalyear'`, then the output :code:`mu_ra`
+would have units of mas/year. If :code:`jd` then the output is mas/day. Both Hipparcos and Gaia catalogs list parallaxes
+in milli-arcseconds (mas), and so positional units are always in mas for HTOF.
 
 For Hipparcos 2, the path to the intermediate data would point to :code:`IntermediateData/resrec/`.
 Note that the intermediate data files must be in the same format as the test intermediate data files found in this
@@ -56,9 +62,7 @@ If you want to specify a central epoch, you can do so with:
     fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2456892, central_epoch_dec=2456892, format='jd')
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)
 
-The format of the central epochs must be specified along with the central epochs. The possible choices of format
-are the same as the choices for format in astropy.time.Time(val, format=format).
-E.g. :code:`'decimalyear'`, :code:`'jd'` . The best fit sky path in right ascension would then be
+The format of the central epochs must be specified along with the central epochs. The best fit sky path in right ascension would then be
 :code:`ra0 + mu_ra * (epochs - centra_epoch_ra)`.
 
 One can access the BJD epochs with
@@ -68,11 +72,20 @@ One can access the BJD epochs with
     fitter.central_epoch_dec
     fitter.central_epoch_ra
 
-Both Hipparcos and Gaia catalogs list parallaxes in milli-arcseconds (mas). We convert all three
-catalog epochs to barycentric julian day by default, therefore a fit to astrometry has proper motions
-with units of mas/day by default.
+If you want the standard (1-sigma) errors on the parameters, set :code:`return_all=True` when fitting:
 
-TODO: discuss how Hip1 and Hip2 data include the actual errors.
+.. code-block:: python
+
+    from htof.main import Astrometry
+
+    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2456892, central_epoch_dec=2456892, format='jd')
+    coeffs, errors = fitter.fit(ra_vs_epoch, dec_vs_epoch, return_all=True)
+
+errors is an array the same shape as coeffs, where each entry is the 1-sigma error for the
+parameter at the same location in the coeffs array. For Hip1 and Hip2, HTOF loads in the real
+catalog errors and so these parameter error estimates should match those given in the catalog. However,
+for Gaia we do not have the error estimates from the GOST tool and so the best-fit parameter errors to
+Gaia will not match those reported by the Gaia members.
 
 Usage: 5,7 and 9 parameter fits
 -------------------------------

@@ -17,7 +17,7 @@ class Astrometry(object):
     parsers = {'GaiaDR2': GaiaData, 'Hip1': HipparcosOriginalData, 'Hip2': HipparcosRereductionData}
 
     def __init__(self, data_choice, star_id, intermediate_data_directory, fitter=None, data=None,
-                 central_epoch_ra=0, central_epoch_dec=0, format='jd'):
+                 central_epoch_ra=0, central_epoch_dec=0, format='jd', norm=True):
         if data is None:
             DataParser = self.parsers[data_choice]
             data = DataParser()
@@ -28,9 +28,10 @@ class Astrometry(object):
             fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix,
                                        epoch_times=Time(Time(data.julian_day_epoch(), format='jd'), format=format).value,
                                        central_epoch_dec=Time(central_epoch_dec, format=format).value,
-                                       central_epoch_ra=Time(central_epoch_ra, format=format).value)
+                                       central_epoch_ra=Time(central_epoch_ra, format=format).value,
+                                       norm=norm)
         self.data = data
         self.fitter = fitter
 
-    def fit(self, ra_vs_epoch, dec_vs_epoch):
-        return self.fitter.fit_line(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch)
+    def fit(self, ra_vs_epoch, dec_vs_epoch, return_all=False):
+        return self.fitter.fit_line(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch, return_all=return_all)

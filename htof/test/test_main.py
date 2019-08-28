@@ -37,6 +37,12 @@ def test_parse_and_fit_to_line():
         assert np.isclose(mu_dec, 1)
 
 
+@pytest.mark.e2e
+def test_fit_to_beta_pic():
+    # TODO
+    assert True
+
+
 class TestAstrometry:
     @pytest.mark.e2e
     def test_astrometric_fit(self):

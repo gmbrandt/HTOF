@@ -5,12 +5,7 @@ Author: G. Mirek Brandt
 """
 
 import numpy as np
-import warnings
-from htof.parse import fractional_year_epoch_to_jd
 from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix, transform_coefficients_to_unnormalized_domain
-
-# TODO remove this and always use normalized coordinates.
-NORM = True
 
 
 class AstrometricFitter(object):
@@ -33,7 +28,7 @@ class AstrometricFitter(object):
     def __init__(self, inverse_covariance_matrices=None, epoch_times=None,
                  astrometric_chi_squared_matrices=None, astrometric_solution_vector_components=None,
                  parallactic_pertubations=None, fit_degree=1, use_parallax=False,
-                 central_epoch_ra=0, central_epoch_dec=0):
+                 central_epoch_ra=0, central_epoch_dec=0, norm=True):
         if parallactic_pertubations is None:
             parallactic_pertubations = [np.zeros_like(epoch_times), np.zeros_like(epoch_times)]
         self.use_parallax = use_parallax
@@ -43,23 +38,25 @@ class AstrometricFitter(object):
         self.fit_degree = fit_degree
         self.central_epoch_dec = central_epoch_dec
         self.central_epoch_ra = central_epoch_ra
+        self.norm = norm
 
         if astrometric_solution_vector_components is None:
             self.astrometric_solution_vector_components = self._init_astrometric_solution_vectors(fit_degree)
         if astrometric_chi_squared_matrices is None:
             self._chi2_matrix = self._init_astrometric_chi_squared_matrix(fit_degree)
 
-    def fit_line(self, ra_vs_epoch, dec_vs_epoch):
+    def fit_line(self, ra_vs_epoch, dec_vs_epoch, return_all=False):
         """
         :param ra_vs_epoch: 1d array of right ascension, ordered the same as the covariance matrices and epochs.
         :param dec_vs_epoch: 1d array of declination, ordered the same as the covariance matrices and epochs.
-        :param full_output: bool. True to return the solution vector as well as chi_squared for the fit.
+        :param return_all: bool. True to return the solution vector as well as the 1-sigma error estimates on the parameters.
         :return: Array:
                  [ra0, dec0, mu_ra, mu_dec]
         """
         solution = np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch))
         errors = np.sqrt(np.diagonal(np.linalg.pinv(self._chi2_matrix)))
-        if NORM:
+        if self.norm:
+            # transforming out of normalized coordinates.
             t = self.epoch_times
             solution = transform_coefficients_to_unnormalized_domain(solution, t.min() - self.central_epoch_ra,
                                                                      t.max() - self.central_epoch_ra,
@@ -73,7 +70,7 @@ class AstrometricFitter(object):
                                                                      t.max() - self.central_epoch_dec,
                                                                      self.fit_degree,
                                                                      self.use_parallax)
-        return solution
+        return solution if not return_all else (solution, errors)
 
     def _chi2_vector(self, ra_vs_epoch, dec_vs_epoch):
         ra_solution_vecs = self.astrometric_solution_vector_components['ra']
@@ -88,14 +85,14 @@ class AstrometricFitter(object):
         plx = 1 * self.use_parallax
         astrometric_solution_vector_components = {'ra': np.zeros((num_epochs, 2 * fit_degree + 2 + plx)),
                                                   'dec': np.zeros((num_epochs, 2 * fit_degree + 2 + plx))}
-        if NORM:
+        if self.norm:
             normed_epochs = normalize(self.epoch_times, [np.max(self.epoch_times), np.min(self.epoch_times)])
         for obs in range(num_epochs):
             a, b, c, d = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
-            if NORM:
+            if self.norm:
                 dec_time, ra_time = normed_epochs[obs], normed_epochs[obs]
             else:
-                dec_time = self.epoch_times[obs] - self.central_epoch_dec,
+                dec_time = self.epoch_times[obs] - self.central_epoch_dec
                 ra_time = self.epoch_times[obs] - self.central_epoch_ra
             w_ra, w_dec = self.parallactic_pertubations[0][obs], self.parallactic_pertubations[1][obs]
             clip_i = 0 if self.use_parallax else 1
@@ -111,14 +108,14 @@ class AstrometricFitter(object):
         num_epochs = len(self.epoch_times)
         plx = 1 * self.use_parallax
         astrometric_chi_squared_matrices = np.zeros((num_epochs, 2 * fit_degree + 2 + plx, 2 * fit_degree + 2 + plx))
-        if NORM:
+        if self.norm:
             normed_epochs = normalize(self.epoch_times, [np.max(self.epoch_times), np.min(self.epoch_times)])
         for obs in range(num_epochs):
             a, b, c, d = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
-            if NORM:
+            if self.norm:
                 dec_time, ra_time = normed_epochs[obs], normed_epochs[obs]
             else:
-                dec_time = self.epoch_times[obs] - self.central_epoch_dec,
+                dec_time = self.epoch_times[obs] - self.central_epoch_dec
                 ra_time = self.epoch_times[obs] - self.central_epoch_ra
             w_ra, w_dec = self.parallactic_pertubations[0][obs], self.parallactic_pertubations[1][obs]
             clip_i = 0 if self.use_parallax else 1
