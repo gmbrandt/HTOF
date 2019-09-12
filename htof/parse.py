@@ -159,7 +159,7 @@ class HipparcosRereductionData(IntermediateDataParser):
 
 class GaiaData(IntermediateDataParser):
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
-                 min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch):
+                 min_epoch=-np.inf, max_epoch=np.inf):
         super(GaiaData, self).__init__(scan_angle=scan_angle,
                                        epoch=epoch, residuals=residuals,
                                        inverse_covariance_matrix=inverse_covariance_matrix)
@@ -180,3 +180,13 @@ class GaiaData(IntermediateDataParser):
     def trim_data(self, epochs, min_mjd, max_mjd, other_data=()):
         valid = np.logical_and(epochs >= min_mjd, epochs <= max_mjd)
         return tuple(data[valid].dropna() for data in [epochs, *other_data])
+
+
+class GaiaDR2(GaiaData):
+    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
+                 min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch):
+        super(GaiaDR2, self).__init__(scan_angle=scan_angle,
+                                       epoch=epoch, residuals=residuals,
+                                       inverse_covariance_matrix=inverse_covariance_matrix)
+        self.min_epoch = min_epoch
+        self.max_epoch = max_epoch
