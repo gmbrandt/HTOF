@@ -67,11 +67,11 @@ class AstrometricFitter(object):
                                                                      self.fit_degree,
                                                                      self.use_parallax)
             errors = transform_coefficients_to_unnormalized_domain(errors, t.min() - self.central_epoch_ra,
-                                                                     t.max() - self.central_epoch_ra,
-                                                                     t.min() - self.central_epoch_dec,
-                                                                     t.max() - self.central_epoch_dec,
-                                                                     self.fit_degree,
-                                                                     self.use_parallax)
+                                                                   t.max() - self.central_epoch_ra,
+                                                                   t.min() - self.central_epoch_dec,
+                                                                   t.max() - self.central_epoch_dec,
+                                                                   self.fit_degree,
+                                                                   self.use_parallax)
 
         chisq = chisq_of_fit(solution, ra_vs_epoch, dec_vs_epoch,
                              self.epoch_times - self.central_epoch_ra, self.epoch_times - self.central_epoch_dec,

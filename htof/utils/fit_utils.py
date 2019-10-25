@@ -3,7 +3,7 @@ Module for generating the chi-squared matrix (and vectors) for the 9 parameter f
 """
 
 import numpy as np
-from numpy.polynomial.polynomial import polyval
+from numpy.polynomial import Polynomial as P
 
 FIT_BASIS = np.polynomial.polynomial.polyvander
 
@@ -82,29 +82,25 @@ def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, basis=FIT_BASIS, deg=3
     return np.array(A, dtype=float)
 
 
-def transform_coefficients_to_unnormalized_domain(coeffs, ra_min_t, ra_max_t, dec_min_t, dec_max_t,
-                                                  deg, use_parallax):
-    fa, ga, fb, gb, fc, gc, fd, gd = np.pad(coeffs[1 * use_parallax:],
+def transform_coefficients_to_unnormalized_domain(coeffs, ra_min_t, ra_max_t, dec_min_t, dec_max_t, deg,
+                                                  use_parallax, old_domain=None):
+    if old_domain is None:
+        old_domain = [-1, 1]
+    padded = np.pad(coeffs[1 * use_parallax:],
                                             (0, 2 * 3 + 2 - len(coeffs[1 * use_parallax:])),
                                             mode='constant', constant_values=0)
+    ra_coeffs, dec_coeffs = padded[::2], padded[1::2]
+    ra_poly = P(ra_coeffs, domain=[ra_min_t, ra_max_t], window=[-1, 1])
+    dec_poly = P(dec_coeffs, domain=[dec_min_t, dec_max_t], window=[-1, 1])
     new_coeffs = np.copy(coeffs).astype(np.float64)
-    new_coeffs[1 * use_parallax::2] = _transform(fa, fb, fc, fd, ra_min_t, ra_max_t)[:deg + 1]
-    new_coeffs[1 * use_parallax + 1::2] = _transform(ga, gb, gc, gd, dec_min_t, dec_max_t)[:deg + 1]
+    new_coeffs[1 * use_parallax::2] = ra_poly.convert(domain=old_domain).coef
+    new_coeffs[1 * use_parallax + 1::2] = dec_poly.convert(domain=old_domain).coef
     return new_coeffs
 
 
-def _transform(ap, bp, cp, dp, minx, maxx):
-    j, h = 2/(maxx - minx), -2*minx/(maxx - minx) - 1
-    a = ap + bp*h + cp*h**2 + dp*h**3
-    b = bp*j + 2*cp*h*j + 3*dp*h**2*j
-    c = cp*j**2 + 3*dp*h*j**2
-    d = dp*j**3
-    return a, b, c, d
-
-
 def chisq_of_fit(coeffs, ra, dec, ra_epochs, dec_epochs, inv_covs, ra_plx_motion, dec_plx_motion, use_parallax=True):
-    ra_model = polyval(ra_epochs, coeffs[1 * use_parallax:][::2])
-    dec_model = polyval(dec_epochs, coeffs[1 * use_parallax:][1::2])
+    ra_model = P(coeffs[1 * use_parallax:][::2])(ra_epochs)
+    dec_model = P(coeffs[1 * use_parallax:][1::2])(dec_epochs)
     if use_parallax:
         ra_model += coeffs[0] * ra_plx_motion
         dec_model += coeffs[0] * dec_plx_motion
