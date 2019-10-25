@@ -53,7 +53,8 @@ def test_fit_to_known_system():
     # generate ra and dec for each observation.
     year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
                   Time(1991.25, format='decimalyear').jyear
-    ra_motion, dec_motion = astro.fitter.parallactic_pertubations
+    ra_motion = astro.fitter.parallactic_pertubations['ra_plx']
+    dec_motion = astro.fitter.parallactic_pertubations['dec_plx']
     ra = Angle(ra_motion * plx + pmRA * year_epochs, unit='mas')
     dec = Angle(dec_motion * plx + pmDec * year_epochs, unit='mas')
     # add residuals

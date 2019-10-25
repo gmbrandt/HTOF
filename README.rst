@@ -140,12 +140,14 @@ Now to fit a line to the astrometry. Given a parsed data object, we simply call:
 
 .. code-block:: python
 
-    fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix, epoch_times=data.julian_day_epoch(),
-    parallactic_pertubations=[], use_parallax=True)
+    fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix, epoch_times=data.julian_day_epoch())
     solution_vector = fitter.fit_line(ra_vs_epoch, dec_vs_epoch)
     ra0, dec0, mu_ra, mu_dec = solution_vector
 
 where :code:`ra(mjd) = ra0 + mu_ra * mjd`, and same for declination.
+
+To fit a line with parallax, we first have to generate the parallactic motion about the central ra and dec. We do this
+with the following code.
 
 License
 -------
