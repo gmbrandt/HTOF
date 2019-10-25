@@ -2,7 +2,7 @@ htof
 ===============
 
 This repo contains htof, the package for parsing intermediate data from the Gaia and
-Hipparcos Satellites, and reproducing linear fits to their astrometry.
+Hipparcos Satellites, and reproducing five, seven, and nine parameter fits to their astrometry.
 
 .. image:: https://coveralls.io/repos/github/gmbrandt/HTOF/badge.svg?branch=master
     :target: https://coveralls.io/github/gmbrandt/HTOF?branch=master
@@ -10,6 +10,8 @@ Hipparcos Satellites, and reproducing linear fits to their astrometry.
 .. image:: https://travis-ci.org/gmbrandt/HTOF.svg?branch=master
     :target: https://travis-ci.org/gmbrandt/HTOF
 
+Parallax is handled by the :code:`sky_path` module which was written by Anthony Brown
+as a part of his astrometric-sky-path package: https://github.com/agabrown/astrometric-sky-path/
 
 Installation
 ------------
@@ -19,10 +21,14 @@ htof can be installed in the usual way, by running
 
     pip install .
 
-While in the root directory of this repo.
+While in the root directory of this repo. It can also be installed with
 
-Usage
------
+.. code-block:: bash
+
+    pip install git+https://github.com/gmbrandt/htof
+
+Usage: Fits without Parallax
+----------------------------
 The following examples show how one would both load in and fit a line to the astrometric intermediate data
 from either Hipparcos data reduction or Gaia (Currently only data release 2, GaiaDR2).
 
@@ -33,61 +39,97 @@ are :code:`GaiaDR2`, :code:`Hip1` and :code:`Hip2`. The following lines parse th
 .. code-block:: python
 
     from htof.main import Astrometry
-    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/')  # parse
-    ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)  # fit
+    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', format='jd')  # parse
+    ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)
+
+ra_vs_epoch and dec_vs_epoch are the positions in right ascension and declination of the object.
+These arrays must have the same shape as fitter.data.julian_day_epoch(),
+which are the epochs in the intermediate data. :code:`format='jd'` specifies
+the time units of the output best fit parameters. The possible choices of format
+are the same as the choices for format in astropy.time.Time(val, format=format).
+E.g. :code:`'decimalyear'`, :code:`'jd'` . If :code:`format='decimalyear'`, then the output :code:`mu_ra`
+would have units of mas/year. If :code:`jd` then the output is mas/day. Both Hipparcos and Gaia catalogs list parallaxes
+in milli-arcseconds (mas), and so positional units are always in mas for HTOF.
 
 For Hipparcos 2, the path to the intermediate data would point to :code:`IntermediateData/resrec/`.
 Note that the intermediate data files must be in the same format as the test intermediate data files found in this
-repository under :code:`htof/test/data_for_tests/`.
+repository under :code:`htof/test/data_for_tests/`. The best fit parameters have units of mas and mas/day by default.
+The best fit skypath for right ascension is then :code:`ra0 + mu_ra * epochs`.
 
-If you want to specify a central epoch in barycentric Julian day, instead call:
+By default, the fit is a four-parameter fit: it returns the parameters to the line of best
+fit to the sky path ra_vs_epoch, dec_vs_epoch. If you want a 6 parameter or 8 parameter fit, specify
+fit_degree = 2 or fit_degree = 3 respectively. E.g.
+
+.. code-block:: python
+
+    from htof.main import Astrometry
+    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', format='jd')
+    ra0, dec0, mu_ra, mu_dec, 1/2*acc_ra, 1/2*acc_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch, fit_degree=2)
+
+where 1/2*acc_ra and 1/2*acc_dec are 1/2 times the acceleration in right ascension and declination, respectively.
+This factor of 1/2 is because HTOF uses a power series as the basis for all fits. If fit_degree = 3,
+then the last two parameters would be one-sixth the jerk in right ascension and declination, respectively.
+
+HTOF allows fits of arbitrarily high degree. E.g. setting fit_degree=5 would give a 13 parameter
+fit (if using parallax as well). HTOF normalizes all epochs and times
+from -1 to 1, so the linear algebra performed by HTOF is all very numerically stable.
+
+If you want to specify a central epoch, you can do so with:
 
 .. code-block:: python
 
     from htof.main import Astrometry
 
-    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2456892, central_epoch_dec=2456892, central_epoch_fmt='BJD')
+    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2456892, central_epoch_dec=2456892, format='jd')
     ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)
 
-The above would set the central epoch for the right ascension (ra) to 2456892 BJD, and declination (dec) to 2456892 BJD.
-One could also set the central epochs to years using the :code:`frac_year` keyword and supplying a year:
+The format of the central epochs must be specified along with the central epochs. The best fit sky path in right ascension would then be
+:code:`ra0 + mu_ra * (epochs - centra_epoch_ra)`.
 
-.. code-block:: python
+Specifying :code:`GaiaDR2` will clip any intermediate data to fall within the observation
+dates which mark the period covered by data release 2. Use :code:`Gaia` if you want any
+and all observations within the intermediate data.
 
-    from htof.main import Astrometry
-    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2000, central_epoch_dec=2000, central_epoch_fmt='frac_year')
-    ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)
-
-One can then access the BJD central epochs via
+One can access the BJD epochs with
 
 .. code-block:: python
 
     fitter.central_epoch_dec
     fitter.central_epoch_ra
 
-Both Hipparcos and Gaia catalogs list parallaxes in milli-arcseconds (mas). We convert all three
-catalog epochs to barycentric julian day by default, therefore a fit to astrometry has proper motions
-with units of mas/day by default. If you want mas/year, then use the keyword :code:`pm_units` (proper motion units):
+If you want the standard (1-sigma) errors on the parameters, set :code:`return_all=True` when fitting:
 
 .. code-block:: python
 
-    ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch, pm_units='mas_per_year')
+    from htof.main import Astrometry
 
-Which will return the same mu_ra and mu_dec as with :code:`pm_units='mas_per_day'` but multiplied by 365.25.
+    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2456892, central_epoch_dec=2456892, format='jd')
+    coeffs, errors = fitter.fit(ra_vs_epoch, dec_vs_epoch, return_all=True)
 
-The following appendix describes in more detail how to perform the above operations without
-using the Astrometry object, if you ever desired to do so.
+errors is an array the same shape as coeffs, where each entry is the 1-sigma error for the
+parameter at the same location in the coeffs array. For Hip1 and Hip2, HTOF loads in the real
+catalog errors and so these parameter error estimates should match those given in the catalog. However,
+for Gaia we do not have the error estimates from the GOST tool and so the best-fit parameter errors to
+Gaia will not match those reported by the Gaia members.
+
+Usage: Fits with Parallax
+-------------------------
+TODO: Discuss how to get parallax, how to generate the plx pertubations. Why you have to specify
+a central ra and dec, and that those must be instances of astropy.coordinates.Angle.
 
 Appendix
 --------
-This section describes how to reproduce the fit from Astrometry.fit from the Usage section. The
-Astrometry object is essentially just a wrapper for data parsing and fitting all in one.
+The Astrometry object is essentially just a wrapper for data parsing and fitting all in one, and consequently
+could be limiting. This section describes how to reproduce Astrometry.fit by accessing the data parser objects and
+the fitter object separately. You would do this if, for instance, you did not want to use
+the built-in parallax motions generated by HTOF. I show here how to reproduce a five-parameter fit.
+
 
 .. code-block:: python
 
     from htof.parse import HipparcosOriginalData # or GaiaData or HipparcosReReduction
     data = HipparcosOriginalData()
-    data.parse(star_id='049699', intermediate_data_directory='Hip1/IntermediateData/)
+    data.parse(star_id='049699', intermediate_data_directory='Hip1/IntermediateData/')
     data.calculate_inverse_covariance_matrices()
 
 data now has a variety of intermediate data products such as the scan angles, the epochs when each
@@ -98,7 +140,8 @@ Now to fit a line to the astrometry. Given a parsed data object, we simply call:
 
 .. code-block:: python
 
-    fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix, epoch_times=data.julian_day_epoch())
+    fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix, epoch_times=data.julian_day_epoch(),
+    parallactic_pertubations=[], use_parallax=True)
     solution_vector = fitter.fit_line(ra_vs_epoch, dec_vs_epoch)
     ra0, dec0, mu_ra, mu_dec = solution_vector
 

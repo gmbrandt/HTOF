@@ -53,7 +53,7 @@ class IntermediateDataParser(object):
 
     @abc.abstractmethod
     def parse(self, star_id, intermediate_data_parent_directory, **kwargs):
-        pass  # pragma: no cover
+        pass    # pragma: no cover
 
     def julian_day_epoch(self):
         return fractional_year_epoch_to_jd(self._epoch.values.flatten(), half_day_correction=True)
@@ -124,7 +124,7 @@ class HipparcosOriginalData(IntermediateDataParser):
         self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians, arctan2(sin, cos)
         self._epoch = data['IA6'] / data['IA3'] + 1991.25
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
-        self.along_scan_errs = data['IA9']  # unit milli-arcseconds (mas)
+        self.along_scan_errs = data['IA9']  # unit milli-arcseconds
 
     @staticmethod
     def _fix_unnamed_column(data_frame, correct_key='IA2', col_idx=1):
@@ -159,7 +159,7 @@ class HipparcosRereductionData(IntermediateDataParser):
 
 class GaiaData(IntermediateDataParser):
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
-                 min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch):
+                 min_epoch=-np.inf, max_epoch=np.inf):
         super(GaiaData, self).__init__(scan_angle=scan_angle,
                                        epoch=epoch, residuals=residuals,
                                        inverse_covariance_matrix=inverse_covariance_matrix)
@@ -180,3 +180,13 @@ class GaiaData(IntermediateDataParser):
     def trim_data(self, epochs, min_mjd, max_mjd, other_data=()):
         valid = np.logical_and(epochs >= min_mjd, epochs <= max_mjd)
         return tuple(data[valid].dropna() for data in [epochs, *other_data])
+
+
+class GaiaDR2(GaiaData):
+    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
+                 min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch):
+        super(GaiaDR2, self).__init__(scan_angle=scan_angle,
+                                       epoch=epoch, residuals=residuals,
+                                       inverse_covariance_matrix=inverse_covariance_matrix)
+        self.min_epoch = min_epoch
+        self.max_epoch = max_epoch

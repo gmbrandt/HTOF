@@ -4,7 +4,8 @@ import pytest
 import mock
 import os
 
-from htof.parse import HipparcosOriginalData, HipparcosRereductionData, GaiaData, IntermediateDataParser
+from htof.parse import HipparcosOriginalData, HipparcosRereductionData,\
+    GaiaData, IntermediateDataParser, GaiaDR2
 from htof.parse import calculate_covariance_matrices, fractional_year_epoch_to_jd, _match_filename_to_star_id
 
 
@@ -123,7 +124,7 @@ def test_calculate_inverse_covariances(mock_cov_matrix):
     assert np.allclose(parser.inverse_covariance_matrix[0], 1/4 * np.ones((2, 2)))
 
 
-class TestParseGaiaDR2:
+class TestParseGaiaData:
     @pytest.mark.integration
     def test_parse_all_epochs(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
@@ -139,7 +140,7 @@ class TestParseGaiaDR2:
     @pytest.mark.integration
     def test_parse_selects_valid_epochs(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
-        data = GaiaData(max_epoch=2458426.7784441218, min_epoch=2457143.4935643710)
+        data = GaiaDR2(max_epoch=2458426.7784441218, min_epoch=2457143.4935643710)
         data.parse(intermediate_data_directory=test_data_directory,
                    star_id='049699')
 
