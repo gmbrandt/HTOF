@@ -11,11 +11,11 @@ from htof.sky_path import parallactic_motion
 class TestAstrometricFitter:
     def test_ra_solution_vector(self):
         assert np.allclose([326, 2, 30, 60, 1050, 1800, 36750, 54000, 1286250],
-                           ra_sol_vec(1, 10, 20, 5, 30, 35, 13, 10, basis=np.polynomial.polynomial.polyvander, deg=3))
+                           ra_sol_vec(1, 10, 20, 5, 30, 35, 13, 10, vander=np.polynomial.polynomial.polyvander, deg=3))
 
     def test_dec_solution_vector(self):
         assert np.allclose([490, 30, 10, 900, 350, 27000, 12250, 810000, 428750],
-                           dec_sol_vec(1, 10, 20, 5, 30, 35, 13, 10, basis=np.polynomial.polynomial.polyvander, deg=3))
+                           dec_sol_vec(1, 10, 20, 5, 30, 35, 13, 10, vander=np.polynomial.polynomial.polyvander, deg=3))
 
     def test_chi2_matrix(self):
         expected_chi2_matrix = np.array([
@@ -30,7 +30,7 @@ class TestAstrometricFitter:
         [21008750, 1286250, 428750, 38587500, 15006250, 1157625000, 525218750, 34728750000, 18382656250]
         ])
         agreement = np.isclose(expected_chi2_matrix,
-                               chi2_matrix(1, 10, 20, 5, 30, 35, 13, 10, basis=np.polynomial.polynomial.polyvander, deg=3))
+                               chi2_matrix(1, 10, 20, 5, 30, 35, 13, 10, vander=np.polynomial.polynomial.polyvander, deg=3))
 
         assert np.all(agreement)
 
@@ -50,25 +50,23 @@ class TestAstrometricFitter:
         expected_c = 2 * np.ones(4)
         fitter = AstrometricFitter(inverse_covariance_matrices=np.array([np.linalg.pinv(covariance_matrix)]),
                                    epoch_times=np.array([1]), astrometric_chi_squared_matrices=[],
-                                   fit_degree=1, use_parallax=False, norm=False)
+                                   fit_degree=1, use_parallax=False)
         assert np.allclose(expected_c, fitter._chi2_vector(ra_vs_epoch=np.array([1]),
                                                            dec_vs_epoch=np.array([1])))
 
     def test_fitting_to_linear_astrometric_data(self):
         astrometric_data = generate_astrometric_data()
-        for norm in [True, False]:
-            fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
-                                       epoch_times=astrometric_data['epoch_delta_t'], norm=norm)
-            assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
-                               astrometric_data['linear_solution'])
+        fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+                                   epoch_times=astrometric_data['epoch_delta_t'])
+        assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
+                           astrometric_data['linear_solution'])
 
     def test_errors_on_linear_astrometric_data(self):
         astrometric_data = generate_astrometric_data()
-        for norm in [True, False]:
-            fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
-                                       epoch_times=astrometric_data['epoch_delta_t'], norm=norm)
-            sol, errs, chisq = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'], return_all=True)
-            assert errs.size == 4
+        fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+                                   epoch_times=astrometric_data['epoch_delta_t'])
+        sol, errs, chisq = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'], return_all=True)
+        assert errs.size == 4
 
     def test_fitting_with_nonzero_central_epoch(self):
         ra_cnt = np.random.randint(1, 100)
@@ -79,22 +77,16 @@ class TestAstrometricFitter:
         expected_vec[1] += dec_cnt * expected_vec[3]  # dec0 = dec_central_time * mu_dec
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
                                    epoch_times=astrometric_data['epoch_delta_t'],
-                                   central_epoch_dec=dec_cnt, central_epoch_ra=ra_cnt, norm=True)
-        assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']), expected_vec)
-        # same test but without the internal normalization which improves numerical stability.
-        fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
-                                   epoch_times=astrometric_data['epoch_delta_t'],
-                                   central_epoch_dec=dec_cnt, central_epoch_ra=ra_cnt, norm=False)
+                                   central_epoch_dec=dec_cnt, central_epoch_ra=ra_cnt)
         assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']), expected_vec)
 
     def test_fitting_to_cubic_astrometric_data_without_parallax(self):
-        for norm in [True, False]:
-            astrometric_data = generate_astrometric_data(acc=True, jerk=True)
-            fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
-                                       epoch_times=astrometric_data['epoch_delta_t'], use_parallax=False, fit_degree=3,
-                                       norm=norm)
-            assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
-                               astrometric_data['nonlinear_solution'])
+        astrometric_data = generate_astrometric_data(acc=True, jerk=True)
+        fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+                                   epoch_times=astrometric_data['epoch_delta_t'], use_parallax=False, fit_degree=3,
+                                   )
+        assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
+                           astrometric_data['nonlinear_solution'])
 
     def test_fitting_to_linear_astrometric_data_with_parallax(self):
         real_plx = 100
@@ -152,11 +144,11 @@ def test_transforming_from_unnormalized_domain():
     ra = np.polynomial.polynomial.polyval(normalize(x, (np.min(x), np.max(x))), normed_coeffs[1:][::2])
     dec = np.polynomial.polynomial.polyval(normalize(x, (np.min(x), np.max(x))), normed_coeffs[1:][1::2])
     coeffs = transform_coefficients_to_unnormalized_domain(normed_coeffs, np.min(x), np.max(x), np.min(x), np.max(x),
-                                                             3, True)
+                                                           True)
     assert np.allclose(np.polynomial.polynomial.polyval(x, coeffs[1:][::2]), ra)
     assert np.allclose(np.polynomial.polynomial.polyval(x, coeffs[1:][1::2]), dec)
     coeffs = transform_coefficients_to_unnormalized_domain(normed_coeffs[1:], np.min(x), np.max(x), np.min(x), np.max(x),
-                                                             3, False)
+                                                           False)
     assert np.allclose(np.polynomial.polynomial.polyval(x, coeffs[::2]), ra)
     assert np.allclose(np.polynomial.polynomial.polyval(x, coeffs[1::2]), dec)
 

@@ -70,8 +70,9 @@ where 1/2*acc_ra and 1/2*acc_dec are 1/2 times the acceleration in right ascensi
 This factor of 1/2 is because HTOF uses a power series as the basis for all fits. If fit_degree = 3,
 then the last two parameters would be one-sixth the jerk in right ascension and declination, respectively.
 
-HTOF does not allow fits higher than degree 3 by default (9 parameters if
-including parallax). See the Appendix section for how to include an arbitrary number of degrees in your fit.
+HTOF allows fits of arbitrarily high degree. E.g. setting fit_degree=5 would give a 13 parameter
+fit (if using parallax as well). HTOF normalizes all epochs and times
+from -1 to 1, so the linear algebra performed by HTOF is all very numerically stable.
 
 If you want to specify a central epoch, you can do so with:
 

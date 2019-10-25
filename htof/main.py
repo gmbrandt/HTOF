@@ -23,7 +23,7 @@ class Astrometry(object):
 
     def __init__(self, data_choice, star_id, intermediate_data_directory, fitter=None, data=None,
                  central_epoch_ra=0, central_epoch_dec=0, format='jd', fit_degree=1,
-                 use_parallax=False, central_ra=None, central_dec=None, norm=True):
+                 use_parallax=False, central_ra=None, central_dec=None):
 
         if data is None:
             DataParser = self.parsers[data_choice.lower()]
@@ -52,8 +52,7 @@ class Astrometry(object):
                                        central_epoch_ra=Time(central_epoch_ra, format=format).value,
                                        fit_degree=fit_degree,
                                        use_parallax=use_parallax,
-                                       parallactic_pertubations=parallactic_pertubations,
-                                       norm=norm)
+                                       parallactic_pertubations=parallactic_pertubations)
         self.data = data
         self.fitter = fitter
 
