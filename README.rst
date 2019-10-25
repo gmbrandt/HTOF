@@ -39,11 +39,11 @@ are :code:`GaiaDR2`, :code:`Hip1` and :code:`Hip2`. The following lines parse th
 .. code-block:: python
 
     from htof.main import Astrometry
-    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', format='jd')  # parse
-    ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)
+    astro = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', format='jd')  # parse
+    ra0, dec0, mu_ra, mu_dec = astro.fit(ra_vs_epoch, dec_vs_epoch)
 
 ra_vs_epoch and dec_vs_epoch are the positions in right ascension and declination of the object.
-These arrays must have the same shape as fitter.data.julian_day_epoch(),
+These arrays must have the same shape as astro.data.julian_day_epoch(),
 which are the epochs in the intermediate data. :code:`format='jd'` specifies
 the time units of the output best fit parameters. The possible choices of format
 are the same as the choices for format in astropy.time.Time(val, format=format).
@@ -63,8 +63,8 @@ fit_degree = 2 or fit_degree = 3 respectively. E.g.
 .. code-block:: python
 
     from htof.main import Astrometry
-    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', format='jd')
-    ra0, dec0, mu_ra, mu_dec, 1/2*acc_ra, 1/2*acc_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch, fit_degree=2)
+    astro = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', format='jd')
+    ra0, dec0, mu_ra, mu_dec, 1/2*acc_ra, 1/2*acc_dec = astro.fit(ra_vs_epoch, dec_vs_epoch, fit_degree=2)
 
 where 1/2*acc_ra and 1/2*acc_dec are 1/2 times the acceleration in right ascension and declination, respectively.
 This factor of 1/2 is because HTOF uses a power series as the basis for all fits. If fit_degree = 3,
@@ -80,8 +80,8 @@ If you want to specify a central epoch, you can do so with:
 
     from htof.main import Astrometry
 
-    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2456892, central_epoch_dec=2456892, format='jd')
-    ra0, dec0, mu_ra, mu_dec = fitter.fit(ra_vs_epoch, dec_vs_epoch)
+    astro = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2456892, central_epoch_dec=2456892, format='jd')
+    ra0, dec0, mu_ra, mu_dec = astro.fit(ra_vs_epoch, dec_vs_epoch)
 
 The format of the central epochs must be specified along with the central epochs. The best fit sky path in right ascension would then be
 :code:`ra0 + mu_ra * (epochs - centra_epoch_ra)`.
@@ -94,8 +94,8 @@ One can access the BJD epochs with
 
 .. code-block:: python
 
-    fitter.central_epoch_dec
-    fitter.central_epoch_ra
+    astro.central_epoch_dec
+    astro.central_epoch_ra
 
 If you want the standard (1-sigma) errors on the parameters, set :code:`return_all=True` when fitting:
 
@@ -103,14 +103,24 @@ If you want the standard (1-sigma) errors on the parameters, set :code:`return_a
 
     from htof.main import Astrometry
 
-    fitter = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2456892, central_epoch_dec=2456892, format='jd')
-    coeffs, errors = fitter.fit(ra_vs_epoch, dec_vs_epoch, return_all=True)
+    astro = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', central_epoch_ra=2456892, central_epoch_dec=2456892, format='jd')
+    coeffs, errors, chisq = astro.fit(ra_vs_epoch, dec_vs_epoch, return_all=True)
 
-errors is an array the same shape as coeffs, where each entry is the 1-sigma error for the
+
+chisq is the chi-squared of the fit (the sum of `(data - model)^2`). For Hip2, this chi-squared
+should equal the chi-squared calculated from the intermediate data via
+
+`errors` is an array the same shape as coeffs, where each entry is the 1-sigma error for the
 parameter at the same location in the coeffs array. For Hip1 and Hip2, HTOF loads in the real
 catalog errors and so these parameter error estimates should match those given in the catalog. However,
 for Gaia we do not have the error estimates from the GOST tool and so the best-fit parameter errors to
 Gaia will not match those reported by the Gaia members.
+
+
+.. code-block:: python
+
+    chisq = chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
+
 
 Usage: Fits with Parallax
 -------------------------
