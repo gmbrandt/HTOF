@@ -9,6 +9,8 @@ Changes to how the user interacts with HTOF:
   The returned proper motions from Astrometry.fit will have time units consistent
   with `format`. E.g. setting `format='fracyear'` would return proper motions with
   units of mas/yr (and accelerations with mas/year^2 etc..).
+- The GaiaData parser now does not trim the input gaia data to the DR2 region. There is a new parser, GaiaDR2 which auto
+  trims the data. Anywhere where users used GaiaData (assuming it to trim the scanning law to DR2) should be replaced with GaiaDR2.
 
 0.1.1 (2019-08-15)
 ------------------
