@@ -67,6 +67,7 @@ class TestAstrometricFitter:
                                    epoch_times=astrometric_data['epoch_delta_t'])
         sol, errs, chisq = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'], return_all=True)
         assert errs.size == 4
+        assert np.isclose(chisq, 0)
 
     def test_fitting_with_nonzero_central_epoch(self):
         ra_cnt = np.random.randint(1, 100)
