@@ -1,4 +1,4 @@
-0.2.0 (2019-XX-YY)
+0.2.1 (2019-12-06)
 ------------------
 - Parallax motion is now stored inside the fitter as a dictionary with `ra_plx` and `dec_plx` keys 
   so that dec and ra motion cannot be mixed up.
