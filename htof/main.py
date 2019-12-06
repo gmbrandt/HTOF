@@ -41,7 +41,7 @@ class Astrometry(object):
                                                        central_ra.mas, central_dec.mas, 'mas',
                                                        Time(central_epoch_ra, format=format).jyear,
                                                        ephemeris=self.ephemeri[data_choice.lower()])
-            parallactic_pertubations = [ra_motion, dec_motion]  # order matters. ra first then dec.
+            parallactic_pertubations = {'ra_plx': ra_motion, 'dec_plx': dec_motion}
         else:
             parallactic_pertubations = None
 

@@ -15,7 +15,10 @@ class AstrometricFitter(object):
                                         for each epoch
     :param epoch_times: 1D array
                         array with each epoch in Barycentric Julian Date (BJD).
-    :param parallactic_pertubations: list
+    :param parallactic_pertubations: dict
+           {'ra_plx': array-like, 'dec_plx': array-like}
+           the pertubations from parallactic motion. e.g. central_ra + parallactic_pertubations['ra_plx']
+           would give the skypath (in RA) of the object throughout the time observed, from parallax alone.
     :param parameters: int.
                        number of parameters in the fit. Options are 4, 5, 7, and 9.
                        4 is just offset and proper motion, 5 includes parallax, 7 and 9 include accelerations and jerks.
@@ -31,7 +34,8 @@ class AstrometricFitter(object):
                  parallactic_pertubations=None, fit_degree=1, use_parallax=False,
                  central_epoch_ra=0, central_epoch_dec=0):
         if parallactic_pertubations is None:
-            parallactic_pertubations = [np.zeros_like(epoch_times), np.zeros_like(epoch_times)]
+            parallactic_pertubations = {'ra_plx': np.zeros_like(epoch_times),
+                                        'dec_plx': np.zeros_like(epoch_times)}
         self.use_parallax = use_parallax
         self.parallactic_pertubations = parallactic_pertubations
         self.inverse_covariance_matrices = inverse_covariance_matrices
@@ -66,7 +70,7 @@ class AstrometricFitter(object):
 
         chisq = chisq_of_fit(solution, ra_vs_epoch, dec_vs_epoch,
                              self.epoch_times - self.central_epoch_ra, self.epoch_times - self.central_epoch_dec,
-                             self.inverse_covariance_matrices, *self.parallactic_pertubations,
+                             self.inverse_covariance_matrices, **self.parallactic_pertubations,
                              use_parallax=self.use_parallax)
 
         return solution if not return_all else (solution, errors, chisq)
@@ -88,7 +92,7 @@ class AstrometricFitter(object):
         for obs in range(num_epochs):
             a, b, c, d = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
             dec_time, ra_time = normed_epochs[obs], normed_epochs[obs]
-            w_ra, w_dec = self.parallactic_pertubations[0][obs], self.parallactic_pertubations[1][obs]
+            w_ra, w_dec = self.parallactic_pertubations['ra_plx'][obs], self.parallactic_pertubations['dec_plx'][obs]
             clip_i = 0 if self.use_parallax else 1
             astrometric_solution_vector_components['ra'][obs] = ra_sol_vec(a, b, c, d, ra_time, dec_time,
                                                                            w_ra, w_dec, deg=fit_degree)[clip_i:]
@@ -106,7 +110,7 @@ class AstrometricFitter(object):
         for obs in range(num_epochs):
             a, b, c, d = unpack_elements_of_matrix(self.inverse_covariance_matrices[obs])
             dec_time, ra_time = normed_epochs[obs], normed_epochs[obs]
-            w_ra, w_dec = self.parallactic_pertubations[0][obs], self.parallactic_pertubations[1][obs]
+            w_ra, w_dec = self.parallactic_pertubations['ra_plx'][obs], self.parallactic_pertubations['dec_plx'][obs]
             clip_i = 0 if self.use_parallax else 1
             astrometric_chi_squared_matrices[obs] = chi2_matrix(a, b, c, d, ra_time, dec_time,
                                                                 w_ra, w_dec, deg=fit_degree)[clip_i:, clip_i:]

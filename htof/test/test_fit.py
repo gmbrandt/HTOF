@@ -99,7 +99,8 @@ class TestAstrometricFitter:
         astrometric_data['ra'] += ra_pert * real_plx
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
                                    epoch_times=astrometric_data['epoch_delta_t'], use_parallax=True,
-                                   parallactic_pertubations=[ra_pert, dec_pert], fit_degree=1)
+                                   parallactic_pertubations={'ra_plx': ra_pert, 'dec_plx': dec_pert},
+                                   fit_degree=1)
         fit = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'])
         best_fit_dec = np.polynomial.polynomial.polyval(t, fit[1:][1::2]) + fit[0] * dec_pert
         best_fit_ra = np.polynomial.polynomial.polyval(t, fit[1:][::2]) + fit[0] * ra_pert
@@ -117,7 +118,8 @@ class TestAstrometricFitter:
         astrometric_data['ra'] += ra_pert * real_plx
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
                                    epoch_times=astrometric_data['epoch_delta_t'], use_parallax=True,
-                                   parallactic_pertubations=[ra_pert, dec_pert], fit_degree=3)
+                                   parallactic_pertubations={'ra_plx': ra_pert, 'dec_plx': dec_pert},
+                                   fit_degree=3)
         fit = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'])
         best_fit_dec = np.polynomial.polynomial.polyval(t, fit[1:][1::2]) + fit[0] * dec_pert
         best_fit_ra = np.polynomial.polynomial.polyval(t, fit[1:][::2]) + fit[0] * ra_pert

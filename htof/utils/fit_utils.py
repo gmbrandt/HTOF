@@ -99,13 +99,13 @@ def transform_coefficients_to_unnormalized_domain(coeffs, ra_min_t, ra_max_t, de
     return new_coeffs
 
 
-def chisq_of_fit(coeffs, ra, dec, ra_epochs, dec_epochs, inv_covs, ra_plx_motion,
-                 dec_plx_motion, use_parallax=True, basis=FIT_BASIS):
+def chisq_of_fit(coeffs, ra, dec, ra_epochs, dec_epochs, inv_covs, ra_plx=None,
+                 dec_plx=None, use_parallax=True, basis=FIT_BASIS):
     ra_model = basis(coeffs[1 * use_parallax:][::2])(ra_epochs)
     dec_model = basis(coeffs[1 * use_parallax:][1::2])(dec_epochs)
     if use_parallax:
-        ra_model += coeffs[0] * ra_plx_motion
-        dec_model += coeffs[0] * dec_plx_motion
+        ra_model += coeffs[0] * ra_plx
+        dec_model += coeffs[0] * dec_plx
 
     modelminusdata = np.hstack([(ra_model - ra).reshape(-1, 1), (dec_model - dec).reshape(-1, 1)])
     chisquared = 0
