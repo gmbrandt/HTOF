@@ -16,6 +16,7 @@ import glob
 
 from astropy.time import Time
 from htof import settings as st
+from htof.utils.data_utils import merge_consortia
 
 import abc
 
@@ -23,7 +24,7 @@ import abc
 class IntermediateDataParser(object):
     """
     Base class for parsing Hip1 and Hip2 data. self.epoch, self.covariance_matrix and self.scan_angle are saved
-    as panda dataframes. use .values (e.g. self.epoch.values) to call the ndarray version.
+    as pandas.DataFrame. use .values (e.g. self.epoch.values) to call the ndarray version.
     """
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  along_scan_errs=None):
@@ -79,8 +80,9 @@ def _match_filename_to_star_id(star_id, filepath_list):
 def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1E5,
                                   along_scan_errs=None):
     """
-    :param scan_angles: pandas DataFrame with scan angles, e.g. as-is from the data parsers. scan_angles.values is a
-                        numpy array with the scan angles
+    :param scan_angles: pandas.DataFrame.
+            data frame with scan angles, e.g. as-is from IntermediateDataParser.read_intermediate_data_file.
+            scan_angles.values is a numpy array with the scan angles
     :param cross_scan_along_scan_var_ratio: var_cross_scan / var_along_scan
     :return An ndarray with shape (len(scan_angles), 2, 2), e.g. an array of covariance matrices in the same order
     as the scan angles
@@ -104,7 +106,7 @@ class HipparcosOriginalData(IntermediateDataParser):
                                                     epoch=epoch, residuals=residuals,
                                                     inverse_covariance_matrix=inverse_covariance_matrix)
 
-    def parse(self, star_id, intermediate_data_directory, data_choice='NDAC'):
+    def parse(self, star_id, intermediate_data_directory, data_choice='MERGED'):
         """
         :param star_id: a string which is just the number for the HIP ID.
         :param intermediate_data_directory: the path (string) to the place where the intermediate data is stored, e.g.
@@ -113,18 +115,25 @@ class HipparcosOriginalData(IntermediateDataParser):
         :param data_choice: 'FAST' or 'NDAC'. This slightly affects the scan angles. This mostly affects
         the residuals which are not used.
         """
-        if (data_choice is not 'NDAC') and (data_choice is not 'FAST'):
-            raise ValueError('data choice has to be either NDAC or FAST')
+        if (data_choice is not 'NDAC') and (data_choice is not 'FAST') and (data_choice is not 'MERGED'):
+            raise ValueError('data choice has to be either NDAC or FAST or MERGED.')
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=10, header='infer', sep='\s*\|\s*')
         data = self._fix_unnamed_column(data)
-        # select either the data from the NDAC or the FAST consortium.
-        data = data[data['IA2'] == data_choice[0]]
+        data = self._select_data(data, data_choice)
         # compute scan angles and observations epochs according to van Leeuwen & Evans 1997, eq. 11 & 12.
         self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians, arctan2(sin, cos)
         self._epoch = data['IA6'] / data['IA3'] + 1991.25
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
         self.along_scan_errs = data['IA9']  # unit milli-arcseconds
+
+    @staticmethod
+    def _select_data(data, data_choice):
+        if data_choice is 'MERGED':
+            data = merge_consortia(data)
+        else:
+            data = data[data['IA2'] == {'NDAC': 'N', 'FAST': 'F'}[data_choice]]
+        return data
 
     @staticmethod
     def _fix_unnamed_column(data_frame, correct_key='IA2', col_idx=1):

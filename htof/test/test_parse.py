@@ -30,6 +30,16 @@ class TestHipparcosOriginalData:
         assert np.isclose(np.sin(data.scan_angle[1]), -0.9051, rtol=.01)
         assert np.isclose(data._epoch[10], 1990.455515)
         assert np.isclose(np.sin(data.scan_angle[10]), 0.7362, rtol=.01)
+        data.parse(star_id='027321',
+                   intermediate_data_directory=test_data_directory,
+                   data_choice='MERGED')
+        assert len(data._epoch) == 34
+        assert np.isclose(data._epoch[0], 1990.005386)
+        assert np.isclose(np.sin(data.scan_angle[0]), -0.9053, atol=.001)
+        assert np.isclose(data._epoch[5], 1990.455515)
+        assert np.isclose(np.sin(data.scan_angle[5]), 0.7364, atol=.001)
+        assert np.isclose(data.along_scan_errs[5], 2.0814, atol=.0001)
+        assert np.isclose(data.residuals[5], 1.1021, atol=.0001)
 
     def test_raises_exception_on_bad_data_choice(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip1')
