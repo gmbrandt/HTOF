@@ -32,7 +32,7 @@ def merge_consortia(data):
                                columns=data.columns)
     for i, orbit in enumerate(np.unique(data['A1'])):
         merged_data.iloc[i] = merge_single_orbit(data[data['A1'] == orbit])
-    return pd.DataFrame(merged_data)
+    return merged_data
 
 
 def merge_single_orbit(data):
@@ -52,7 +52,6 @@ def merge_single_orbit(data):
     icov = np.linalg.pinv(np.array([[errF ** 2, errN * errF * corr],
                                     [errN * errF * corr, errN ** 2]]))
     res_arr = np.array([resF, resN])
-
     # get the residuals which minimize the chisquared, and the associated error.
     merged_orbit['IA8'] = np.sum(np.dot(res_arr, icov)) / np.sum(icov)
     merged_orbit['IA9'] = 1 / np.sum(icov) ** 0.5
