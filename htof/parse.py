@@ -120,7 +120,6 @@ class HipparcosOriginalData(IntermediateDataParser):
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=10, header='infer', sep='\s*\|\s*')
         data = self._fix_unnamed_column(data)
-        data = self._fix_lowercase_consortia(data)
         data = self._select_data(data, data_choice)
         # compute scan angles and observations epochs according to van Leeuwen & Evans 1997, eq. 11 & 12.
         self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians, arctan2(sin, cos)
@@ -134,17 +133,12 @@ class HipparcosOriginalData(IntermediateDataParser):
         if data_choice is 'MERGED':
             data = merge_consortia(data)
         else:
-            data = data[data['IA2'] == {'NDAC': 'N', 'FAST': 'F'}[data_choice]]
+            data = data[data['IA2'].str.upper() == {'NDAC': 'N', 'FAST': 'F'}[data_choice]]
         return data
 
     @staticmethod
     def _fix_unnamed_column(data, correct_key='IA2', col_idx=1):
         data.rename(columns={data.columns[col_idx]: correct_key}, inplace=True)
-        return data
-
-    @staticmethod
-    def _fix_lowercase_consortia(data):
-        data['IA2'] = data['IA2'].str.upper()
         return data
 
 

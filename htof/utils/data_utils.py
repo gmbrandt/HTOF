@@ -14,10 +14,15 @@ def merge_consortia(data):
     This function takes the merged sin of the scan angle and epochs etc to be the unweighted mean of
     those from both consortia.
 
+    Before merging, observations that were rejected by the Hipparcos team (flagged with lowercase f or n in
+    the consortia (IA2) column) are removed and not used for merging. See the description of Field IA2 in
+    the Hipparcos and Tycho Catalogues Vol 1, page 260.
+
     More: The intermediate astrometric data provides the correlation coefficients between the values
     for the residuals and errors obtained by the NDAC and FAST consortia. One can then rebuild the covariance
     between the measurements of those two consortia (i.e. treating their results as correlated measurements of
-    some unknown value -- which is the merged value we are after). Given the covariance matrix for one orbit, C:
+    some unknown value -- which is the merged value we are after). Given the covariance matrix for one orbit, C
+    from equation 17.11 of the Hipparcos and Tycho Catalogues Vol 3 (page 377):
             C = np.asarray([[errF[i]**2, errN[i]*errF[i]*corr[i]],
                         [errN[i]*errF[i]*corr[i], errN[i]**2]])
     Where errN[i] is the NDAC along-scan error at the ith epoch, and errF is the FAST error, and corr[i] is the
@@ -26,8 +31,11 @@ def merge_consortia(data):
     with matrix dot products implied and residual = the vector of residuals = [NDAC residual, FAST residual]
     The merged error is 1/sum(C^(-1))**0.5
     Where C^(-1) is the matrix inverse of the covariance matrix C.
-
     """
+    # exclude observations that were rejected for the merged solution (those with n, f instead of N, F)
+    # NOTE: This line below gives a pandas FutureWarning.
+    data.drop(np.argwhere(np.logical_or(data['IA2'] == 'n', data['IA2'] == 'f')).flatten(), inplace=True)
+    # merge data orbit by orbit.
     merged_data = pd.DataFrame(np.zeros((len(np.unique(data['A1'])), len(data.columns)), dtype=float),
                                columns=data.columns)
     for i, orbit in enumerate(np.unique(data['A1'])):

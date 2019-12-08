@@ -41,10 +41,13 @@ class TestHipparcosOriginalData:
         assert np.isclose(data.along_scan_errs[5], 2.0814, atol=.0001)
         assert np.isclose(data.residuals[5], 1.1021, atol=.0001)
 
-    def test_parse_on_bad_file(self):
-        # test parsing on a file where some consortia designators are incorrectly lower case.
-        # hip 9999999 is not real source. The associated data file is just a modified one for hip 27321.
-        self.test_parse(hip_id='9999999')
+    def test_merged_parse_removes_flagged_observations(self):
+        test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip1')
+        data = HipparcosOriginalData()
+        data.parse(star_id='999999',
+                   intermediate_data_directory=test_data_directory,
+                   data_choice='MERGED')
+        assert len(data._epoch) == 32
 
     def test_raises_exception_on_bad_data_choice(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip1')
