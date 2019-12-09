@@ -1,3 +1,9 @@
+0.2.3 (2019-12-09)
+------------------
+- Users can now select normed=False in AstrometricFitter and Astrometry, if they wish to disable
+the internal normalization which enhances numerical stability. Most users would want to leave
+normed=True.
+
 0.2.2 (2019-12-09)
 ------------------
 - For Hipparcos 1, users can now select a data_choice of 'MERGED' which will
