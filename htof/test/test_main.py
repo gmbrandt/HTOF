@@ -39,7 +39,7 @@ def test_parse_and_fit_to_line():
 
 
 @pytest.mark.e2e
-def test_fit_to_known_system():
+def test_Hip2_fit_to_known_system():
     # Hip 27321 parameters from Snellen+Brown 2018: https://arxiv.org/pdf/1808.06257.pdf
     cntr_ra, cntr_dec = Angle(86.82118054, 'degree'), Angle(-51.06671341, 'degree')
     plx = 51.44  # mas
@@ -47,6 +47,34 @@ def test_fit_to_known_system():
     pmDec = 83.10  # mas/year
     # generate fitter and parse intermediate data
     astro = Astrometry('Hip2', '27321', 'htof/test/data_for_tests/Hip2', central_epoch_ra=1991.25,
+                       central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
+                       central_ra=cntr_ra, central_dec=cntr_dec)
+    chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
+    # generate ra and dec for each observation.
+    year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
+                  Time(1991.25, format='decimalyear').jyear
+    ra_motion = astro.fitter.parallactic_pertubations['ra_plx']
+    dec_motion = astro.fitter.parallactic_pertubations['dec_plx']
+    ra = Angle(ra_motion * plx + pmRA * year_epochs, unit='mas')
+    dec = Angle(dec_motion * plx + pmDec * year_epochs, unit='mas')
+    # add residuals
+    ra += Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
+    dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
+    #
+    coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
+    assert np.isclose(chisq, chisq_found, atol=1E-3)
+    assert np.allclose([plx, pmRA, pmDec], np.array([coeffs[0], coeffs[3], coeffs[4]]).round(2))
+
+
+@pytest.mark.e2e
+def test_Hip1_fit_to_known_system():
+    # Hip 27321 parameters from the Hipparcos 1 catalogue via Vizier
+    cntr_ra, cntr_dec = Angle(86.82118054, 'degree'), Angle(-51.06671341, 'degree')
+    plx = 51.87  # mas
+    pmRA = 4.65  # mas/year
+    pmDec = 81.96  # mas/year
+    # generate fitter and parse intermediate data
+    astro = Astrometry('Hip1', '27321', 'htof/test/data_for_tests/Hip1', central_epoch_ra=1991.25,
                        central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
                        central_ra=cntr_ra, central_dec=cntr_dec)
     chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)

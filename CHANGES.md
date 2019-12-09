@@ -1,3 +1,9 @@
+0.2.2 (2019-12-09)
+------------------
+- For Hipparcos 1, users can now select a data_choice of 'MERGED' which will
+merge the two NDAC and FAST consortia and then fit that data. 'MERGED' is now the
+default option in the Astrometry object.
+
 0.2.1 (2019-12-06)
 ------------------
 - Parallax motion is now stored inside the fitter as a dictionary with `ra_plx` and `dec_plx` keys 
