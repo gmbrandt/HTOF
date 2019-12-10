@@ -15,20 +15,15 @@ class AstrometricFitter(object):
                                         for each epoch
     :param epoch_times: 1D array
                         array with each epoch. If these are years, then the returned proper motions will
-                         be in Angle/year as well.
+                         be in Angle/year as well. The unit of epoch_times should be the same as central_epoch_ra
+                         and central_epoch_dec.
     :param parallactic_pertubations: dict
            {'ra_plx': array-like, 'dec_plx': array-like}
            the pertubations from parallactic motion. e.g. central_ra + parallactic_pertubations['ra_plx']
            would give the skypath (in RA) of the object throughout the time observed, from parallax alone.
-    :param parameters: int.
-                       number of parameters in the fit. Options are 4, 5, 7, and 9.
-                       4 is just offset and proper motion, 5 includes parallax, 7 and 9 include accelerations and jerks.
-    The pertubations due to parallactic motion alone with unit parallax. Where parallactic_pertubations[0], and
-    parallactic_pertubations[1] are the pertubations for right ascension and declination respectively.
-    For each component this should be the quantity which is linear in parallax angle, i.e.:
-    Parallax_motion_ra - central_ra.
-    The units of this parallactic motion should be exactly the same as the ra's and dec's which you will fit
-    later on.
+    :param fit_degree: int.
+                       number of degrees in polynomial fit. fit_degree=1 with parallax would be a five parameter
+                       fit. fit_degree=2 with parallax would be a 7 parameter fit.
     """
     def __init__(self, inverse_covariance_matrices=None, epoch_times=None,
                  astrometric_chi_squared_matrices=None, astrometric_solution_vector_components=None,

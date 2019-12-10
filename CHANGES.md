@@ -22,7 +22,7 @@ default option in the Astrometry object.
 - All fits have the domains normalized for numerical stability.
 Changes to how the user interacts with HTOF:
 - `central_epoch_fmt=` In htof.main.Astrometry is now `format=` and should 
-  follow the same convention as astropy.time.Time. E.g. `format='jd'` or `format='fracyear'`
+  follow the same convention as astropy.time.Time. E.g. `format='jd'` or `format='decimalyear'`
   The returned proper motions from Astrometry.fit will have time units consistent
   with `format`. E.g. setting `format='fracyear'` would return proper motions with
   units of mas/yr (and accelerations with mas/year^2 etc..).
