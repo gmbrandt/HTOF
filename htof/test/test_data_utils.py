@@ -8,8 +8,6 @@ def test_merge_consortia():
                          [133, 'N', -0.9051, -0.4252,  0.6263, 1.1265,  0.5291, -1.18, 1.59, 0.393]],
                         columns=['A1', 'IA2', 'IA3', 'IA4', 'IA5', 'IA6', 'IA7', 'IA8', 'IA9', 'IA10'])
     merged_orbit = merge_consortia(data)
-    import pdb
-    pdb.set_trace()
     assert np.isclose(merged_orbit['IA9'], 1.498373)  # merged error
     assert np.isclose(merged_orbit['IA8'], -1.505620)  # merged residual
 

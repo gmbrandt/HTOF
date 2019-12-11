@@ -34,34 +34,36 @@ def merge_consortia(data):
     # exclude observations that were rejected for the merged solution (those with n, f instead of N, F)
     # NOTE: This line below gives a pandas FutureWarning.
     data.drop(np.argwhere(np.logical_or(data['IA2'] == 'n', data['IA2'] == 'f')).flatten(), inplace=True)
-    # merge data orbit by orbit.
-    merged_data = pd.DataFrame(np.zeros((len(np.unique(data['A1'])), len(data.columns)), dtype=float),
-                               columns=data.columns)
+    # merge data orbit by orbit. We transform to Numpy arrays because accessing and editing panda arrays is slower by factors of tens.
+    cols_to_merge = ['A1', 'IA3', 'IA4', 'IA5', 'IA6', 'IA7', 'IA8', 'IA9', 'IA10']
+    numpy_data = data[cols_to_merge].to_numpy()
+    merged_data = []
     for i, orbit in enumerate(np.unique(data['A1'])):
-        merged_data.iloc[i] = merge_single_orbit(data[data['A1'] == orbit])
+        merged_data.append(merge_single_orbit(numpy_data[data['A1'] == orbit]))
+    merged_data = pd.DataFrame(merged_data, columns=cols_to_merge)
+    merged_data['IA2'] = 'M'
+
     return merged_data
 
 
 def merge_single_orbit(data):
     """
-    :param data: pandas.DataFrame. Intermediate Data for a single Hipparcos orbit.
+    :param data: ndarray. Intermediate Data for a single Hipparcos orbit.
     :return merged_orbit: pandas.DataFrame.
             see docstring of htof.utils.data_utils.merge_consortia for merged_data.
     """
     if len(data) < 2:
         # if only one reduction consortium exists for this orbit, return the reduction.
-        return data.iloc[0]
+        return data[0]
     # for all values except the consortia (which is a string) and the residuals and errors, adopt the mean
-    merged_orbit = data.loc[:, data.columns != 'IA2'].mean(axis=0)
+    merged_orbit = data.mean(axis=0)
     # calculate the covariance matrix with which to calculate the weighted average of the residuals.
-    errN, errF, corr = data[data['IA2'] == 'N']['IA9'].iloc[0], data[data['IA2'] == 'F']['IA9'].iloc[0], data.iloc[0]['IA10']
-    resN, resF = data[data['IA2'] == 'N']['IA8'].iloc[0], data[data['IA2'] == 'F']['IA8'].iloc[0]
-    icov = np.linalg.pinv(np.array([[errF ** 2, errN * errF * corr],
-                                    [errN * errF * corr, errN ** 2]]))
-    res_arr = np.array([resF, resN])
+    err1, err2, corr = data[0, -2], data[1, -2], data[0, -1]
+    res1, res2 = data[0, -3], data[1, -3]
+    icov = np.linalg.pinv(np.array([[err1 ** 2, err2 * err1 * corr],
+                                    [err2 * err1 * corr, err2 ** 2]]))
+    res_arr = np.array([res1, res2])
     # get the residuals which minimize the chisquared, and the associated error.
-    merged_orbit['IA8'] = np.sum(np.dot(res_arr, icov)) / np.sum(icov)
-    merged_orbit['IA9'] = 1 / np.sum(icov) ** 0.5
-    # set consortium to M for MERGED
-    merged_orbit['IA2'] = 'M'
+    merged_orbit[-3] = np.sum(np.dot(res_arr, icov)) / np.sum(icov)
+    merged_orbit[-2] = 1 / np.sum(icov) ** 0.5
     return merged_orbit
