@@ -15,6 +15,8 @@ class TestAstrometricFitter:
                                    fit_degree=1, use_parallax=False, normed=False)
         assert np.allclose(fitter.dec_epochs, [-0.5, 0.5, 1.5])
         assert np.allclose(fitter.ra_epochs, [0, 1, 2])
+        # this poor-form test below is specifically so that the coverage report hits it (it does not register the above)
+        assert np.allclose(fitter._init_epochs()[0], [0, 1, 2])
 
     def test_init_epochs(self):
         fitter = AstrometricFitter(astrometric_solution_vector_components=[], central_epoch_dec=1.5, central_epoch_ra=1,
