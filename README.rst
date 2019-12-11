@@ -2,7 +2,7 @@ htof
 ===============
 
 This repo contains htof, the package for parsing intermediate data from the Gaia and
-Hipparcos Satellites, and reproducing five, seven, and nine parameter fits to their astrometry.
+Hipparcos satellites, and reproducing five, seven, and nine (or higher) parameter fits to their astrometry.
 
 .. image:: https://coveralls.io/repos/github/gmbrandt/HTOF/badge.svg?branch=master
     :target: https://coveralls.io/github/gmbrandt/HTOF?branch=master
@@ -73,6 +73,7 @@ then the last two parameters would be one-sixth the jerk in right ascension and 
 HTOF allows fits of arbitrarily high degree. E.g. setting fit_degree=5 would give a 13 parameter
 fit (if using parallax as well). HTOF normalizes all epochs and times
 from -1 to 1, so the linear algebra performed by HTOF is all very numerically stable.
+This normalization can be disabled via the boolean keyword ``normed``, but one should be weary of turning this off.
 
 If you want to specify a central epoch, you can do so with:
 
@@ -84,7 +85,8 @@ If you want to specify a central epoch, you can do so with:
     ra0, dec0, mu_ra, mu_dec = astro.fit(ra_vs_epoch, dec_vs_epoch)
 
 The format of the central epochs must be specified along with the central epochs. The best fit sky path in right ascension would then be
-:code:`ra0 + mu_ra * (epochs - centra_epoch_ra)`.
+:code:`ra0 + mu_ra * (epochs - centra_epoch_ra)`. The central epoch matters for numerical stability *only* when
+``normed=False`` is set upon instantiation of ``Astrometry``.
 
 Specifying :code:`GaiaDR2` will clip any intermediate data to fall within the observation
 dates which mark the period covered by data release 2. Use :code:`Gaia` if you want any
