@@ -9,12 +9,14 @@ from htof.sky_path import parallactic_motion
 
 
 class TestAstrometricFitter:
-    def test_init_epochs(self):
+    def test_init_epochs_no_norm(self):
         fitter = AstrometricFitter(astrometric_solution_vector_components=[], central_epoch_dec=1.5, central_epoch_ra=1,
                                    epoch_times=np.array([1, 2, 3]), astrometric_chi_squared_matrices=[],
                                    fit_degree=1, use_parallax=False, normed=False)
         assert np.allclose(fitter.dec_epochs, [-0.5, 0.5, 1.5])
         assert np.allclose(fitter.ra_epochs, [0, 1, 2])
+
+    def test_init_epochs(self):
         fitter = AstrometricFitter(astrometric_solution_vector_components=[], central_epoch_dec=1.5, central_epoch_ra=1,
                                    epoch_times=np.array([1, 2, 3]), astrometric_chi_squared_matrices=[],
                                    fit_degree=1, use_parallax=False, normed=True)
