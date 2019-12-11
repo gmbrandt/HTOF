@@ -4,7 +4,7 @@ import pandas as pd
 
 def merge_consortia(data):
     """
-    :param data: pandas.DataFrame.
+    :param data: pandas.DataFrame. The intermediate astrometric data for a Hipparcos 1 source.
     :return: merged_data: pandas.DataFrame.
     The input data with merged residuals, errors, sin(scan_angle), cos(scan_angle), epochs etc. The
     residuals and errors (along-scan errors) are merged according the Hipparcos and Tycho Catalogues Vol 3
@@ -34,36 +34,41 @@ def merge_consortia(data):
     # exclude observations that were rejected for the merged solution (those with n, f instead of N, F)
     # NOTE: This line below gives a pandas FutureWarning.
     data.drop(np.argwhere(np.logical_or(data['IA2'] == 'n', data['IA2'] == 'f')).flatten(), inplace=True)
-    # merge data orbit by orbit. We transform to Numpy arrays because accessing and editing panda arrays is slower by factors of tens.
+    # We transform to Numpy arrays because accessing and editing panda arrays is slower by factors of tens.
     cols_to_merge = ['A1', 'IA3', 'IA4', 'IA5', 'IA6', 'IA7', 'IA8', 'IA9', 'IA10']
-    numpy_data = data[cols_to_merge].to_numpy()
-    merged_data = []
-    for i, orbit in enumerate(np.unique(data['A1'])):
-        merged_data.append(merge_single_orbit(numpy_data[data['A1'] == orbit]))
+    data_asarray = data[cols_to_merge].to_numpy()
+    # merge data
+    merged_data = _merge_orbits(data_asarray)
     merged_data = pd.DataFrame(merged_data, columns=cols_to_merge)
     merged_data['IA2'] = 'M'
-
     return merged_data
 
 
-def merge_single_orbit(data):
+def _merge_orbits(data):
     """
-    :param data: ndarray. Intermediate Data for a single Hipparcos orbit.
-    :return merged_orbit: pandas.DataFrame.
-            see docstring of htof.utils.data_utils.merge_consortia for merged_data.
+    :param data: ndarray. Intermediate Data for a single Hipparcos 1 orbit.
+                data must be a 2D array such that
+                data[:, -1] = column IA10  (correlation coeff). Note data[:, -1] is the last column of data
+                data[:, -2] = column IA9  (formal error along scan)
+                data[:, -3] = column IA8  (residual along scan)
+                data[:, 0] = column A1  (the orbit number)
+    :return merged_orbit: ndarray. Merged intermediate astrometric data for a single orbit.
+    Will have shape (m, N), where m is the number of unique orbits in data, i.e. m = len(np.unique(data[:, 0]))
     """
-    if len(data) < 2:
-        # if only one reduction consortium exists for this orbit, return the reduction.
-        return data[0]
-    # for all values except the consortia (which is a string) and the residuals and errors, adopt the mean
-    merged_orbit = data.mean(axis=0)
-    # calculate the covariance matrix with which to calculate the weighted average of the residuals.
-    err1, err2, corr = data[0, -2], data[1, -2], data[0, -1]
-    res1, res2 = data[0, -3], data[1, -3]
+    # find single consortia orbits (either NDAC or FAST but not both)
+    orbs, indices, counts = np.unique(data[:, 0], return_index=True, return_counts=True)
+    # omit merging orbits with only a single consortium
+    single_orbits = data[indices[counts == 1]]
+    data = np.delete(data, indices[counts == 1], axis=0)
+    # generate weights for merging
+    err1, err2, corr = data[::2, -2], data[1::2, -2], data[::2, -1]
     icov = np.linalg.pinv(np.array([[err1 ** 2, err2 * err1 * corr],
-                                    [err2 * err1 * corr, err2 ** 2]]))
-    res_arr = np.array([res1, res2])
-    # get the residuals which minimize the chisquared, and the associated error.
-    merged_orbit[-3] = np.sum(np.dot(res_arr, icov)) / np.sum(icov)
-    merged_orbit[-2] = 1 / np.sum(icov) ** 0.5
-    return merged_orbit
+                                    [err2 * err1 * corr, err2 ** 2]]).T.reshape((-1, 2, 2)))
+    weights = np.array([np.sum(np.dot([1, 0], icov), axis=1), np.sum(np.dot([0, 1], icov), axis=1)])
+    weights /= np.sum(np.sum(icov, axis=-1), axis=-1)  # normalize weights
+    # merge data
+    merged_data = weights[0].reshape(-1, 1) * data[::2] + weights[1].reshape(-1, 1) * data[1::2]
+    merged_data[:, -2] = 1/np.sqrt(np.sum(np.sum(icov, axis=-1), axis=-1))
+    merged_data = np.vstack((merged_data, single_orbits))
+    return merged_data[np.argsort(merged_data[:, 0])]
+
