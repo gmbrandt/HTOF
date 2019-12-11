@@ -112,6 +112,7 @@ class AstrometricFitter(object):
 
     def _init_epochs(self):
         if not self.normed:
+            # comment so that unit test registers.
             return self.epoch_times - self.central_epoch_ra, self.epoch_times - self.central_epoch_dec
         if self.normed:
             normed_epochs = normalize(self.epoch_times, [np.max(self.epoch_times), np.min(self.epoch_times)])
