@@ -1,4 +1,13 @@
-0.2.4 (2019-16-09)
+0.2.5 (2019-12-16)
+------------------
+- Merging of the intermediate data for the original hipparcos reduction is now done
+with a mean weighted by the FAST/NDAC covariance matrix. Prior, only the residuals
+and errors used these weights. Now all columns (IA3, IA4 etc...) use these weights.
+- Merging is faster by about a factor of 300. It is now only 40% slower to parse
+data_choice=`MERGED` as it is to parse either `NDAC` or `FAST` alone. Fitting time is independent
+of data choice.
+
+0.2.4 (2019-12-16)
 ------------------
 - For the original Hipparcos reduction intermediate data, eight sources had zero entries in column IA3. 
 The epoch is computed via IA6/IA3 or IA7/IA4. 
