@@ -32,8 +32,8 @@ def merge_consortia(data):
     Where C^(-1) is the matrix inverse of the covariance matrix C.
     """
     # exclude observations that were rejected for the merged solution (those with n, f instead of N, F)
-    # NOTE: This line below gives a pandas FutureWarning.
-    data.drop(np.argwhere(np.logical_or(data['IA2'] == 'n', data['IA2'] == 'f')).flatten(), inplace=True)
+    data.drop(np.argwhere(np.logical_or((data['IA2'] == 'n').to_numpy(),
+                                        (data['IA2'] == 'f').to_numpy())).flatten(), inplace=True)
     # We transform to Numpy arrays because accessing and editing panda arrays is slower by factors of tens.
     cols_to_merge = ['A1', 'IA3', 'IA4', 'IA5', 'IA6', 'IA7', 'IA8', 'IA9', 'IA10']
     data_asarray = data[cols_to_merge].to_numpy()
