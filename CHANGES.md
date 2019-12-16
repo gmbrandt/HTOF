@@ -1,3 +1,10 @@
+0.2.4 (2019-16-09)
+------------------
+- For the original Hipparcos reduction intermediate data, eight sources had zero entries in column IA3. 
+The epoch is computed via IA6/IA3 or IA7/IA4. 
+The former point led to undefined or infinite epoch values for those eight sources. 
+This bug is now fixed by computing the epoch with IA7/IA4 where abs(IA4) > abs(IA3).
+
 0.2.3 (2019-12-09)
 ------------------
 - Users can now select normed=False in AstrometricFitter and Astrometry, if they wish to disable
