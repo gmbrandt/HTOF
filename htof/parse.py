@@ -123,7 +123,9 @@ class HipparcosOriginalData(IntermediateDataParser):
         data = self._select_data(data, data_choice)
         # compute scan angles and observations epochs according to van Leeuwen & Evans 1997, eq. 11 & 12.
         self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians, arctan2(sin, cos)
-        self._epoch = data['IA6'] / data['IA3'] + 1991.25
+        # Use the larger denominator when computing the epoch offset. 
+        # This increases numerical precision and avoids NaNs if one of the two fields (IA3, IA4) is exactly zero.
+        self._epoch = 1991.25 + (data['IA6'] / data['IA3']).where(abs(data['IA3']) > abs(data['IA4']), (data['IA7'] / data['IA4']))
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
         self.along_scan_errs = data['IA9']  # unit milli-arcseconds
 
