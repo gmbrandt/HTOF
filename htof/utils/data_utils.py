@@ -10,8 +10,8 @@ def merge_consortia(data):
     residuals and errors (along-scan errors) are merged according the Hipparcos and Tycho Catalogues Vol 3
     Section "Astrometric Catalogue Merging" (page 377).
 
-    This function takes the merged sin of the scan angle and epochs etc to be the unweighted mean of
-    those from both consortia.
+    This function takes the merged sin of the scan angle and epochs etc to be the weighted mean of
+    those from both consortia (weighted by the covariance between observations, see `More' below).
 
     Before merging, observations that were rejected by the Hipparcos team (flagged with lowercase f or n in
     the consortia (IA2) column) are removed and not used for merging. See the description of Field IA2 in
