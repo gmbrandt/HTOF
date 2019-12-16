@@ -41,6 +41,20 @@ class TestHipparcosOriginalData:
         assert np.isclose(data.along_scan_errs[5], 2.0814, atol=.0001)
         assert np.isclose(data.residuals[5], 1.1021, atol=.0001)
 
+    def test_parse_IA3_eq_zero(self, hip_id='004391'):
+        test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip1')
+        data = HipparcosOriginalData()
+        data.parse(star_id=hip_id,
+                   intermediate_data_directory=test_data_directory,
+                   data_choice='NDAC')
+        # IA4 is larger than IA3 -> more precise answer from IA7/IA4 (differs by .0103538462)
+        assert np.isclose(data._epoch[38], 1992.9142, rtol=1e-8)
+        # IA3 is larger than IA4 -> more precise answer from IA6/IA3 (differs by .0001434115)
+        assert np.isclose(data._epoch[5], 1990.4227657727, rtol=1e-8)
+        # IA3 is exactly 0 which would result in NaN. Must use IA7/IA4 to get a valid result. 
+        # IA4 is negative. This case thus also checks that the absolute value is correctly used when comparing IA3 and IA4.
+        assert np.isclose(data._epoch[30], 1992.407684232, rtol=1e-8)
+
     def test_merged_parse_removes_flagged_observations(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip1')
         data = HipparcosOriginalData()
