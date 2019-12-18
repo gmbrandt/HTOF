@@ -1,7 +1,6 @@
 """
 Driver script for htof.
-The Fitter class is what a user should use to both parse intermediate data and fit data
-to the intermediate epochs.
+The Astrometry class is what a user should use to both parse and fit the intermediate astrometric data.
 
 Author: G. Mirek Brandt
 """
