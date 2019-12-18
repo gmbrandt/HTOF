@@ -5,6 +5,7 @@ Author: G. Mirek Brandt
 """
 
 import numpy as np
+from scipy.special import factorial
 from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix, transform_coefficients_to_unnormalized_domain
 from htof.utils.fit_utils import chisq_of_fit
 
@@ -72,6 +73,9 @@ class AstrometricFitter(object):
             errors = transform_coefficients_to_unnormalized_domain(errors, t.min() - c_ra, t.max() - c_ra,
                                                                    t.min() - c_dec, t.max() - c_dec, self.use_parallax)
 
+        # multiply coefficients by n! so that RA(t) = RA0 + v*t + 1/2 a*t^2 etc... and for declination.
+        degree_plus_one = len(solution[1 * self.use_parallax:]) // 2
+        solution[1 * self.use_parallax:] *= factorial(np.array([(i, i) for i in range(degree_plus_one)]).flatten())
         return solution if not return_all else (solution, errors, chisq)
 
     def _chi2_vector(self, ra_vs_epoch, dec_vs_epoch):
