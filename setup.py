@@ -7,5 +7,5 @@ setup(name='htof',
       packages=find_packages(),
       package_dir={'htof': 'htof'},
       setup_requires=['pytest-runner'],
-      install_requires=['numpy>=1.13', 'astropy', 'pandas', 'matplotlib', 'scipy'],
+      install_requires=['numpy>=1.16', 'astropy', 'pandas', 'scipy'],
       tests_require=['pytest>=3.5'])
