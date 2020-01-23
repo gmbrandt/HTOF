@@ -198,7 +198,6 @@ class GaiaDR2(GaiaData):
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch):
         super(GaiaDR2, self).__init__(scan_angle=scan_angle,
-                                       epoch=epoch, residuals=residuals,
-                                       inverse_covariance_matrix=inverse_covariance_matrix)
-        self.min_epoch = min_epoch
-        self.max_epoch = max_epoch
+                                      epoch=epoch, residuals=residuals,
+                                      inverse_covariance_matrix=inverse_covariance_matrix,
+                                      min_epoch=min_epoch, max_epoch=max_epoch)
