@@ -144,9 +144,9 @@ def test_trim_gaia_data():
     parser = GaiaData()
     datemin, datemax = 3, 5
     epochs = pd.DataFrame(data=[datemin - 1, datemin, datemax, datemax + 1], index=[3, 4, 5, 6])
-    epochs, other = parser.trim_data(epochs, datemin, datemax, other_data=[epochs])
-    assert np.allclose(epochs.values.flatten(), [datemin, datemax])
-    assert np.allclose(other.values.flatten(), [datemin, datemax])
+    data = pd.DataFrame(data=[datemin - 1, datemin, datemax, datemax + 1], index=[3, 4, 5, 6])
+    data = parser.trim_data(data, epochs, datemin, datemax)
+    assert np.allclose(data.values.flatten(), [datemin, datemax])
 
 
 @mock.patch('htof.parse.calculate_covariance_matrices', return_value=np.array([np.ones((2, 2))]))

@@ -27,12 +27,13 @@ class IntermediateDataParser(object):
     as pandas.DataFrame. use .values (e.g. self.epoch.values) to call the ndarray version.
     """
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
-                 along_scan_errs=None):
+                 along_scan_errs=None, data=None):
         self.scan_angle = scan_angle
         self._epoch = epoch
         self.residuals = residuals
         self.inverse_covariance_matrix = inverse_covariance_matrix
         self.along_scan_errs = along_scan_errs
+        self._data = data
 
     @staticmethod
     def read_intermediate_data_file(star_id, intermediate_data_directory, skiprows, header, sep):
@@ -67,6 +68,9 @@ class IntermediateDataParser(object):
         for i in range(len(cov_matrices)):
             icov_matrices[i] = np.linalg.pinv(cov_matrices[i])
         self.inverse_covariance_matrix = icov_matrices
+
+    def write(self, path: str):
+        self._data.to_csv(path_or_buf=path)
 
 
 def fractional_year_epoch_to_jd(epoch, half_day_correction=True):
@@ -121,6 +125,7 @@ class HipparcosOriginalData(IntermediateDataParser):
                                                 skiprows=10, header='infer', sep='\s*\|\s*')
         data = self._fix_unnamed_column(data)
         data = self._select_data(data, data_choice)
+        self._data = data
         # compute scan angles and observations epochs according to van Leeuwen & Evans 1997, eq. 11 & 12.
         self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians, arctan2(sin, cos)
         # Use the larger denominator when computing the epoch offset. 
@@ -163,6 +168,7 @@ class HipparcosRereductionData(IntermediateDataParser):
         """
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=1, header=None, sep='\s+')
+        self._data = data
         self.scan_angle = np.arctan2(data[3], data[4])  # data[3] = sin(psi), data[4] = cos(psi)
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
@@ -181,17 +187,19 @@ class GaiaData(IntermediateDataParser):
     def parse(self, star_id, intermediate_data_directory, **kwargs):
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=0, header='infer', sep='\s*,\s*')
+        data = self.trim_data(data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]'],
+                              data, self.min_epoch, self.max_epoch)
+
         self._epoch = data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]']
         self.scan_angle = data['scanAngle[rad]']
-        self._epoch, self.scan_angle = self.trim_data(self._epoch, self.min_epoch,
-                                                      self.max_epoch, [self.scan_angle])
+        self._data = data
 
     def julian_day_epoch(self):
         return self._epoch.values.flatten()
 
-    def trim_data(self, epochs, min_mjd, max_mjd, other_data=()):
+    def trim_data(self, epochs, data, min_mjd, max_mjd):
         valid = np.logical_and(epochs >= min_mjd, epochs <= max_mjd)
-        return tuple(data[valid].dropna() for data in [epochs, *other_data])
+        return data[valid].dropna()
 
 
 class GaiaDR2(GaiaData):
