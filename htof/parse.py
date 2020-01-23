@@ -189,7 +189,6 @@ class GaiaData(IntermediateDataParser):
                                                 skiprows=0, header='infer', sep='\s*,\s*')
         data = self.trim_data(data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]'],
                               data, self.min_epoch, self.max_epoch)
-
         self._epoch = data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]']
         self.scan_angle = data['scanAngle[rad]']
         self._data = data
