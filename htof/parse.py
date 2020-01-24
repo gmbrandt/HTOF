@@ -26,7 +26,7 @@ import abc
 
 class IntermediateDataParser(object):
     """
-    Base class for parsing Hip1 and Hip2 data. self.epoch, self.covariance_matrix and self.scan_angle are saved
+    Base class for parsing Hip1, Hip2 and Gaia data. self.epoch, self.covariance_matrix and self.scan_angle are saved
     as pandas.DataFrame. use .values (e.g. self.epoch.values) to call the ndarray version.
     """
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
