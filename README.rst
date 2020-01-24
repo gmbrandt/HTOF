@@ -64,11 +64,11 @@ fit_degree = 2 or fit_degree = 3 respectively. E.g.
 
     from htof.main import Astrometry
     astro = Astrometry('GaiaDR2', star_id='027321', 'path/to/intermediate_data/', format='jd')
-    ra0, dec0, mu_ra, mu_dec, 1/2*acc_ra, 1/2*acc_dec = astro.fit(ra_vs_epoch, dec_vs_epoch, fit_degree=2)
+    ra0, dec0, mu_ra, mu_dec, acc_ra, acc_dec = astro.fit(ra_vs_epoch, dec_vs_epoch, fit_degree=2)
 
-where 1/2*acc_ra and 1/2*acc_dec are 1/2 times the acceleration in right ascension and declination, respectively.
-This factor of 1/2 is because HTOF uses a power series as the basis for all fits. If fit_degree = 3,
-then the last two parameters would be one-sixth the jerk in right ascension and declination, respectively.
+If fit_degree = 3, then the additional last two parameters would be the jerk in right ascension and declination, respectively.
+The sky path in RA (for instance) should be reconstructed by `ra0 + mu_ra*t + 1/2*acc_ra*t**2` where `t` are the epochs
+from `astro.fitter.epoch_times` minus the central epoch for RA (if provided).
 
 HTOF allows fits of arbitrarily high degree. E.g. setting fit_degree=5 would give a 13 parameter
 fit (if using parallax as well). HTOF normalizes all epochs and times
