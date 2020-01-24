@@ -226,6 +226,19 @@ def test_calculating_covariance_matrices():
         # modulo pi since the scan angle and angle of short axis could differ in sign from one another.
 
 
+def test_concatenating_data():
+    data = IntermediateDataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+                                  residuals=np.arange(2, 5),
+                                  inverse_covariance_matrix=np.array([[1, 2], [3, 4]]) * np.ones((3, 2, 2)),
+                                  along_scan_errs=np.arange(3, 6))
+    new_data = sum([data, data])
+    assert np.allclose(new_data.scan_angle, [*data.scan_angle, *data.scan_angle])
+    assert np.allclose(new_data.residuals, [*data.residuals, *data.residuals])
+    data += data
+    assert np.allclose(new_data.scan_angle, data.scan_angle)
+    assert np.allclose(new_data.residuals, data.residuals)
+
+
 def angle_of_short_axis_of_error_ellipse(cov_matrix):
     vals, vecs = np.linalg.eigh(cov_matrix)
     # Compute "tilt" of ellipse using first eigenvector

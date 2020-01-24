@@ -19,6 +19,7 @@ from astropy.table import QTable, Column
 import astropy.units as u
 from htof import settings as st
 from htof.utils.data_utils import merge_consortia
+from htof.utils.data_utils import munge_to_pandas as chk
 
 import abc
 
@@ -99,6 +100,24 @@ class IntermediateDataParser(object):
                    names=['scan_angle', 'julian_day_epoch', 'residuals', 'along_scan_errs', 'icov'])
         return t
 
+    def __add__(self, other):
+        all_scan_angles = pd.concat([chk(self.scan_angle), chk(other.scan_angle)])
+        all_epoch = pd.concat([chk(self._epoch), chk(other._epoch)])
+        all_residuals = pd.concat([chk(self.residuals), chk(other.residuals)])
+        all_along_scan_errs = pd.concat([chk(self.along_scan_errs), chk(other.along_scan_errs)])
+
+        all_inverse_covariance_matrix = np.concatenate([self.inverse_covariance_matrix,
+                                                        other.inverse_covariance_matrix])
+
+        return self.__class__(scan_angle=all_scan_angles, epoch=all_epoch, residuals=all_residuals,
+                              inverse_covariance_matrix=all_inverse_covariance_matrix,
+                              along_scan_errs=all_along_scan_errs)
+
+    def __radd__(self, other):
+        if other == 0:
+            return self
+        return self.__add__(other)
+
 
 def fractional_year_epoch_to_jd(epoch, half_day_correction=True):
     return Time(epoch, format='decimalyear').jd + half_day_correction * 0.5
@@ -132,8 +151,9 @@ def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1
 
 
 class HipparcosOriginalData(IntermediateDataParser):
-    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None):
-        super(HipparcosOriginalData, self).__init__(scan_angle=scan_angle,
+    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
+                 along_scan_errs=None):
+        super(HipparcosOriginalData, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
                                                     epoch=epoch, residuals=residuals,
                                                     inverse_covariance_matrix=inverse_covariance_matrix)
 
@@ -176,8 +196,9 @@ class HipparcosOriginalData(IntermediateDataParser):
 
 
 class HipparcosRereductionData(IntermediateDataParser):
-    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None):
-        super(HipparcosRereductionData, self).__init__(scan_angle=scan_angle,
+    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
+                 along_scan_errs=None):
+        super(HipparcosRereductionData, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
                                                        epoch=epoch, residuals=residuals,
                                                        inverse_covariance_matrix=inverse_covariance_matrix)
 
@@ -202,8 +223,8 @@ class HipparcosRereductionData(IntermediateDataParser):
 
 class GaiaData(IntermediateDataParser):
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
-                 min_epoch=-np.inf, max_epoch=np.inf):
-        super(GaiaData, self).__init__(scan_angle=scan_angle,
+                 min_epoch=-np.inf, max_epoch=np.inf, along_scan_errs=None):
+        super(GaiaData, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
                                        epoch=epoch, residuals=residuals,
                                        inverse_covariance_matrix=inverse_covariance_matrix)
         self.min_epoch = min_epoch
@@ -227,8 +248,8 @@ class GaiaData(IntermediateDataParser):
 
 class GaiaDR2(GaiaData):
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
-                 min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch):
-        super(GaiaDR2, self).__init__(scan_angle=scan_angle,
+                 min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch, along_scan_errs=None):
+        super(GaiaDR2, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
                                       epoch=epoch, residuals=residuals,
                                       inverse_covariance_matrix=inverse_covariance_matrix,
                                       min_epoch=min_epoch, max_epoch=max_epoch)
