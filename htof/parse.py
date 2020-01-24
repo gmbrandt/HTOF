@@ -15,6 +15,8 @@ import os
 import glob
 
 from astropy.time import Time
+from astropy.table import QTable, Column
+import astropy.units as u
 from htof import settings as st
 from htof.utils.data_utils import merge_consortia
 
@@ -67,6 +69,35 @@ class IntermediateDataParser(object):
         for i in range(len(cov_matrices)):
             icov_matrices[i] = np.linalg.pinv(cov_matrices[i])
         self.inverse_covariance_matrix = icov_matrices
+
+    def write(self, path: str, *args, **kwargs):
+        """
+        :param path: str. filepath to write out the processed data.
+        :param args: arguments for astropy.table.Table.write()
+        :param kwargs: keyword arguments for astropy.table.Table.write()
+        :return: None
+
+        Note: The IntermediateDataParser.inverse_covariance_matrix are added to the table as strings
+        so that they are easily writable. The icov matrix is saved a string.
+        Each element of t['icov'] can be recovered with ast.literal_eval(t['icov'][i])
+        where i is the index. ast.literal_eval(t['icov'][i]) will return a 2x2 list.
+        """
+        t = self.as_table()
+        # fix icov matrices as writable strings.
+        t['icov'] = [str(icov.tolist()) for icov in t['icov']]
+        t.write(path, fast_writer=False, *args, **kwargs)
+
+    def as_table(self):
+        """
+        :return: astropy.table.QTable
+                 The IntermediateDataParser object tabulated.
+                 This table has as columns all of the attributes of IntermediateDataParser.
+        """
+        length = len(self.julian_day_epoch())
+        cols = [self.scan_angle, self.julian_day_epoch(), self.residuals, self.along_scan_errs, self.inverse_covariance_matrix]
+        t = QTable([Column(col, length=length) for col in cols],
+                   names=['scan_angle', 'julian_day_epoch', 'residuals', 'along_scan_errs', 'icov'])
+        return t
 
 
 def fractional_year_epoch_to_jd(epoch, half_day_correction=True):
@@ -181,24 +212,23 @@ class GaiaData(IntermediateDataParser):
     def parse(self, star_id, intermediate_data_directory, **kwargs):
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=0, header='infer', sep='\s*,\s*')
+        data = self.trim_data(data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]'],
+                              data, self.min_epoch, self.max_epoch)
         self._epoch = data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]']
         self.scan_angle = data['scanAngle[rad]']
-        self._epoch, self.scan_angle = self.trim_data(self._epoch, self.min_epoch,
-                                                      self.max_epoch, [self.scan_angle])
 
     def julian_day_epoch(self):
         return self._epoch.values.flatten()
 
-    def trim_data(self, epochs, min_mjd, max_mjd, other_data=()):
+    def trim_data(self, epochs, data, min_mjd, max_mjd):
         valid = np.logical_and(epochs >= min_mjd, epochs <= max_mjd)
-        return tuple(data[valid].dropna() for data in [epochs, *other_data])
+        return data[valid].dropna()
 
 
 class GaiaDR2(GaiaData):
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch):
         super(GaiaDR2, self).__init__(scan_angle=scan_angle,
-                                       epoch=epoch, residuals=residuals,
-                                       inverse_covariance_matrix=inverse_covariance_matrix)
-        self.min_epoch = min_epoch
-        self.max_epoch = max_epoch
+                                      epoch=epoch, residuals=residuals,
+                                      inverse_covariance_matrix=inverse_covariance_matrix,
+                                      min_epoch=min_epoch, max_epoch=max_epoch)

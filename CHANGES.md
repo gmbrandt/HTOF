@@ -1,3 +1,10 @@
+0.2.7 (2019-01-24)
+------------------
+- Any class which inherits from IntermediateDataParser now has the .write() method which
+converts the data stored in the attributes of IntermediateDataParser into an astropy.table.Table
+and writes it out to the specified path. One can call IntermediateDataParser.write() with any of
+the keyword arguments of astropy.table.Table.
+
 0.2.6 (2019-01-24)
 ------------------
 - The fit astrometric parameters mu_ra, mu_dec, acc_ra, acc_dec etc... now include n!

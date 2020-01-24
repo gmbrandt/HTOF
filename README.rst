@@ -123,6 +123,13 @@ Gaia will not match those reported by the Gaia members.
 
     chisq = chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
 
+Saving processed intermediate data
+----------------------------------
+To save the scan angles, residuals, along-scan errors, inverse covariance matrices, and julian day
+epochs, one can call ``Astrometry.data.write(path)`` to write out the data, where path is a string which
+points to the full filepath including the data extension. We recommend ``.csv``, however any file extension
+supported by ``astropy.table.Table.write()`` is supported. As well, one can call ``Astrometry.data.write(path)``
+with any of the kwargs or args of ``astropy.table.Table.write()``.
 
 Usage: Fits with Parallax
 -------------------------
