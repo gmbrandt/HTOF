@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 import mock
 import os
+import tempfile
 
 from htof.parse import HipparcosOriginalData, HipparcosRereductionData,\
     GaiaData, IntermediateDataParser, GaiaDR2
@@ -181,6 +182,32 @@ class TestParseGaiaData:
         assert np.isclose(data.scan_angle.iloc[0], -0.3066803677989655)
         assert np.isclose(data._epoch.iloc[67], 2458426.7784441216)
         assert np.isclose(data.scan_angle.iloc[67], 2.821818345385301)
+
+
+def test_write_with_missing_info():
+    data = IntermediateDataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1, 4)),
+                                  residuals=np.arange(2, 5),
+                                  inverse_covariance_matrix=None,
+                                  along_scan_errs=None)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        t = data.write(os.path.join(tmp_dir, 'out.csv'))
+        assert np.allclose(t['residuals'], data.residuals)
+        assert np.allclose(t['julian_day_epoch'], data.julian_day_epoch())
+        assert np.allclose(t['scan_angle'], data.scan_angle)
+
+
+def test_write():
+    data = IntermediateDataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1, 4)),
+                                  residuals=np.arange(2, 5),
+                                  inverse_covariance_matrix=np.array([[1, 2], [3, 4]]) * np.ones((3, 2, 2)),
+                                  along_scan_errs=np.arange(3, 6))
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        t = data.write(os.path.join(tmp_dir, 'out.csv'))
+        assert np.allclose(t['residuals'], data.residuals)
+        assert np.allclose(t['julian_day_epoch'], data.julian_day_epoch())
+        assert np.allclose(t['scan_angle'], data.scan_angle)
+        assert np.allclose(t['icov'], data.inverse_covariance_matrix)
+        assert np.allclose(t['along_scan_errs'], data.along_scan_errs)
 
 
 def test_calculating_covariance_matrices():

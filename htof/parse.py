@@ -15,6 +15,8 @@ import os
 import glob
 
 from astropy.time import Time
+from astropy.table import QTable, Column
+import astropy.units as u
 from htof import settings as st
 from htof.utils.data_utils import merge_consortia
 
@@ -27,13 +29,12 @@ class IntermediateDataParser(object):
     as pandas.DataFrame. use .values (e.g. self.epoch.values) to call the ndarray version.
     """
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
-                 along_scan_errs=None, data=None):
+                 along_scan_errs=None):
         self.scan_angle = scan_angle
         self._epoch = epoch
         self.residuals = residuals
         self.inverse_covariance_matrix = inverse_covariance_matrix
         self.along_scan_errs = along_scan_errs
-        self._data = data
 
     @staticmethod
     def read_intermediate_data_file(star_id, intermediate_data_directory, skiprows, header, sep):
@@ -70,7 +71,14 @@ class IntermediateDataParser(object):
         self.inverse_covariance_matrix = icov_matrices
 
     def write(self, path: str):
-        self._data.to_csv(path_or_buf=path)
+        # TODO all scan_angles etc. should have associated units when they are created (do not multiply here)
+        length = len(self.julian_day_epoch())
+        cols = [self.scan_angle, self.julian_day_epoch(), self.residuals, self.along_scan_errs, self.inverse_covariance_matrix]
+        t = QTable([Column(col, length=length) for col in cols],
+                   names=['scan_angle', 'julian_day_epoch', 'residuals', 'along_scan_errs', 'icov'],)
+                   #meta={'comments': 'icov matrix is written as [a,b,c,d] for the matrix [[a, b],[c, d]]'})
+        t.write(path)
+        return t
 
 
 def fractional_year_epoch_to_jd(epoch, half_day_correction=True):
@@ -125,7 +133,6 @@ class HipparcosOriginalData(IntermediateDataParser):
                                                 skiprows=10, header='infer', sep='\s*\|\s*')
         data = self._fix_unnamed_column(data)
         data = self._select_data(data, data_choice)
-        self._data = data
         # compute scan angles and observations epochs according to van Leeuwen & Evans 1997, eq. 11 & 12.
         self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians, arctan2(sin, cos)
         # Use the larger denominator when computing the epoch offset. 
@@ -168,7 +175,6 @@ class HipparcosRereductionData(IntermediateDataParser):
         """
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=1, header=None, sep='\s+')
-        self._data = data
         self.scan_angle = np.arctan2(data[3], data[4])  # data[3] = sin(psi), data[4] = cos(psi)
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
@@ -191,7 +197,6 @@ class GaiaData(IntermediateDataParser):
                               data, self.min_epoch, self.max_epoch)
         self._epoch = data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]']
         self.scan_angle = data['scanAngle[rad]']
-        self._data = data
 
     def julian_day_epoch(self):
         return self._epoch.values.flatten()
