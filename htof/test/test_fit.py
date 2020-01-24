@@ -61,12 +61,13 @@ class TestAstrometricFitter:
     @mock.patch('htof.fit.dec_sol_vec', return_value=np.ones(5))
     def test_chi2_vector(self, mock_ra_vec, mock_dec_vec):
         covariance_matrix = np.array([[5, 1], [12, 2]])
-        expected_c = 2 * np.ones(4)
-        fitter = AstrometricFitter(inverse_covariance_matrices=np.array([np.linalg.pinv(covariance_matrix)]),
-                                   epoch_times=np.array([1]), astrometric_chi_squared_matrices=[],
+        expected_c = 4 * np.ones(4)
+        fitter = AstrometricFitter(inverse_covariance_matrices=np.array([np.linalg.pinv(covariance_matrix),
+                                                                         np.linalg.pinv(covariance_matrix)]),
+                                   epoch_times=np.array([1, 2]), astrometric_chi_squared_matrices=[],
                                    fit_degree=1, use_parallax=False)
-        assert np.allclose(expected_c, fitter._chi2_vector(ra_vs_epoch=np.array([1]),
-                                                           dec_vs_epoch=np.array([1])))
+        assert np.allclose(expected_c, fitter._chi2_vector(ra_vs_epoch=np.array([1, 1]),
+                                                           dec_vs_epoch=np.array([1, 1])))
 
     def test_fitting_to_linear_astrometric_data(self):
         astrometric_data = generate_astrometric_data()

@@ -70,16 +70,33 @@ class IntermediateDataParser(object):
             icov_matrices[i] = np.linalg.pinv(cov_matrices[i])
         self.inverse_covariance_matrix = icov_matrices
 
-    def write(self, path: str, overwrite=True):
-        # TODO all scan_angles etc. should have associated units when they are created (do not multiply here)
+    def write(self, path: str, *args, **kwargs):
+        """
+        :param path: str. filepath to write out the processed data.
+        :param args: arguments for astropy.table.Table.write()
+        :param kwargs: keyword arguments for astropy.table.Table.write()
+        :return: None
+
+        Note: The IntermediateDataParser.inverse_covariance_matrix are added to the table as strings
+        so that they are easily writable. The icov matrix is saved a string.
+        Each element of t['icov'] can be recovered with ast.literal_eval(t['icov'][i])
+        where i is the index. ast.literal_eval(t['icov'][i]) will return a 2x2 list.
+        """
+        t = self.as_table()
+        # fix icov matrices as writable strings.
+        t['icov'] = [str(icov.tolist()) for icov in t['icov']]
+        t.write(path, fast_writer=False, *args, **kwargs)
+
+    def as_table(self):
+        """
+        :return: astropy.table.QTable
+                 The IntermediateDataParser object tabulated.
+                 This table has as columns all of the attributes of IntermediateDataParser.
+        """
         length = len(self.julian_day_epoch())
         cols = [self.scan_angle, self.julian_day_epoch(), self.residuals, self.along_scan_errs, self.inverse_covariance_matrix]
         t = QTable([Column(col, length=length) for col in cols],
-                   names=['scan_angle', 'julian_day_epoch', 'residuals', 'along_scan_errs', 'icov'],)
-                   #meta={'comments': 'icov matrix is written as [a,b,c,d] for the matrix [[a, b],[c, d]]'})
-        # fix icov matrices as writable strings.
-        t['icov'] = [str(list(np.array(icov).flatten())) for icov in t['icov']]
-        t.write(path, fast_writer=False, overwrite=overwrite)
+                   names=['scan_angle', 'julian_day_epoch', 'residuals', 'along_scan_errs', 'icov'])
         return t
 
 

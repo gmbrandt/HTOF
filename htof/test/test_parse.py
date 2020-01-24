@@ -6,6 +6,7 @@ import os
 import tempfile
 from ast import literal_eval
 
+from astropy.table import Table
 from htof.parse import HipparcosOriginalData, HipparcosRereductionData,\
     GaiaData, IntermediateDataParser, GaiaDR2
 from htof.parse import calculate_covariance_matrices, fractional_year_epoch_to_jd, _match_filename_to_star_id
@@ -186,29 +187,31 @@ class TestParseGaiaData:
 
 
 def test_write_with_missing_info():
-    data = IntermediateDataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1, 4)),
+    data = IntermediateDataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
                                   residuals=np.arange(2, 5),
                                   inverse_covariance_matrix=None,
                                   along_scan_errs=None)
     with tempfile.TemporaryDirectory() as tmp_dir:
-        t = data.write(os.path.join(tmp_dir, 'out.csv'))
+        data.write(os.path.join(tmp_dir, 'out.csv'))
+        t = Table.read(os.path.join(tmp_dir, 'out.csv'))
         assert np.allclose(t['residuals'], data.residuals)
         assert np.allclose(t['julian_day_epoch'], data.julian_day_epoch())
         assert np.allclose(t['scan_angle'], data.scan_angle)
 
 
 def test_write():
-    data = IntermediateDataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1, 4)),
+    data = IntermediateDataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
                                   residuals=np.arange(2, 5),
                                   inverse_covariance_matrix=np.array([[1, 2], [3, 4]]) * np.ones((3, 2, 2)),
                                   along_scan_errs=np.arange(3, 6))
     with tempfile.TemporaryDirectory() as tmp_dir:
-        t = data.write(os.path.join(tmp_dir, 'out.csv'))
+        data.write(os.path.join(tmp_dir, 'out.csv'))
+        t = Table.read(os.path.join(tmp_dir, 'out.csv'))
         assert np.allclose(t['residuals'], data.residuals)
         assert np.allclose(t['julian_day_epoch'], data.julian_day_epoch())
         assert np.allclose(t['scan_angle'], data.scan_angle)
         assert np.allclose(t['along_scan_errs'], data.along_scan_errs)
-        icovs = [np.array(literal_eval(icov)).reshape(2, 2) for icov in t['icov']]
+        icovs = [np.array(literal_eval(icov)) for icov in t['icov']]
         assert np.allclose(icovs, data.inverse_covariance_matrix)
 
 
