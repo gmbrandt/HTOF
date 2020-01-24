@@ -1,3 +1,8 @@
+0.2.6 (2019-01-24)
+------------------
+- The fit astrometric parameters mu_ra, mu_dec, acc_ra, acc_dec etc... now include n!
+so that the astrometric motion (e.g. for RA) is ra_0 + mu_ra x t + 1/2 x acc_ra x t + ...
+
 0.2.5 (2019-12-16)
 ------------------
 - Merging of the intermediate data for the original hipparcos reduction is now done

@@ -1,6 +1,7 @@
 astropy
 pandas
-numpy
+scipy
+numpy>=1.16
 python-coveralls
 coverage
 nose
