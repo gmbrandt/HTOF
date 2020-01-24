@@ -4,6 +4,7 @@ import pytest
 import mock
 import os
 import tempfile
+from ast import literal_eval
 
 from htof.parse import HipparcosOriginalData, HipparcosRereductionData,\
     GaiaData, IntermediateDataParser, GaiaDR2
@@ -206,8 +207,9 @@ def test_write():
         assert np.allclose(t['residuals'], data.residuals)
         assert np.allclose(t['julian_day_epoch'], data.julian_day_epoch())
         assert np.allclose(t['scan_angle'], data.scan_angle)
-        assert np.allclose(t['icov'], data.inverse_covariance_matrix)
         assert np.allclose(t['along_scan_errs'], data.along_scan_errs)
+        icovs = [np.array(literal_eval(icov)).reshape(2, 2) for icov in t['icov']]
+        assert np.allclose(icovs, data.inverse_covariance_matrix)
 
 
 def test_calculating_covariance_matrices():

@@ -70,14 +70,16 @@ class IntermediateDataParser(object):
             icov_matrices[i] = np.linalg.pinv(cov_matrices[i])
         self.inverse_covariance_matrix = icov_matrices
 
-    def write(self, path: str):
+    def write(self, path: str, overwrite=True):
         # TODO all scan_angles etc. should have associated units when they are created (do not multiply here)
         length = len(self.julian_day_epoch())
         cols = [self.scan_angle, self.julian_day_epoch(), self.residuals, self.along_scan_errs, self.inverse_covariance_matrix]
         t = QTable([Column(col, length=length) for col in cols],
                    names=['scan_angle', 'julian_day_epoch', 'residuals', 'along_scan_errs', 'icov'],)
                    #meta={'comments': 'icov matrix is written as [a,b,c,d] for the matrix [[a, b],[c, d]]'})
-        t.write(path)
+        # fix icov matrices as writable strings.
+        t['icov'] = [str(list(np.array(icov).flatten())) for icov in t['icov']]
+        t.write(path, fast_writer=False, overwrite=overwrite)
         return t
 
 
