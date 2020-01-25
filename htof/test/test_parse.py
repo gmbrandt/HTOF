@@ -44,6 +44,20 @@ class TestHipparcosOriginalData:
         assert np.isclose(data.along_scan_errs[5], 2.0814, atol=.0001)
         assert np.isclose(data.residuals[5], 1.1021, atol=.0001)
 
+    @pytest.mark.integration
+    def test_concatenation(self, hip_id='027321'):
+        test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip1')
+        data = HipparcosOriginalData()
+        data.parse(star_id=hip_id,
+                   intermediate_data_directory=test_data_directory,
+                   data_choice='FAST')
+        data.calculate_inverse_covariance_matrices()
+        covars = data.inverse_covariance_matrix
+        data += data
+        data.calculate_inverse_covariance_matrices()
+        assert np.allclose(covars, data.inverse_covariance_matrix[:len(covars)])
+        assert np.allclose(covars, data.inverse_covariance_matrix[len(covars):])
+
     def test_parse_IA3_eq_zero(self, hip_id='004391'):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip1')
         data = HipparcosOriginalData()
