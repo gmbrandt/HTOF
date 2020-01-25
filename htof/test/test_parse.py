@@ -259,6 +259,17 @@ def test_concatenating_data():
     data.calculate_inverse_covariance_matrices()
 
 
+def test_add_to_empty():
+    data = DataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+                      residuals=np.arange(2, 5),
+                      inverse_covariance_matrix=np.array([[1, 2], [3, 4]]) * np.ones((3, 2, 2)),
+                      along_scan_errs=np.arange(3, 6))
+    new_data = DataParser()
+    new_data += data
+    assert np.allclose(new_data.scan_angle, data.scan_angle)
+    assert len(new_data) == len(data)
+
+
 def test_concatenating_data_with_missing():
     data = DataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
                       residuals=np.arange(2, 5))
