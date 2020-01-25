@@ -24,7 +24,8 @@ from htof.utils.data_utils import munge_to_list as mtl
 
 import abc
 
-
+# TODO consider breaking IntermediateDataParser into a more cut down base class, Parser, then have it it inherit from Parser
+#  then have Hip1 and Hip2 two inherit from IntermediateDataParser, and Gaia inherit from Parser
 class IntermediateDataParser(object):
     """
     Base class for parsing Hip1, Hip2 and Gaia data. self.epoch, self.covariance_matrix and self.scan_angle are saved
