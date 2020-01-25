@@ -252,11 +252,11 @@ def test_concatenating_data():
     new_data = sum([data, data])
     assert np.allclose(new_data.scan_angle, [*data.scan_angle, *data.scan_angle])
     assert np.allclose(new_data.residuals, [*data.residuals, *data.residuals])
+    assert len(new_data.inverse_covariance_matrix) == 2*len(data.inverse_covariance_matrix)
     data += data
     assert np.allclose(new_data.scan_angle, data.scan_angle)
     assert np.allclose(new_data.residuals, data.residuals)
     data.calculate_inverse_covariance_matrices()
-    assert len(data.inverse_covariance_matrix) == len(new_data.inverse_covariance_matrix)
 
 
 def test_concatenating_data_with_missing():
