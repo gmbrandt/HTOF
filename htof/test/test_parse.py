@@ -237,6 +237,19 @@ def test_concatenating_data():
     data += data
     assert np.allclose(new_data.scan_angle, data.scan_angle)
     assert np.allclose(new_data.residuals, data.residuals)
+    data.calculate_inverse_covariance_matrices()
+    assert len(data.inverse_covariance_matrix) == len(new_data.inverse_covariance_matrix)
+
+
+def test_concatenating_data_with_missing():
+    data = IntermediateDataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+                                  residuals=np.arange(2, 5))
+    new_data = sum([data, data])
+    assert np.allclose(new_data.scan_angle, [*data.scan_angle, *data.scan_angle])
+    assert np.allclose(new_data.residuals, [*data.residuals, *data.residuals])
+    data += data
+    assert np.allclose(new_data.scan_angle, data.scan_angle)
+    assert np.allclose(new_data.residuals, data.residuals)
 
 
 def angle_of_short_axis_of_error_ellipse(cov_matrix):

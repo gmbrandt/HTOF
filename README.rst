@@ -171,11 +171,11 @@ their processed intermediate data by summing the two class instances as follows:
 
     combined = hip + gaia
 
-Note that there is a frame rotation between Gaia and Hipparcos, so the results of combining the two
-missions and performing a fit to them should not be interpreted seriously. One would have to account for frame rotation
+There is a frame rotation between Gaia and Hipparcos, so the results of combining the two
+missions and performing a fit to them should not be interpreted without serious care. One would have to account for frame rotation
 in the intermediate data first (using a catalog like the Hipparcos Gaia Catalog of Accelerations (T. Brandt 2018)).
 
-Now to fit a line to the astrometry! Given a parsed data object, we simply call:
+Now to find the best fit astrometric parameters. Given a parsed data object, we simply call:
 
 .. code-block:: python
 

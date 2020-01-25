@@ -19,7 +19,8 @@ from astropy.table import QTable, Column
 import astropy.units as u
 from htof import settings as st
 from htof.utils.data_utils import merge_consortia
-from htof.utils.data_utils import munge_to_pandas as chk
+from htof.utils.data_utils import munge_to_pandas as mtpd
+from htof.utils.data_utils import munge_to_list as mtl
 
 import abc
 
@@ -101,13 +102,13 @@ class IntermediateDataParser(object):
         return t
 
     def __add__(self, other):
-        all_scan_angles = pd.concat([chk(self.scan_angle), chk(other.scan_angle)])
-        all_epoch = pd.concat([chk(self._epoch), chk(other._epoch)])
-        all_residuals = pd.concat([chk(self.residuals), chk(other.residuals)])
-        all_along_scan_errs = pd.concat([chk(self.along_scan_errs), chk(other.along_scan_errs)])
+        all_scan_angles = pd.concat([mtpd(self.scan_angle), mtpd(other.scan_angle)])
+        all_epoch = pd.concat([mtpd(self._epoch), mtpd(other._epoch)])
+        all_residuals = pd.concat([mtpd(self.residuals), mtpd(other.residuals)])
+        all_along_scan_errs = pd.concat([mtpd(self.along_scan_errs), mtpd(other.along_scan_errs)])
 
-        all_inverse_covariance_matrix = np.concatenate([self.inverse_covariance_matrix,
-                                                        other.inverse_covariance_matrix])
+        all_inverse_covariance_matrix = np.concatenate([mtl(self.inverse_covariance_matrix),
+                                                        mtl(other.inverse_covariance_matrix)])
 
         return self.__class__(scan_angle=all_scan_angles, epoch=all_epoch, residuals=all_residuals,
                               inverse_covariance_matrix=all_inverse_covariance_matrix,

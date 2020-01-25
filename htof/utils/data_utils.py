@@ -77,3 +77,7 @@ def munge_to_pandas(x):
     if x is None:
         return pd.Series()
     return pd.Series(x) if type(x) is not pd.DataFrame else x
+
+
+def munge_to_list(x):
+    return [] if x is None else x
