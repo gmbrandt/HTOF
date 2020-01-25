@@ -61,7 +61,7 @@ class DataParser(object):
         pass    # pragma: no cover
 
     def julian_day_epoch(self):
-        return self._epoch.values.flatten()
+        return None if self._epoch is None else self._epoch.values.flatten()
 
     def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=1E5):
         cov_matrices = calculate_covariance_matrices(self.scan_angle,
@@ -156,7 +156,8 @@ class DecimalYearData(DataParser):
         pass  # pragma: no cover
 
     def julian_day_epoch(self):
-        return fractional_year_epoch_to_jd(self._epoch.values.flatten(), half_day_correction=True)
+        return None if self._epoch is None else fractional_year_epoch_to_jd(self._epoch.values.flatten(),
+                                                                            half_day_correction=True)
 
 
 def fractional_year_epoch_to_jd(epoch, half_day_correction=True):
