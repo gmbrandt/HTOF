@@ -8,7 +8,7 @@ from ast import literal_eval
 
 from astropy.table import Table
 from htof.parse import HipparcosOriginalData, HipparcosRereductionData,\
-    GaiaData, IntermediateDataParser, GaiaDR2
+    GaiaData, DataParser, GaiaDR2, DecimalYearData
 from htof.parse import calculate_covariance_matrices, fractional_year_epoch_to_jd, _match_filename_to_star_id
 
 
@@ -89,7 +89,7 @@ class TestHipparcosOriginalData:
                        data_choice='something')
 
 
-class TestLoad:
+class TestDataParser:
     def test_parse_rereduced_data(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
         data = HipparcosRereductionData()
@@ -121,17 +121,21 @@ class TestLoad:
     @mock.patch('htof.parse.glob.glob', return_value=['path/127321.dat', 'path/27321.dat'])
     def test_read_matches_filename_if_needed(self, fake_glob, fake_load):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
-        data = IntermediateDataParser()
+        data = DataParser()
         assert data.read_intermediate_data_file('27321', test_data_directory, None, None, None) is None
 
     def test_match_filename_to_star_id(self):
         paths = _match_filename_to_star_id('232', ['/fake/path/1232.dat', '/fake/path/23211.dat', '/fake/path/232.dat'])
         assert paths == ['/fake/path/232.dat']
 
+    def test_len(self):
+        assert len(DataParser()) == 0
+        assert len(DataParser(epoch=pd.DataFrame(np.arange(4)))) == 4
+
 
 def test_convert_dates_to_jd():
     epoch = pd.DataFrame(data=[1990.0, 1990.25], index=[5, 6])
-    parser = IntermediateDataParser(epoch=epoch)
+    parser = DecimalYearData(epoch=epoch)
     jd_epochs = parser.julian_day_epoch()
     assert np.isclose(jd_epochs[0], 2447892.5)
     assert np.isclose(jd_epochs[1], 2447892.5 + 0.25*365.25)
@@ -142,7 +146,7 @@ def test_convert_date_to_jd():
 
 
 def test_call_jd_dates_hip():
-    parser = IntermediateDataParser()
+    parser = DecimalYearData()
     parser._epoch = pd.DataFrame(data=[1990.0, 1990.25], index=[5, 6])
     jd_epochs = parser.julian_day_epoch()
     assert np.isclose(jd_epochs[0], 2447892.5)
@@ -150,7 +154,7 @@ def test_call_jd_dates_hip():
 
 
 def test_call_jd_dates_gaia():
-    parser = GaiaData()
+    parser = DataParser()
     parser._epoch = pd.DataFrame(data=[2447892.5, 2447893], index=[5, 6])
     jd_epochs = parser.julian_day_epoch()
     assert np.isclose(jd_epochs[0], 2447892.5)
@@ -168,7 +172,7 @@ def test_trim_gaia_data():
 
 @mock.patch('htof.parse.calculate_covariance_matrices', return_value=np.array([np.ones((2, 2))]))
 def test_calculate_inverse_covariances(mock_cov_matrix):
-    parser = IntermediateDataParser()
+    parser = DataParser()
     parser.calculate_inverse_covariance_matrices()
     assert np.allclose(parser.inverse_covariance_matrix[0], 1/4 * np.ones((2, 2)))
 
@@ -201,10 +205,10 @@ class TestParseGaiaData:
 
 
 def test_write_with_missing_info():
-    data = IntermediateDataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
-                                  residuals=np.arange(2, 5),
-                                  inverse_covariance_matrix=None,
-                                  along_scan_errs=None)
+    data = DataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+                      residuals=np.arange(2, 5),
+                      inverse_covariance_matrix=None,
+                      along_scan_errs=None)
     with tempfile.TemporaryDirectory() as tmp_dir:
         data.write(os.path.join(tmp_dir, 'out.csv'))
         t = Table.read(os.path.join(tmp_dir, 'out.csv'))
@@ -214,10 +218,10 @@ def test_write_with_missing_info():
 
 
 def test_write():
-    data = IntermediateDataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
-                                  residuals=np.arange(2, 5),
-                                  inverse_covariance_matrix=np.array([[1, 2], [3, 4]]) * np.ones((3, 2, 2)),
-                                  along_scan_errs=np.arange(3, 6))
+    data = DataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+                      residuals=np.arange(2, 5),
+                      inverse_covariance_matrix=np.array([[1, 2], [3, 4]]) * np.ones((3, 2, 2)),
+                      along_scan_errs=np.arange(3, 6))
     with tempfile.TemporaryDirectory() as tmp_dir:
         data.write(os.path.join(tmp_dir, 'out.csv'))
         t = Table.read(os.path.join(tmp_dir, 'out.csv'))
@@ -241,10 +245,10 @@ def test_calculating_covariance_matrices():
 
 
 def test_concatenating_data():
-    data = IntermediateDataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
-                                  residuals=np.arange(2, 5),
-                                  inverse_covariance_matrix=np.array([[1, 2], [3, 4]]) * np.ones((3, 2, 2)),
-                                  along_scan_errs=np.arange(3, 6))
+    data = DataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+                      residuals=np.arange(2, 5),
+                      inverse_covariance_matrix=np.array([[1, 2], [3, 4]]) * np.ones((3, 2, 2)),
+                      along_scan_errs=np.arange(3, 6))
     new_data = sum([data, data])
     assert np.allclose(new_data.scan_angle, [*data.scan_angle, *data.scan_angle])
     assert np.allclose(new_data.residuals, [*data.residuals, *data.residuals])
@@ -256,14 +260,25 @@ def test_concatenating_data():
 
 
 def test_concatenating_data_with_missing():
-    data = IntermediateDataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
-                                  residuals=np.arange(2, 5))
+    data = DataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+                      residuals=np.arange(2, 5))
     new_data = sum([data, data])
     assert np.allclose(new_data.scan_angle, [*data.scan_angle, *data.scan_angle])
     assert np.allclose(new_data.residuals, [*data.residuals, *data.residuals])
     data += data
     assert np.allclose(new_data.scan_angle, data.scan_angle)
     assert np.allclose(new_data.residuals, data.residuals)
+
+
+@pytest.mark.integration
+def test_two_concatenate_decyear_and_jd():
+    data = DecimalYearData(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+                           residuals=np.arange(2, 5))
+    data2 = DataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(2456951, 2456954)),
+                       residuals=np.arange(2, 5))
+    data3 = data + data2
+    assert np.allclose(data3.julian_day_epoch()[:len(data)], data.julian_day_epoch())
+    assert np.allclose(data3.julian_day_epoch()[len(data):], data2.julian_day_epoch())
 
 
 def angle_of_short_axis_of_error_ellipse(cov_matrix):
