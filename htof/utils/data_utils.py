@@ -71,3 +71,13 @@ def _merge_orbits(data):
     merged_data[:, -2] = 1/np.sqrt(np.sum(np.sum(icov, axis=-1), axis=-1))
     merged_data = np.vstack((merged_data, single_orbits))
     return merged_data[np.argsort(merged_data[:, 0])]
+
+
+def safe_concatenate(a, b):
+    if a is None and b is None:
+        return None
+    if a is None and b is not None:
+        return b
+    if a is not None and b is None:
+        return a
+    return np.concatenate([a, b])

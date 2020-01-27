@@ -18,7 +18,7 @@ from astropy.time import Time
 from astropy.table import QTable, Column
 
 from htof import settings as st
-from htof.utils.data_utils import merge_consortia
+from htof.utils.data_utils import merge_consortia, safe_concatenate
 
 import abc
 
@@ -30,17 +30,6 @@ class DataParser(object):
     """
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  along_scan_errs=None):
-        if scan_angle is None:
-            scan_angle = []
-        if epoch is None:
-            epoch = []
-        if residuals is None:
-            residuals = []
-        if along_scan_errs is None:
-            along_scan_errs = []
-        if inverse_covariance_matrix is None:
-            inverse_covariance_matrix = []
-
         self.scan_angle = pd.Series(scan_angle)
         self._epoch = pd.DataFrame(epoch)
         self.residuals = pd.Series(residuals)
@@ -103,10 +92,15 @@ class DataParser(object):
         :return: astropy.table.QTable
                  The IntermediateDataParser object tabulated.
                  This table has as columns all of the attributes of IntermediateDataParser.
+
+                 For any attribute which is empty or None, the column will contain zeros.
         """
         cols = [self.scan_angle, self.julian_day_epoch(), self.residuals, self.along_scan_errs, self.inverse_covariance_matrix]
-        t = QTable([Column(col, length=len(self)) for col in cols],
-                   names=['scan_angle', 'julian_day_epoch', 'residuals', 'along_scan_errs', 'icov'])
+        cols = [Column(col) for col in cols]
+        # replacing incorrect length columns with empties.
+        cols = [col if len(col) == len(self) else Column(None, length=len(self)) for col in cols]
+
+        t = QTable(cols, names=['scan_angle', 'julian_day_epoch', 'residuals', 'along_scan_errs', 'icov'])
         return t
 
     def __add__(self, other):
@@ -115,8 +109,8 @@ class DataParser(object):
         all_residuals = pd.concat([self.residuals, other.residuals])
         all_along_scan_errs = pd.concat([self.along_scan_errs, other.along_scan_errs])
 
-        all_inverse_covariance_matrix = np.concatenate([self.inverse_covariance_matrix,
-                                                        other.inverse_covariance_matrix])
+        all_inverse_covariance_matrix = safe_concatenate(self.inverse_covariance_matrix,
+                                                         other.inverse_covariance_matrix)
 
         return DataParser(scan_angle=all_scan_angles, epoch=all_epoch, residuals=all_residuals,
                           inverse_covariance_matrix=all_inverse_covariance_matrix,

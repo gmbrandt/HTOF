@@ -215,6 +215,7 @@ def test_write_with_missing_info():
         assert np.allclose(t['residuals'], data.residuals)
         assert np.allclose(t['julian_day_epoch'], data.julian_day_epoch())
         assert np.allclose(t['scan_angle'], data.scan_angle)
+        assert len(t.colnames) == 5
 
 
 def test_write():
@@ -231,6 +232,7 @@ def test_write():
         assert np.allclose(t['along_scan_errs'], data.along_scan_errs)
         icovs = [np.array(literal_eval(icov)) for icov in t['icov']]
         assert np.allclose(icovs, data.inverse_covariance_matrix)
+        assert len(t.colnames) == 5
 
 
 def test_calculating_covariance_matrices():

@@ -1,5 +1,8 @@
 from setuptools import setup, find_packages
 
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
+
 setup(name='htof',
       author=['G. Mirek Brandt, Daniel Michalik'],
       version='0.2.8',
@@ -7,5 +10,5 @@ setup(name='htof',
       packages=find_packages(),
       package_dir={'htof': 'htof'},
       setup_requires=['pytest-runner'],
-      install_requires=['numpy>=1.16', 'astropy', 'pandas', 'scipy'],
+      install_requires=requirements,
       tests_require=['pytest>=3.5'])
