@@ -205,7 +205,7 @@ class TestParseGaiaData:
 
 
 def test_write_with_missing_info():
-    data = DataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+    data = DataParser(scan_angle=np.arange(3), epoch=np.arange(1991, 1994),
                       residuals=np.arange(2, 5),
                       inverse_covariance_matrix=None,
                       along_scan_errs=None)
@@ -218,7 +218,7 @@ def test_write_with_missing_info():
 
 
 def test_write():
-    data = DataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+    data = DataParser(scan_angle=np.arange(3), epoch=np.arange(1991, 1994),
                       residuals=np.arange(2, 5),
                       inverse_covariance_matrix=np.array([[1, 2], [3, 4]]) * np.ones((3, 2, 2)),
                       along_scan_errs=np.arange(3, 6))
@@ -245,7 +245,7 @@ def test_calculating_covariance_matrices():
 
 
 def test_concatenating_data():
-    data = DataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+    data = DataParser(scan_angle=np.arange(3), epoch=np.arange(1991, 1994),
                       residuals=np.arange(2, 5),
                       inverse_covariance_matrix=np.array([[1, 2], [3, 4]]) * np.ones((3, 2, 2)),
                       along_scan_errs=np.arange(3, 6))

@@ -19,8 +19,6 @@ from astropy.table import QTable, Column
 
 from htof import settings as st
 from htof.utils.data_utils import merge_consortia
-from htof.utils.data_utils import munge_to_pandas as mtpd
-from htof.utils.data_utils import munge_to_list as mtl
 
 import abc
 
@@ -32,11 +30,22 @@ class DataParser(object):
     """
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  along_scan_errs=None):
-        self.scan_angle = scan_angle
-        self._epoch = epoch
-        self.residuals = residuals
+        if scan_angle is None:
+            scan_angle = []
+        if epoch is None:
+            epoch = []
+        if residuals is None:
+            residuals = []
+        if along_scan_errs is None:
+            along_scan_errs = []
+        if inverse_covariance_matrix is None:
+            inverse_covariance_matrix = []
+
+        self.scan_angle = pd.Series(scan_angle)
+        self._epoch = pd.DataFrame(epoch)
+        self.residuals = pd.Series(residuals)
+        self.along_scan_errs = pd.Series(along_scan_errs)
         self.inverse_covariance_matrix = inverse_covariance_matrix
-        self.along_scan_errs = along_scan_errs
 
     @staticmethod
     def read_intermediate_data_file(star_id, intermediate_data_directory, skiprows, header, sep):
@@ -61,7 +70,7 @@ class DataParser(object):
         pass    # pragma: no cover
 
     def julian_day_epoch(self):
-        return None if self._epoch is None else self._epoch.values.flatten()
+        return self._epoch.values.flatten()
 
     def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=1E5):
         cov_matrices = calculate_covariance_matrices(self.scan_angle,
@@ -95,20 +104,19 @@ class DataParser(object):
                  The IntermediateDataParser object tabulated.
                  This table has as columns all of the attributes of IntermediateDataParser.
         """
-        length = len(self.julian_day_epoch())
         cols = [self.scan_angle, self.julian_day_epoch(), self.residuals, self.along_scan_errs, self.inverse_covariance_matrix]
-        t = QTable([Column(col, length=length) for col in cols],
+        t = QTable([Column(col, length=len(self)) for col in cols],
                    names=['scan_angle', 'julian_day_epoch', 'residuals', 'along_scan_errs', 'icov'])
         return t
 
     def __add__(self, other):
-        all_scan_angles = pd.concat([mtpd(self.scan_angle), mtpd(other.scan_angle)])
+        all_scan_angles = pd.concat([self.scan_angle, other.scan_angle])
         all_epoch = pd.concat([pd.DataFrame(self.julian_day_epoch()), pd.DataFrame(other.julian_day_epoch())])
-        all_residuals = pd.concat([mtpd(self.residuals), mtpd(other.residuals)])
-        all_along_scan_errs = pd.concat([mtpd(self.along_scan_errs), mtpd(other.along_scan_errs)])
+        all_residuals = pd.concat([self.residuals, other.residuals])
+        all_along_scan_errs = pd.concat([self.along_scan_errs, other.along_scan_errs])
 
-        all_inverse_covariance_matrix = np.concatenate([mtl(self.inverse_covariance_matrix),
-                                                        mtl(other.inverse_covariance_matrix)])
+        all_inverse_covariance_matrix = np.concatenate([self.inverse_covariance_matrix,
+                                                        other.inverse_covariance_matrix])
 
         return DataParser(scan_angle=all_scan_angles, epoch=all_epoch, residuals=all_residuals,
                           inverse_covariance_matrix=all_inverse_covariance_matrix,
@@ -120,7 +128,7 @@ class DataParser(object):
         return self.__add__(other)
 
     def __len__(self):
-        return 0 if self._epoch is None else len(self._epoch)
+        return len(self._epoch)
 
 
 class GaiaData(DataParser):
@@ -156,8 +164,7 @@ class DecimalYearData(DataParser):
         pass  # pragma: no cover
 
     def julian_day_epoch(self):
-        return None if self._epoch is None else fractional_year_epoch_to_jd(self._epoch.values.flatten(),
-                                                                            half_day_correction=True)
+        return fractional_year_epoch_to_jd(self._epoch.values.flatten(), half_day_correction=True)
 
 
 def fractional_year_epoch_to_jd(epoch, half_day_correction=True):
@@ -178,7 +185,7 @@ def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1
     :return An ndarray with shape (len(scan_angles), 2, 2), e.g. an array of covariance matrices in the same order
     as the scan angles
     """
-    if along_scan_errs is None:
+    if along_scan_errs is None or len(along_scan_errs) == 0:
         along_scan_errs = np.ones_like(scan_angles.values.flatten())
     covariance_matrices = []
     cov_matrix_in_scan_basis = np.array([[1, 0],

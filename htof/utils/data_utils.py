@@ -71,13 +71,3 @@ def _merge_orbits(data):
     merged_data[:, -2] = 1/np.sqrt(np.sum(np.sum(icov, axis=-1), axis=-1))
     merged_data = np.vstack((merged_data, single_orbits))
     return merged_data[np.argsort(merged_data[:, 0])]
-
-
-def munge_to_pandas(x):
-    if x is None:
-        return pd.Series()
-    return pd.Series(x) if type(x) is not pd.DataFrame else x
-
-
-def munge_to_list(x):
-    return [] if x is None else x

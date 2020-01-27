@@ -20,9 +20,9 @@ def test_parse_and_fit_to_line():
     parsers = [GaiaData, HipparcosOriginalData, HipparcosRereductionData]
     subdirectories = ['GaiaDR2', 'Hip1', 'Hip2']
     base_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests')
-    for star, DataParser, subdirectory in zip(stars, parsers, subdirectories):
+    for star, parser, subdirectory in zip(stars, parsers, subdirectories):
         test_data_directory = os.path.join(base_directory, subdirectory)
-        data = DataParser()
+        data = parser()
         data.parse(star_id=star,
                    intermediate_data_directory=test_data_directory)
         data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
