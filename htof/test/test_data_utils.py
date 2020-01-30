@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from htof.utils.data_utils import merge_consortia
+from htof.utils.data_utils import merge_consortia, safe_concatenate
 
 
 def test_merge_consortia():
@@ -23,3 +23,11 @@ def test_merge_consortia_equal_on_flipped_rows():
                          [133, 'F', -0.9053, -0.4248,  0.6270,  1.1264,  0.5285, -2.50,  2.21,  0.393]],
                         columns=['A1', 'IA2', 'IA3', 'IA4', 'IA5', 'IA6', 'IA7', 'IA8', 'IA9', 'IA10'])
     pd.testing.assert_frame_equal(merge_consortia(data2), merge_consortia(data1), check_less_precise=2)
+
+
+def test_safe_concatenate():
+    a, b = np.arange(3), np.arange(3, 6)
+    assert np.allclose(a, safe_concatenate(a, None))
+    assert np.allclose(b, safe_concatenate(None, b))
+    assert None is safe_concatenate(None, None)
+    assert np.allclose(np.arange(6), safe_concatenate(a, b))

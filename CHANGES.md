@@ -1,3 +1,9 @@
+0.2.8 (2019-01-24)
+------------------
+- Instances of IntermediateDataParser can now be added to each other with the 
+standard python addition operator. Each data attribute of the (new) class instance created by summing
+will be the concatenation of the data attributes from the input classes.
+
 0.2.7 (2019-01-24)
 ------------------
 - Any class which inherits from IntermediateDataParser now has the .write() method which

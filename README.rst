@@ -155,7 +155,27 @@ data now has a variety of intermediate data products such as the scan angles, th
 data point was collected, the inverse covariance matrices describing the errors of the scan,
 and the BJD epochs accessible through :code:`data.julian_day_epoch()`.
 
-Now to fit a line to the astrometry. Given a parsed data object, we simply call:
+
+If you have two astrometric missions, say Gaia and HipparcosOriginalData, you can concatenate
+their processed intermediate data by summing the two class instances as follows:
+
+.. code-block:: python
+
+    from htof.parse import HipparcosOriginalData # or GaiaData or HipparcosReReduction
+    hip = HipparcosOriginalData()
+    hip.parse(star_id='049699', intermediate_data_directory='Hip1/IntermediateData/')
+    hip.calculate_inverse_covariance_matrices()
+    gaia = GaiaDR2()
+    gaia.parse(star_id='049699', intermediate_data_directory='GaiaDR2/IntermediateData/')
+    gaia.calculate_inverse_covariance_matrices()
+
+    data = hip + gaia
+
+There is a frame rotation between Gaia and Hipparcos, so the results of combining the two
+missions and performing a fit to them should not be interpreted without serious care. One would have to account for frame rotation
+in the intermediate data first.
+
+Now to find the best fit astrometric parameters. Given a parsed data object, we simply call:
 
 .. code-block:: python
 

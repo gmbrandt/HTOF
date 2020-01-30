@@ -16,25 +16,25 @@ import glob
 
 from astropy.time import Time
 from astropy.table import QTable, Column
-import astropy.units as u
+
 from htof import settings as st
-from htof.utils.data_utils import merge_consortia
+from htof.utils.data_utils import merge_consortia, safe_concatenate
 
 import abc
 
 
-class IntermediateDataParser(object):
+class DataParser(object):
     """
-    Base class for parsing Hip1 and Hip2 data. self.epoch, self.covariance_matrix and self.scan_angle are saved
+    Base class for parsing Hip1, Hip2 and Gaia data. self.epoch, self.covariance_matrix and self.scan_angle are saved
     as pandas.DataFrame. use .values (e.g. self.epoch.values) to call the ndarray version.
     """
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  along_scan_errs=None):
-        self.scan_angle = scan_angle
-        self._epoch = epoch
-        self.residuals = residuals
+        self.scan_angle = pd.Series(scan_angle)
+        self._epoch = pd.DataFrame(epoch)
+        self.residuals = pd.Series(residuals)
+        self.along_scan_errs = pd.Series(along_scan_errs)
         self.inverse_covariance_matrix = inverse_covariance_matrix
-        self.along_scan_errs = along_scan_errs
 
     @staticmethod
     def read_intermediate_data_file(star_id, intermediate_data_directory, skiprows, header, sep):
@@ -59,7 +59,7 @@ class IntermediateDataParser(object):
         pass    # pragma: no cover
 
     def julian_day_epoch(self):
-        return fractional_year_epoch_to_jd(self._epoch.values.flatten(), half_day_correction=True)
+        return self._epoch.values.flatten()
 
     def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=1E5):
         cov_matrices = calculate_covariance_matrices(self.scan_angle,
@@ -92,12 +92,73 @@ class IntermediateDataParser(object):
         :return: astropy.table.QTable
                  The IntermediateDataParser object tabulated.
                  This table has as columns all of the attributes of IntermediateDataParser.
+
+                 For any attribute which is empty or None, the column will contain zeros.
         """
-        length = len(self.julian_day_epoch())
         cols = [self.scan_angle, self.julian_day_epoch(), self.residuals, self.along_scan_errs, self.inverse_covariance_matrix]
-        t = QTable([Column(col, length=length) for col in cols],
-                   names=['scan_angle', 'julian_day_epoch', 'residuals', 'along_scan_errs', 'icov'])
+        cols = [Column(col) for col in cols]
+        # replacing incorrect length columns with empties.
+        cols = [col if len(col) == len(self) else Column(None, length=len(self)) for col in cols]
+
+        t = QTable(cols, names=['scan_angle', 'julian_day_epoch', 'residuals', 'along_scan_errs', 'icov'])
         return t
+
+    def __add__(self, other):
+        all_scan_angles = pd.concat([self.scan_angle, other.scan_angle])
+        all_epoch = pd.concat([pd.DataFrame(self.julian_day_epoch()), pd.DataFrame(other.julian_day_epoch())])
+        all_residuals = pd.concat([self.residuals, other.residuals])
+        all_along_scan_errs = pd.concat([self.along_scan_errs, other.along_scan_errs])
+
+        all_inverse_covariance_matrix = safe_concatenate(self.inverse_covariance_matrix,
+                                                         other.inverse_covariance_matrix)
+
+        return DataParser(scan_angle=all_scan_angles, epoch=all_epoch, residuals=all_residuals,
+                          inverse_covariance_matrix=all_inverse_covariance_matrix,
+                          along_scan_errs=all_along_scan_errs)
+
+    def __radd__(self, other):
+        if other == 0:
+            return self
+        return self.__add__(other)
+
+    def __len__(self):
+        return len(self._epoch)
+
+
+class GaiaData(DataParser):
+    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
+                 min_epoch=-np.inf, max_epoch=np.inf, along_scan_errs=None):
+        super(GaiaData, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
+                                       epoch=epoch, residuals=residuals,
+                                       inverse_covariance_matrix=inverse_covariance_matrix)
+        self.min_epoch = min_epoch
+        self.max_epoch = max_epoch
+
+    def parse(self, star_id, intermediate_data_directory, **kwargs):
+        data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
+                                                skiprows=0, header='infer', sep='\s*,\s*')
+        data = self.trim_data(data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]'],
+                              data, self.min_epoch, self.max_epoch)
+        self._epoch = data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]']
+        self.scan_angle = data['scanAngle[rad]']
+
+    def trim_data(self, epochs, data, min_mjd, max_mjd):
+        valid = np.logical_and(epochs >= min_mjd, epochs <= max_mjd)
+        return data[valid].dropna()
+
+
+class DecimalYearData(DataParser):
+    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
+                 along_scan_errs=None):
+        super(DecimalYearData, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
+                                              epoch=epoch, residuals=residuals,
+                                              inverse_covariance_matrix=inverse_covariance_matrix)
+
+    def parse(self, star_id, intermediate_data_parent_directory, **kwargs):
+        pass  # pragma: no cover
+
+    def julian_day_epoch(self):
+        return fractional_year_epoch_to_jd(self._epoch.values.flatten(), half_day_correction=True)
 
 
 def fractional_year_epoch_to_jd(epoch, half_day_correction=True):
@@ -118,7 +179,7 @@ def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1
     :return An ndarray with shape (len(scan_angles), 2, 2), e.g. an array of covariance matrices in the same order
     as the scan angles
     """
-    if along_scan_errs is None:
+    if along_scan_errs is None or len(along_scan_errs) == 0:
         along_scan_errs = np.ones_like(scan_angles.values.flatten())
     covariance_matrices = []
     cov_matrix_in_scan_basis = np.array([[1, 0],
@@ -131,9 +192,10 @@ def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1
     return np.array(covariance_matrices)
 
 
-class HipparcosOriginalData(IntermediateDataParser):
-    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None):
-        super(HipparcosOriginalData, self).__init__(scan_angle=scan_angle,
+class HipparcosOriginalData(DecimalYearData):
+    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
+                 along_scan_errs=None):
+        super(HipparcosOriginalData, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
                                                     epoch=epoch, residuals=residuals,
                                                     inverse_covariance_matrix=inverse_covariance_matrix)
 
@@ -175,9 +237,10 @@ class HipparcosOriginalData(IntermediateDataParser):
         return data
 
 
-class HipparcosRereductionData(IntermediateDataParser):
-    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None):
-        super(HipparcosRereductionData, self).__init__(scan_angle=scan_angle,
+class HipparcosRereductionData(DecimalYearData):
+    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
+                 along_scan_errs=None):
+        super(HipparcosRereductionData, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
                                                        epoch=epoch, residuals=residuals,
                                                        inverse_covariance_matrix=inverse_covariance_matrix)
 
@@ -200,35 +263,10 @@ class HipparcosRereductionData(IntermediateDataParser):
         self.along_scan_errs = data[6]  # unit milli-arcseconds (mas)
 
 
-class GaiaData(IntermediateDataParser):
-    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
-                 min_epoch=-np.inf, max_epoch=np.inf):
-        super(GaiaData, self).__init__(scan_angle=scan_angle,
-                                       epoch=epoch, residuals=residuals,
-                                       inverse_covariance_matrix=inverse_covariance_matrix)
-        self.min_epoch = min_epoch
-        self.max_epoch = max_epoch
-
-    def parse(self, star_id, intermediate_data_directory, **kwargs):
-        data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
-                                                skiprows=0, header='infer', sep='\s*,\s*')
-        data = self.trim_data(data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]'],
-                              data, self.min_epoch, self.max_epoch)
-        self._epoch = data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]']
-        self.scan_angle = data['scanAngle[rad]']
-
-    def julian_day_epoch(self):
-        return self._epoch.values.flatten()
-
-    def trim_data(self, epochs, data, min_mjd, max_mjd):
-        valid = np.logical_and(epochs >= min_mjd, epochs <= max_mjd)
-        return data[valid].dropna()
-
-
 class GaiaDR2(GaiaData):
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
-                 min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch):
-        super(GaiaDR2, self).__init__(scan_angle=scan_angle,
+                 min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch, along_scan_errs=None):
+        super(GaiaDR2, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
                                       epoch=epoch, residuals=residuals,
                                       inverse_covariance_matrix=inverse_covariance_matrix,
                                       min_epoch=min_epoch, max_epoch=max_epoch)
