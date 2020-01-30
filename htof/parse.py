@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import os
 import glob
+import tempfile
+import urllib.request
 
 from astropy.time import Time
 from astropy.table import QTable, Column
@@ -36,8 +38,20 @@ class DataParser(object):
         self.along_scan_errs = pd.Series(along_scan_errs)
         self.inverse_covariance_matrix = inverse_covariance_matrix
 
+    def read_intermediate_data_file(self, star_id, intermediate_data_directory, skiprows, header, sep):
+        if intermediate_data_directory is not None:
+            return self._read_intermediate_data_file(star_id, intermediate_data_directory, skiprows, header, sep)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with open(os.path.join(tmp_dir, star_id + '.txt'), 'wb') as out_file:
+                out_file.write(self.get_from_web(star_id))
+            return self._read_intermediate_data_file(star_id, tmp_dir, skiprows, header, sep)
+
+    def get_from_web(self, star_id) -> bytearray:
+        raise ValueError('No method has been defined for how to get the data for {0} from the web.'.format(star_id))
+
     @staticmethod
-    def read_intermediate_data_file(star_id, intermediate_data_directory, skiprows, header, sep):
+    def _read_intermediate_data_file(star_id, intermediate_data_directory, skiprows, header, sep):
         filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id + '*')
         filepath_list = glob.glob(filepath, recursive=True)
         if len(filepath_list) == 0:
@@ -55,7 +69,7 @@ class DataParser(object):
         return data
 
     @abc.abstractmethod
-    def parse(self, star_id, intermediate_data_parent_directory, **kwargs):
+    def parse(self, star_id, intermediate_data_parent_directory=None, **kwargs):
         pass    # pragma: no cover
 
     def julian_day_epoch(self):
@@ -134,7 +148,7 @@ class GaiaData(DataParser):
         self.min_epoch = min_epoch
         self.max_epoch = max_epoch
 
-    def parse(self, star_id, intermediate_data_directory, **kwargs):
+    def parse(self, star_id, intermediate_data_directory=None, **kwargs):
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=0, header='infer', sep='\s*,\s*')
         data = self.trim_data(data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]'],
@@ -154,7 +168,7 @@ class DecimalYearData(DataParser):
                                               epoch=epoch, residuals=residuals,
                                               inverse_covariance_matrix=inverse_covariance_matrix)
 
-    def parse(self, star_id, intermediate_data_parent_directory, **kwargs):
+    def parse(self, star_id, intermediate_data_parent_directory=None, **kwargs):
         pass  # pragma: no cover
 
     def julian_day_epoch(self):
@@ -199,7 +213,7 @@ class HipparcosOriginalData(DecimalYearData):
                                                     epoch=epoch, residuals=residuals,
                                                     inverse_covariance_matrix=inverse_covariance_matrix)
 
-    def parse(self, star_id, intermediate_data_directory, data_choice='MERGED'):
+    def parse(self, star_id, intermediate_data_directory=None, data_choice='MERGED'):
         """
         :param star_id: a string which is just the number for the HIP ID.
         :param intermediate_data_directory: the path (string) to the place where the intermediate data is stored, e.g.
@@ -221,6 +235,12 @@ class HipparcosOriginalData(DecimalYearData):
         self._epoch = 1991.25 + (data['IA6'] / data['IA3']).where(abs(data['IA3']) > abs(data['IA4']), (data['IA7'] / data['IA4']))
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
         self.along_scan_errs = data['IA9']  # unit milli-arcseconds
+
+    def get_from_web(self, star_id):
+        url = 'https://hipparcos-tools.cosmos.esa.int/cgi-bin/HIPcatalogueSearch.pl?hipiId={0}'.format(star_id)
+        text = urllib.request.urlopen(url).read().decode('utf-8')
+        text = 'IH1' + text.split('\nIH1')[1]
+        return bytes(text, 'utf-8')
 
     @staticmethod
     def _select_data(data, data_choice):
@@ -244,7 +264,7 @@ class HipparcosRereductionData(DecimalYearData):
                                                        epoch=epoch, residuals=residuals,
                                                        inverse_covariance_matrix=inverse_covariance_matrix)
 
-    def parse(self, star_id, intermediate_data_directory, **kwargs):
+    def parse(self, star_id, intermediate_data_directory=None, **kwargs):
         """
         Compute scan angles and observations epochs from van Leeuwen 2007, table G.8
         see also Figure 2.1, section 2.5.1, and section 4.1.2

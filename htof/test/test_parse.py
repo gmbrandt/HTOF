@@ -78,7 +78,7 @@ class TestHipparcosOriginalData:
         data.parse(star_id='999999',
                    intermediate_data_directory=test_data_directory,
                    data_choice='MERGED')
-        assert len(data._epoch) == 32
+        assert len(data) == 32
 
     def test_raises_exception_on_bad_data_choice(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip1')
@@ -87,6 +87,11 @@ class TestHipparcosOriginalData:
             data.parse(star_id='027321',
                        intermediate_data_directory=test_data_directory,
                        data_choice='something')
+
+    def test_get_from_web(self):
+        data = HipparcosOriginalData()
+        data.parse(star_id='027321')
+        assert len(data) == 34
 
 
 class TestDataParser:
