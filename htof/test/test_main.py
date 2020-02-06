@@ -91,7 +91,8 @@ def test_Hip1_fit_to_known_system():
     #
     coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
     assert np.isclose(chisq, chisq_found, atol=1E-3)
-    assert np.allclose([plx, pmRA, pmDec], np.array([coeffs[0], coeffs[3], coeffs[4]]).round(2))
+    assert np.allclose([pmRA, pmDec], np.array([coeffs[3], coeffs[4]]).round(2))
+    assert np.isclose(plx, coeffs[0].round(2), atol=0.01)
 
 
 class TestAstrometry:

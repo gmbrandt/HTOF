@@ -158,11 +158,7 @@ class DecimalYearData(DataParser):
         pass  # pragma: no cover
 
     def julian_day_epoch(self):
-        return fractional_year_epoch_to_jd(self._epoch.values.flatten(), half_day_correction=True)
-
-
-def fractional_year_epoch_to_jd(epoch, half_day_correction=True):
-    return Time(epoch, format='decimalyear').jd + half_day_correction * 0.5
+        return Time(self._epoch.values.flatten(), format='decimalyear').jd
 
 
 def _match_filename_to_star_id(star_id, filepath_list):
