@@ -9,7 +9,7 @@ from ast import literal_eval
 from astropy.table import Table
 from htof.parse import HipparcosOriginalData, HipparcosRereductionData,\
     GaiaData, DataParser, GaiaDR2, DecimalYearData
-from htof.parse import calculate_covariance_matrices, fractional_year_epoch_to_jd, _match_filename_to_star_id
+from htof.parse import calculate_covariance_matrices, _match_filename_to_star_id
 
 
 class TestHipparcosOriginalData:
@@ -139,10 +139,6 @@ def test_convert_dates_to_jd():
     jd_epochs = parser.julian_day_epoch()
     assert np.isclose(jd_epochs[0], 2447892.5)
     assert np.isclose(jd_epochs[1], 2447892.5 + 0.25*365.25)
-
-
-def test_convert_date_to_jd():
-    assert np.isclose(fractional_year_epoch_to_jd(1990.0), 2447892.5)
 
 
 def test_call_jd_dates_hip():
