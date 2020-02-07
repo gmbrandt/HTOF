@@ -9,9 +9,12 @@ notifications:
 # command to install dependencies
 install:
   - pip install -r requirements.txt
+  - pip install pytest
+  - pip install pytest-cov
+  - pip install coveralls
 # commands to run tests, generate coverage report, and pipe the report to coveralls:
 # see https://levibostian.com/blog/python-code-coverage-and-coveralls-io/
 script:
-  - nosetests --with-coverage # run nose with coverage support.
+  - pytest --cov=htof/
 after_success:
   - coveralls
