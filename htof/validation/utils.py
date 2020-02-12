@@ -50,21 +50,27 @@ def refit_hip_fromdata(data: DataParser, fit_degree, pmRA, pmDec, accRA=0, accDe
     return fit_coeffs, errors, chisq
 
 
-def refit_hip_object(data_choice, iad_dir, hip_id, fit_degree, accRA=0, accDec=0, jerkRA=0, jerkDec=0,
-                     cntr_RA=None, cntr_Dec=None, plx=0, use_parallax=False):
+def refit_hip_object(data_choice, iad_dir, hip_id, use_parallax=False):
     data = {'hip1': HipparcosOriginalData(), 'hip2': HipparcosRereductionData()}[data_choice]
     data.parse(star_id=hip_id, intermediate_data_directory=iad_dir)
-    if data_choice == 'hip1':
-        plx, cntr_RA, cntr_Dec, pmRA, pmDec = get_cat_values_hip1(iad_dir, hip_id)
-    else:
-        plx, cntr_RA, cntr_Dec, pmRA, pmDec = get_cat_values_hip2(iad_dir, hip_id)
-    return refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=accRA, accDec=accDec,
-                              jerkRA=jerkRA, jerkDec=jerkDec, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
-                              plx=plx, use_parallax=use_parallax)
-
-
-def get_cat_values_hip1(iad_dir, hip_id):
     fname = os.path.join(iad_dir, hip_id + '.txt')
+    if data_choice == 'hip1':
+        plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip1(fname)
+        soltype = soltype.strip()
+        fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype, None)
+    else:
+        plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip2(fname)
+    # For five/seven/nine parameter fits, do the fit. For other solution types, return None
+    if fit_degree is not None:
+        return tuple((*refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
+                                  jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
+                                  plx=plx, use_parallax=use_parallax), soltype))
+    else:
+        return None, None, None, soltype
+
+
+
+def get_cat_values_hip1(fname):
     with open(fname) as f:
         lines = f.readlines()
         try:
@@ -73,10 +79,11 @@ def get_cat_values_hip1(iad_dir, hip_id):
             cntr_RA = Angle(float(lines[2].split(':')[1].split('Right')[0]), unit='degree')
             cntr_Dec = Angle(float(lines[3].split(':')[1].split('Declination')[0]), unit='degree')
             plx = float(lines[4].split(':')[1].split('Trigonometric')[0])
+            sol_type = str(lines[7].split(':')[1].split('Code')[0])
         except:
             raise UnboundLocalError('could not read pmRA or pmDec from intermediate data of {0}'.format(fname))
-    return plx, cntr_RA, cntr_Dec, pmRA, pmDec
+    return plx, cntr_RA, cntr_Dec, pmRA, pmDec, sol_type
 
 
 def get_cat_values_hip2(iad_dir, hip_id):
-    return 0,0,0,0,0
+    return 0,0,0,0,0,'' 

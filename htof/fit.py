@@ -57,6 +57,7 @@ class AstrometricFitter(object):
                  E.g. [ra0, dec0, mu_ra, mu_dec] if use_parallax=False
                  or, [parallax_angle, ra0, dec0, mu_ra, mu_dec] if use_parallax=True
         """
+        print('Condition number: ', np.linalg.cond(self._chi2_matrix))
         solution = np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch))
         errors = np.sqrt(np.diagonal(np.linalg.pinv(self._chi2_matrix)))
         chisq = chisq_of_fit(solution, ra_vs_epoch, dec_vs_epoch,
@@ -76,6 +77,7 @@ class AstrometricFitter(object):
         # multiply coefficients by n! so that RA(t) = RA0 + v*t + 1/2 a*t^2 etc... and for declination.
         degree_plus_one = len(solution[1 * self.use_parallax:]) // 2
         solution[1 * self.use_parallax:] *= factorial(np.array([(i, i) for i in range(degree_plus_one)]).flatten())
+        errors[1 * self.use_parallax:] *= factorial(np.array([(i, i) for i in range(degree_plus_one)]).flatten())
         return solution if not return_all else (solution, errors, chisq)
 
     def _chi2_vector(self, ra_vs_epoch, dec_vs_epoch):
