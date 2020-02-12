@@ -16,19 +16,21 @@ class Engine(object):
         result = refit_hip_object('hip1', self.dirname, hip_id, use_parallax=True)
         print(result)
         soltype = result[3]
-        if result[0] is None:
-            return {'hip_id': hip_id, 'diff_ra': None, 'diff_dec': None, 'plx' : None, 'diff_pm_ra': None, 'diff_pm_dec': None,
-                    'soltype': soltype}
-        else:
+        ra, dec, plx, pm_ra, pm_dec, acc_ra, acc_dec, jerk_ra, jerk_dec = [None]*9
+        if soltype is '5':
             plx, ra, dec, pm_ra, pm_dec = result[0][0:5]
-            return {'hip_id': hip_id, 'diff_ra': ra, 'diff_dec': dec, 'plx' : plx, 'diff_pm_ra': pm_ra, 'diff_pm_dec': pm_dec,
-                    'soltype': soltype}
+        elif soltype is '7':
+            plx, ra, dec, pm_ra, pm_dec, acc_ra, acc_dec = result[0][0:7]
+        elif soltype is '9':
+            plx, ra, dec, pm_ra, pm_dec, acc_ra, acc_dec, jerk_ra, jerk_dec = result[0][0:9]
+        return {'hip_id': hip_id, 'diff_ra': ra, 'diff_dec': dec, 'plx' : plx, 'diff_pm_ra': pm_ra, 'diff_pm_dec': pm_dec,
+                'soltype': soltype, 'diff_acc_ra': acc_ra, 'diff_acc_dec': acc_dec, 'diff_jerk_ra': jerk_ra, 'diff_jerk_dec': jerk_dec}
 
 if __name__ == "__main__":
     filename = 'hip1_fits_p' + (str)(os.getpid()) + '.csv'
     print(filename)
     dirname = '/home/dmichalik/HIPPARCOS_REREDUCTION/hipparcosOriginalIntermediateData'
-    files = [i for i in os.listdir(dirname) if i.endswith("75152.txt")]
+    files = [i for i in os.listdir(dirname) if i.endswith("75152.txt") or i.endswith("27321.txt") or i.endswith("75347.txt") or i.endswith("110922.txt")]
     print('fitting ', len(files))
     try:
         pool = Pool(3) # set number of processors
