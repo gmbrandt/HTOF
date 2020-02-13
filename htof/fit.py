@@ -63,7 +63,6 @@ class AstrometricFitter(object):
                              self.ra_epochs, self.dec_epochs,
                              self.inverse_covariance_matrices, **self.parallactic_pertubations,
                              use_parallax=self.use_parallax)
-
         if self.normed:
             # transforming out of normalized coordinates.
             c_ra, c_dec = self.central_epoch_ra, self.central_epoch_dec
@@ -76,6 +75,7 @@ class AstrometricFitter(object):
         # multiply coefficients by n! so that RA(t) = RA0 + v*t + 1/2 a*t^2 etc... and for declination.
         degree_plus_one = len(solution[1 * self.use_parallax:]) // 2
         solution[1 * self.use_parallax:] *= factorial(np.array([(i, i) for i in range(degree_plus_one)]).flatten())
+        errors[1 * self.use_parallax:] *= factorial(np.array([(i, i) for i in range(degree_plus_one)]).flatten())
         return solution if not return_all else (solution, errors, chisq)
 
     def _chi2_vector(self, ra_vs_epoch, dec_vs_epoch):

@@ -48,7 +48,7 @@ def test_Hip2_fit_to_known_system():
     # generate fitter and parse intermediate data
     astro = Astrometry('Hip2', '27321', 'htof/test/data_for_tests/Hip2', central_epoch_ra=1991.25,
                        central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
-                       central_ra=cntr_ra, central_dec=cntr_dec)
+                       central_ra=cntr_ra, central_dec=cntr_dec, normed=False)
     chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
     # generate ra and dec for each observation.
     year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
@@ -77,7 +77,7 @@ def test_Hip1_fit_to_known_system():
     # generate fitter and parse intermediate data
     astro = Astrometry('Hip1', '27321', 'htof/test/data_for_tests/Hip1', central_epoch_ra=1991.25,
                        central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
-                       central_ra=cntr_ra, central_dec=cntr_dec)
+                       central_ra=cntr_ra, central_dec=cntr_dec, normed=False)
     chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
     # generate ra and dec for each observation.
     year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
@@ -91,6 +91,8 @@ def test_Hip1_fit_to_known_system():
     dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
     #
     coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
+    print(errors)
+    print(errors / np.array([0.51, 0.45, 0.46, 0.53, 0.61]))
     assert np.isclose(chisq, chisq_found, atol=1E-3)
     assert np.allclose([plx, pmRA, pmDec], np.array([coeffs[0], coeffs[3], coeffs[4]]).round(2))
     assert np.allclose(errors, np.array([0.51, 0.45, 0.46, 0.53, 0.61]))
