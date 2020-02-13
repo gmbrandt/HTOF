@@ -14,7 +14,7 @@ class Engine(object):
     def __call__(self, fname):
         hip_id = fname.split('.txt')[0]        
         result = refit_hip_object('hip1', self.dirname, hip_id, use_parallax=True)
-        print(result)
+        print(hip_id, ', ', result)
         soltype = result[3]
         ra, dec, plx, pm_ra, pm_dec, acc_ra, acc_dec, jerk_ra, jerk_dec = [None]*9
         if soltype is '5':
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     filename = 'hip1_fits_p' + (str)(os.getpid()) + '.csv'
     print(filename)
     dirname = '/home/dmichalik/HIPPARCOS_REREDUCTION/hipparcosOriginalIntermediateData'
-    files = [i for i in os.listdir(dirname) if i.endswith("75152.txt") or i.endswith("27321.txt") or i.endswith("75347.txt") or i.endswith("110922.txt")]
+    files = [i for i in os.listdir(dirname) if i.endswith("75152.txt") or i.endswith("27321.txt") or i.endswith("75347.txt") or i.endswith("110922.txt") or i.endswith("78999.txt")]
     print('fitting ', len(files))
     try:
         pool = Pool(3) # set number of processors
