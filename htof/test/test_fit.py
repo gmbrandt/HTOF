@@ -151,6 +151,25 @@ class TestAstrometricFitter:
         assert np.allclose(solution[0], real_plx)
         assert np.allclose(solution[1:], astrometric_data['nonlinear_solution'], atol=0, rtol=1E-4)
 
+    def test_errors_equal_on_normed_and_unnormed(self):
+        real_plx = 100
+        astrometric_data = generate_astrometric_data(acc=True, jerk=True)
+        jyear_epochs = Time(astrometric_data['epoch_delta_t'] + 2448090, format='jd').jyear
+        ra_pert, dec_pert = parallactic_motion(jyear_epochs, 45, 45, 'degree', 1991.25, parallax=1)
+        t = astrometric_data['epoch_delta_t']
+        astrometric_data['dec'] += dec_pert * real_plx
+        astrometric_data['ra'] += ra_pert * real_plx
+        fitters = []
+        for normed in [True, False]:
+            fitters.append(AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+                                             epoch_times=astrometric_data['epoch_delta_t'], use_parallax=True,
+                                             parallactic_pertubations={'ra_plx': ra_pert, 'dec_plx': dec_pert},
+                                             fit_degree=3, normed=normed))
+        solution, errors, chisq = fitters[0].fit_line(astrometric_data['ra'], astrometric_data['dec'], return_all=True)
+        solution2, errors2, chisq2 = fitters[1].fit_line(astrometric_data['ra'], astrometric_data['dec'], return_all=True)
+        assert np.allclose(solution, solution2)
+        assert np.allclose(errors2, errors)
+
     def test_fitter_removes_parallax(self):
         astrometric_data = generate_astrometric_data()
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
