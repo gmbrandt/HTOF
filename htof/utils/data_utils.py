@@ -64,11 +64,18 @@ def _merge_orbits(data):
     err1, err2, corr = data[::2, -2], data[1::2, -2], data[::2, -1]
     icov = np.linalg.pinv(np.array([[err1 ** 2, err2 * err1 * corr],
                                     [err2 * err1 * corr, err2 ** 2]]).T.reshape((-1, 2, 2)))
+    # constructing the weights via the best linear estimator method (which seeks to minimize the variance).
     weights = np.array([np.sum(np.dot([1, 0], icov), axis=1), np.sum(np.dot([0, 1], icov), axis=1)])
-    weights /= np.sum(np.sum(icov, axis=-1), axis=-1)  # normalize weights
+    weights /= np.sum(np.sum(icov, axis=-1), axis=-1)  # normalize weights by sum of elements of each icov matrix.
     # merge data
     merged_data = weights[0].reshape(-1, 1) * data[::2] + weights[1].reshape(-1, 1) * data[1::2]
-    merged_data[:, -2] = 1/np.sqrt(np.sum(np.sum(icov, axis=-1), axis=-1))
+    # evaluate variances on the BLUE estimator x'. Var(x') = w0^2*Var(x0) + w1^2*Var(x1) + 2 * w1 * w0 * Cov(x1, x2)
+    # where w1, w2 are the weights and x' is the merged result computed above.
+    merged_data[:, -2] = weights[0] ** 2 * err1 ** 2 + weights[1] ** 2 * err2 ** 2 + \
+                         2 * corr * err1 * err2 * weights[0] * weights[1]
+    # convert the variances to standard deviations
+    merged_data[:, -2] = np.sqrt(merged_data[:, -2])
+    # stack the merged_data back with the orbits with a single consortia (that could therefore not be merged)
     merged_data = np.vstack((merged_data, single_orbits))
     return merged_data[np.argsort(merged_data[:, 0])]
 
