@@ -33,7 +33,7 @@ def ra_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, vander=FIT_VANDER, deg=
     :return:
     """
     f, g = _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, vander=vander, deg=deg)
-    ra_vec = np.array([2*a*f[i] + (b+c)*g[i] for i in range(2*deg + 3)], dtype=float)
+    ra_vec = np.array([a*f[i] + (b+c)/2*g[i] for i in range(2*deg + 3)], dtype=float)
     return ra_vec
 
 
@@ -54,7 +54,7 @@ def dec_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, vander=FIT_VANDER, deg
     :return:
     """
     f, g = _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, vander=vander, deg=deg)
-    dec_vec = np.array([(b+c)*f[i] + 2*d*g[i] for i in range(2*deg + 3)], dtype=float)
+    dec_vec = np.array([(b+c)/2*f[i] + d*g[i] for i in range(2*deg + 3)], dtype=float)
     return dec_vec
 
 
@@ -77,9 +77,10 @@ def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, vander=FIT_VANDER, deg
 
     A = np.zeros((2*deg + 3, 2*deg + 3), dtype=np.float32)
     f, g = _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, vander=vander, deg=deg)
+    # note that b = c for any realistic covariance (or inverse covariance) matrix.
     for k in range(A.shape[0]):
-        A[k] = [2 * f[i] * a * f[k] + g[i] * (b+c) * f[k] + 
-                f[i] * (b+c) * g[k] + 2 * g[i] * d * g[k] for i in range(2*deg + 3)]
+        A[k] = [f[i] * a * f[k] + g[i] * (b+c)/2 * f[k] +
+                f[i] * (b+c)/2 * g[k] + g[i] * d * g[k] for i in range(2*deg + 3)]
     return np.array(A, dtype=float)
 
 

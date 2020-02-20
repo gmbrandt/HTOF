@@ -25,11 +25,11 @@ class TestAstrometricFitter:
 
     def test_ra_solution_vector(self):
         assert np.allclose([326, 2, 30, 60, 1050, 1800, 36750, 54000, 1286250],
-                           ra_sol_vec(1, 10, 20, 5, 30, 35, 13, 10, vander=np.polynomial.polynomial.polyvander, deg=3))
+                           2*ra_sol_vec(1, 10, 20, 5, 30, 35, 13, 10, vander=np.polynomial.polynomial.polyvander, deg=3))
 
     def test_dec_solution_vector(self):
         assert np.allclose([490, 30, 10, 900, 350, 27000, 12250, 810000, 428750],
-                           dec_sol_vec(1, 10, 20, 5, 30, 35, 13, 10, vander=np.polynomial.polynomial.polyvander, deg=3))
+                           2*dec_sol_vec(1, 10, 20, 5, 30, 35, 13, 10, vander=np.polynomial.polynomial.polyvander, deg=3))
 
     def test_chi2_matrix(self):
         expected_chi2_matrix = np.array([
@@ -42,7 +42,7 @@ class TestAstrometricFitter:
         [600250, 36750, 12250, 1102500, 428750, 33075000, 15006250, 992250000, 525218750],
         [8802000, 54000, 810000, 1620000, 28350000, 48600000, 992250000, 1458000000, 34728750000],
         [21008750, 1286250, 428750, 38587500, 15006250, 1157625000, 525218750, 34728750000, 18382656250]
-        ])
+        ])/2
         agreement = np.isclose(expected_chi2_matrix,
                                chi2_matrix(1, 10, 20, 5, 30, 35, 13, 10, vander=np.polynomial.polynomial.polyvander, deg=3))
 

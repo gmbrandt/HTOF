@@ -69,11 +69,13 @@ class AstrometricFitter(object):
             t = self.epoch_times
             solution = transform_coefficients_to_unnormalized_domain(solution, t.min() - c_ra, t.max() - c_ra,
                                                                      t.min() - c_dec, t.max() - c_dec, self.use_parallax)
+            # TODO : One should not transform the errors like the solution vector.
             errors = transform_coefficients_to_unnormalized_domain(errors, t.min() - c_ra, t.max() - c_ra,
                                                                    t.min() - c_dec, t.max() - c_dec, self.use_parallax)
 
         # multiply coefficients by n! so that RA(t) = RA0 + v*t + 1/2 a*t^2 etc... and for declination.
         degree_plus_one = len(solution[1 * self.use_parallax:]) // 2
+        # TODO this should be done as part of the basis, at the lowest level possible.
         solution[1 * self.use_parallax:] *= factorial(np.array([(i, i) for i in range(degree_plus_one)]).flatten())
         errors[1 * self.use_parallax:] *= factorial(np.array([(i, i) for i in range(degree_plus_one)]).flatten())
         return solution if not return_all else (solution, errors, chisq)

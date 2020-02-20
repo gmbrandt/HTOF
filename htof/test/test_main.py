@@ -68,6 +68,37 @@ def test_Hip2_fit_to_known_system():
 
 
 @pytest.mark.e2e
+def test_temporary():
+    cntr_ra, cntr_dec = Angle(241.89259265, 'degree'), Angle(-5.70677966, 'degree')
+    plx = 28.13  # mas
+    pmRA = 156.39  # mas/year
+    pmDec = -177.63  # mas/year
+    # generate fitter and parse intermediate data
+    astro = Astrometry('Hip2', '78999', '/home/gmbrandt/Documents/Hip2/IntermediateData/resrec/', central_epoch_ra=1991.25,
+                       central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
+                       central_ra=cntr_ra, central_dec=cntr_dec, normed=False)
+    chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
+    # generate ra and dec for each observation.
+    year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
+                  Time(1991.25, format='decimalyear').jyear
+    ra_motion = astro.fitter.parallactic_pertubations['ra_plx']
+    dec_motion = astro.fitter.parallactic_pertubations['dec_plx']
+    ra = Angle(ra_motion * plx + pmRA * year_epochs, unit='mas')
+    dec = Angle(dec_motion * plx + pmDec * year_epochs, unit='mas')
+    # add residuals
+    ra += Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
+    dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
+    #
+    coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
+    print(errors)
+    print(chisq_found)
+    print(coeffs)
+    print(np.array([0.51, 0.45, 0.46, 0.53, 0.61]))
+    print(chisq)
+    print([0, 0, plx, pmRA, pmDec])
+
+
+@pytest.mark.e2e
 def test_Hip1_fit_to_known_system():
     # Hip 27321 parameters from the Hipparcos 1 catalogue via Vizier
     cntr_ra, cntr_dec = Angle(86.82118054, 'degree'), Angle(-51.06671341, 'degree')
@@ -91,11 +122,9 @@ def test_Hip1_fit_to_known_system():
     dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
     #
     coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
-    print(errors)
-    print(errors / np.array([0.51, 0.45, 0.46, 0.53, 0.61]))
     assert np.isclose(chisq, chisq_found, atol=1E-3)
     assert np.allclose([plx, pmRA, pmDec], np.array([coeffs[0], coeffs[3], coeffs[4]]).round(2))
-    assert np.allclose(errors, np.array([0.51, 0.45, 0.46, 0.53, 0.61]))
+    assert np.allclose(errors.round(2), np.array([0.51, 0.45, 0.46, 0.53, 0.61]))
 
 
 class TestAstrometry:
