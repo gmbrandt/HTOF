@@ -70,6 +70,7 @@ class AstrometricFitter(object):
             solution = transform_coefficients_to_unnormalized_domain(solution, t.min() - c_ra, t.max() - c_ra,
                                                                      t.min() - c_dec, t.max() - c_dec, self.use_parallax)
             # TODO : One should not transform the errors like the solution vector.
+            # TODO: easy but bulky way: reconstruct the chi^2 matrix here.
             errors = transform_coefficients_to_unnormalized_domain(errors, t.min() - c_ra, t.max() - c_ra,
                                                                    t.min() - c_dec, t.max() - c_dec, self.use_parallax)
 
