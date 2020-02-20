@@ -73,11 +73,11 @@ def _merge_orbits(data):
     return merged_data[np.argsort(merged_data[:, 0])]
 
 
-def munge_to_pandas(x):
-    if x is None:
-        return pd.Series()
-    return pd.Series(x) if type(x) is not pd.DataFrame else x
-
-
-def munge_to_list(x):
-    return [] if x is None else x
+def safe_concatenate(a, b):
+    if a is None and b is None:
+        return None
+    if a is None and b is not None:
+        return b
+    if a is not None and b is None:
+        return a
+    return np.concatenate([a, b])

@@ -20,9 +20,9 @@ def test_parse_and_fit_to_line():
     parsers = [GaiaData, HipparcosOriginalData, HipparcosRereductionData]
     subdirectories = ['GaiaDR2', 'Hip1', 'Hip2']
     base_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests')
-    for star, DataParser, subdirectory in zip(stars, parsers, subdirectories):
+    for star, parser, subdirectory in zip(stars, parsers, subdirectories):
         test_data_directory = os.path.join(base_directory, subdirectory)
-        data = DataParser()
+        data = parser()
         data.parse(star_id=star,
                    intermediate_data_directory=test_data_directory)
         data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
@@ -125,6 +125,7 @@ def test_Hip1_fit_to_known_system():
     assert np.isclose(chisq, chisq_found, atol=1E-3)
     assert np.allclose([plx, pmRA, pmDec], np.array([coeffs[0], coeffs[3], coeffs[4]]).round(2))
     assert np.allclose(errors.round(2), np.array([0.51, 0.45, 0.46, 0.53, 0.61]))
+
 
 
 class TestAstrometry:

@@ -169,11 +169,11 @@ their processed intermediate data by summing the two class instances as follows:
     gaia.parse(star_id='049699', intermediate_data_directory='GaiaDR2/IntermediateData/')
     gaia.calculate_inverse_covariance_matrices()
 
-    combined = hip + gaia
+    data = hip + gaia
 
 There is a frame rotation between Gaia and Hipparcos, so the results of combining the two
 missions and performing a fit to them should not be interpreted without serious care. One would have to account for frame rotation
-in the intermediate data first (using a catalog like the Hipparcos Gaia Catalog of Accelerations (T. Brandt 2018)).
+in the intermediate data first.
 
 Now to find the best fit astrometric parameters. Given a parsed data object, we simply call:
 

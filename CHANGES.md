@@ -1,3 +1,7 @@
+0.2.9 (2019-02-05)
+------------------
+- Removed the half day correction when converting from decimal year to julian date.
+
 0.2.8 (2019-01-24)
 ------------------
 - Instances of IntermediateDataParser can now be added to each other with the 

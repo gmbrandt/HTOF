@@ -9,7 +9,7 @@ from ast import literal_eval
 from astropy.table import Table
 from htof.parse import HipparcosOriginalData, HipparcosRereductionData,\
     GaiaData, DataParser, GaiaDR2, DecimalYearData
-from htof.parse import calculate_covariance_matrices, fractional_year_epoch_to_jd, _match_filename_to_star_id
+from htof.parse import calculate_covariance_matrices, _match_filename_to_star_id
 
 
 class TestHipparcosOriginalData:
@@ -141,10 +141,6 @@ def test_convert_dates_to_jd():
     assert np.isclose(jd_epochs[1], 2447892.5 + 0.25*365.25)
 
 
-def test_convert_date_to_jd():
-    assert np.isclose(fractional_year_epoch_to_jd(1990.0), 2447892.5)
-
-
 def test_call_jd_dates_hip():
     parser = DecimalYearData()
     parser._epoch = pd.DataFrame(data=[1990.0, 1990.25], index=[5, 6])
@@ -205,7 +201,7 @@ class TestParseGaiaData:
 
 
 def test_write_with_missing_info():
-    data = DataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+    data = DataParser(scan_angle=np.arange(3), epoch=np.arange(1991, 1994),
                       residuals=np.arange(2, 5),
                       inverse_covariance_matrix=None,
                       along_scan_errs=None)
@@ -215,10 +211,11 @@ def test_write_with_missing_info():
         assert np.allclose(t['residuals'], data.residuals)
         assert np.allclose(t['julian_day_epoch'], data.julian_day_epoch())
         assert np.allclose(t['scan_angle'], data.scan_angle)
+        assert len(t.colnames) == 5
 
 
 def test_write():
-    data = DataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+    data = DataParser(scan_angle=np.arange(3), epoch=np.arange(1991, 1994),
                       residuals=np.arange(2, 5),
                       inverse_covariance_matrix=np.array([[1, 2], [3, 4]]) * np.ones((3, 2, 2)),
                       along_scan_errs=np.arange(3, 6))
@@ -231,6 +228,7 @@ def test_write():
         assert np.allclose(t['along_scan_errs'], data.along_scan_errs)
         icovs = [np.array(literal_eval(icov)) for icov in t['icov']]
         assert np.allclose(icovs, data.inverse_covariance_matrix)
+        assert len(t.colnames) == 5
 
 
 def test_calculating_covariance_matrices():
@@ -245,7 +243,7 @@ def test_calculating_covariance_matrices():
 
 
 def test_concatenating_data():
-    data = DataParser(scan_angle=np.arange(3), epoch=pd.DataFrame(np.arange(1991, 1994)),
+    data = DataParser(scan_angle=np.arange(3), epoch=np.arange(1991, 1994),
                       residuals=np.arange(2, 5),
                       inverse_covariance_matrix=np.array([[1, 2], [3, 4]]) * np.ones((3, 2, 2)),
                       along_scan_errs=np.arange(3, 6))
