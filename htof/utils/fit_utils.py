@@ -91,6 +91,8 @@ def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, vander=FIT_VANDER, deg
 
 def transform_coefficients_to_unnormalized_domain(coeffs, ra_min_t, ra_max_t, dec_min_t, dec_max_t,
                                                   use_parallax, old_domain=None, basis=FIT_BASIS):
+    # Using basis= taylor does not convert from normalized to unnormalized properly.
+    # TODO fix htof.polynomial.polynomial.TaylorSeries so that its .convert() method works properly
     basis = np.polynomial.polynomial.Polynomial
     if old_domain is None:
         old_domain = [-1, 1]

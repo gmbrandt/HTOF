@@ -71,7 +71,7 @@ def test_Hip2_fit_to_known_system():
 
     assert np.isclose(chisq, chisq_found, atol=1E-3)
     assert np.allclose([plx, pmRA, pmDec], np.array([coeffs[0], coeffs[3], coeffs[4]]).round(2))
-    assert np.allclose(errors, np.array([0.12, 0.10, 0.11, 0.11, 0.15]))
+    assert np.allclose(errors.round(2), np.array([0.12, 0.10, 0.11, 0.11, 0.15]))
 
 
 @pytest.mark.e2e

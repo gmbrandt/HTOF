@@ -211,8 +211,8 @@ Utility functions
 def generate_astrometric_data(acc=False, jerk=False):
     astrometric_data = {}
     num_measurements = 50
-    mu_ra, mu_dec = 100, 200
-    acc_ra, acc_dec = acc * 20, acc * 10
+    mu_ra, mu_dec = 20, 30
+    acc_ra, acc_dec = acc * 5, acc * 10
     jerk_ra, jerk_dec = jerk * 2, jerk * 1
     ra0, dec0 = 1, 2
     epoch_start = -2
