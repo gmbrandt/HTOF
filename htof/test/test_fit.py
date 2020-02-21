@@ -151,7 +151,7 @@ class TestAstrometricFitter:
         assert np.allclose(solution[1:], astrometric_data['nonlinear_solution'], atol=0, rtol=1E-4)
         assert np.allclose(solution[0], real_plx)
 
-    def test_errors_equal_on_normed_and_unnormed(self):
+    def test_solutions_equal_on_normed_and_unnormed(self):
         real_plx = 100
         astrometric_data = generate_astrometric_data(acc=True, jerk=True)
         jyear_epochs = Time(astrometric_data['epoch_delta_t'] + 2012, format='decimalyear').jyear
@@ -169,6 +169,7 @@ class TestAstrometricFitter:
         solution2, errors2, chisq2 = fitters[1].fit_line(astrometric_data['ra'], astrometric_data['dec'], return_all=True)
         assert np.allclose(solution, solution2)
         assert np.allclose(errors2, errors)
+        assert np.isclose(chisq, chisq2)
 
     def test_fitter_removes_parallax(self):
         astrometric_data = generate_astrometric_data()
