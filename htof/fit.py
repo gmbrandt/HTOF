@@ -57,8 +57,10 @@ class AstrometricFitter(object):
                  E.g. [ra0, dec0, mu_ra, mu_dec] if use_parallax=False
                  or, [parallax_angle, ra0, dec0, mu_ra, mu_dec] if use_parallax=True
         """
-        solution = np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch))
-        errors = np.sqrt(np.diagonal(np.linalg.pinv(self._chi2_matrix)))
+        # linalg.pinv calculates the pseudo inverse via singular-value-decomposition
+        cov_matrix = np.linalg.pinv(self._chi2_matrix, hermitian=True)
+        solution = np.matmul(cov_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch))
+        errors = np.sqrt(np.diagonal(cov_matrix))
         chisq = chisq_of_fit(solution, ra_vs_epoch, dec_vs_epoch,
                              self.ra_epochs, self.dec_epochs,
                              self.inverse_covariance_matrices, **self.parallactic_pertubations,
