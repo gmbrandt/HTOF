@@ -105,6 +105,7 @@ def transform_coefficients_to_unnormalized_domain(coeffs, ra_min_t, ra_max_t, de
     new_coeffs = np.copy(coeffs).astype(np.float64)
     new_coeffs[1 * use_parallax::2] = ra_poly.convert(domain=old_domain).coef
     new_coeffs[1 * use_parallax + 1::2] = dec_poly.convert(domain=old_domain).coef
+    # probably need to return the scl of the .mapparms here in order to calculate the unnormed covariance matrix.
     return new_coeffs
 
 
