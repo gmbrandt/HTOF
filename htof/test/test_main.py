@@ -62,6 +62,13 @@ def test_Hip2_fit_to_known_system():
     dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
     #
     coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
+    print(coeffs)
+    print([plx, 0, 0, pmRA, pmDec])
+    print(errors)
+    print(np.array([0.51, 0.45, 0.46, 0.53, 0.61]))
+    print(chisq_found)
+    print(chisq)
+
     assert np.isclose(chisq, chisq_found, atol=1E-3)
     assert np.allclose([plx, pmRA, pmDec], np.array([coeffs[0], coeffs[3], coeffs[4]]).round(2))
     assert np.allclose(errors, np.array([0.12, 0.10, 0.11, 0.11, 0.15]))

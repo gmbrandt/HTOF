@@ -5,13 +5,13 @@ Module for generating the chi-squared matrix (and vectors) for the N parameter f
 import numpy as np
 from htof.polynomial import polynomial
 
-#FIT_BASIS = polynomial.TaylorSeries
+FIT_BASIS = polynomial.TaylorSeries
 FIT_VANDER = polynomial.taylorvander
-# the polynomial type for FIT_VANDER and FIT_BASIS must agree.
-# example FIT_VANDER must follow np.polynomial.polynomial.Polynomial and
+# FIT_VANDER must follow np.polynomial.polynomial.Polynomial and
 # np.polynomial.polynomial.polyvander syntax, respectively. For example, one could set:
-FIT_BASIS = np.polynomial.polynomial.Polynomial
-#FIT_VANDER = np.polynomial.polynomial.polyvander
+# FIT_BASIS = np.polynomial.polynomial.Polynomial
+# FIT_VANDER = np.polynomial.polynomial.polyvander
+# if they wanted to use a polynomial basis without the 1/2, 1/6 etc... prefactors.
 
 
 def _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, vander, deg):
@@ -91,6 +91,7 @@ def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, vander=FIT_VANDER, deg
 
 def transform_coefficients_to_unnormalized_domain(coeffs, ra_min_t, ra_max_t, dec_min_t, dec_max_t,
                                                   use_parallax, old_domain=None, basis=FIT_BASIS):
+    basis = np.polynomial.polynomial.Polynomial
     if old_domain is None:
         old_domain = [-1, 1]
     padded = np.pad(coeffs[1 * use_parallax:], (0, 2 * 3 + 2 - len(coeffs[1 * use_parallax:])),
