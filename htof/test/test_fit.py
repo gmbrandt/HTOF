@@ -153,7 +153,6 @@ class TestAstrometricFitter:
         astrometric_data = generate_astrometric_data(acc=True, jerk=True)
         jyear_epochs = Time(astrometric_data['epoch_delta_t'] + 2012, format='decimalyear').jyear
         ra_pert, dec_pert = parallactic_motion(jyear_epochs, 45, 45, 'degree', 2012, parallax=1)
-        t = astrometric_data['epoch_delta_t']
         astrometric_data['dec'] += dec_pert * real_plx
         astrometric_data['ra'] += ra_pert * real_plx
         fitters = []
@@ -162,11 +161,11 @@ class TestAstrometricFitter:
                                              epoch_times=astrometric_data['epoch_delta_t'], use_parallax=True,
                                              parallactic_pertubations={'ra_plx': ra_pert, 'dec_plx': dec_pert},
                                              fit_degree=3, normed=normed))
-        solution, errors, chisq = fitters[0].fit_line(astrometric_data['ra'], astrometric_data['dec'], return_all=True)
+        solution1, errors1, chisq1 = fitters[0].fit_line(astrometric_data['ra'], astrometric_data['dec'], return_all=True)
         solution2, errors2, chisq2 = fitters[1].fit_line(astrometric_data['ra'], astrometric_data['dec'], return_all=True)
-        assert np.allclose(solution, solution2)
-        assert np.allclose(errors2, errors)
-        assert np.isclose(chisq, chisq2)
+        assert np.allclose(errors2, errors1)
+        assert np.isclose(chisq1, chisq2)
+        assert np.allclose(solution1, solution2)
 
     def test_fitter_removes_parallax(self):
         astrometric_data = generate_astrometric_data()
