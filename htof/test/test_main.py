@@ -90,12 +90,13 @@ def test_temporary():
     dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
     #
     coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
-    print(errors)
-    print(chisq_found)
     print(coeffs)
+    print([plx, 0, 0, pmRA, pmDec])
+    print(errors)
     print(np.array([0.51, 0.45, 0.46, 0.53, 0.61]))
+    print(chisq_found)
     print(chisq)
-    print([0, 0, plx, pmRA, pmDec])
+
 
 
 @pytest.mark.e2e
@@ -125,7 +126,6 @@ def test_Hip1_fit_to_known_system():
     assert np.isclose(chisq, chisq_found, atol=1E-3)
     assert np.allclose([plx, pmRA, pmDec], np.array([coeffs[0], coeffs[3], coeffs[4]]).round(2))
     assert np.allclose(errors.round(2), np.array([0.51, 0.45, 0.46, 0.53, 0.61]))
-
 
 
 class TestAstrometry:

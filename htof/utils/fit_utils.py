@@ -5,13 +5,13 @@ Module for generating the chi-squared matrix (and vectors) for the N parameter f
 import numpy as np
 from htof.polynomial import polynomial
 
-FIT_BASIS = np.polynomial.polynomial.Polynomial
-FIT_VANDER = np.polynomial.polynomial.polyvander
+FIT_BASIS = polynomial.TaylorSeries
+FIT_VANDER = polynomial.taylorvander
 # the polynomial type for FIT_VANDER and FIT_BASIS must agree.
 # example FIT_VANDER must follow np.polynomial.polynomial.Polynomial and
 # np.polynomial.polynomial.polyvander syntax, respectively. For example, one could set:
-# FIT_BASIS = np.polynomial.polynomial.Polynomial
-# FIT_VANDER = np.polynomial.polynomial.polyvander
+#FIT_BASIS = np.polynomial.polynomial.Polynomial
+#FIT_VANDER = np.polynomial.polynomial.polyvander
 
 
 def _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, vander, deg):
