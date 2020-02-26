@@ -64,10 +64,12 @@ def test_Hip2_fit_to_known_system():
     coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
     print(coeffs)
     print([plx, 0, 0, pmRA, pmDec])
-    print(errors)
+    print(errors.round(2))
     print(np.array([0.12, 0.10, 0.11, 0.11, 0.15]))
     print(chisq_found)
     print(chisq)
+    print('found errors divided by the catalog errors')
+    print(errors/np.array([0.12, 0.10, 0.11, 0.11, 0.15]))
 
     assert np.isclose(chisq, chisq_found, atol=1E-3)
     assert np.allclose([plx, pmRA, pmDec], np.array([coeffs[0], coeffs[3], coeffs[4]]).round(2))
@@ -103,6 +105,8 @@ def test_temporary():
     print(np.array([2.80, 1.99, 1.09, 4.52, 2.49]))
     print(chisq_found)
     print(chisq)
+    print('found errors divided by the catalog errors')
+    print(errors/np.array([2.80, 1.99, 1.09, 4.52, 2.49]))
 
 
 
