@@ -3,10 +3,15 @@ Module for generating the chi-squared matrix (and vectors) for the N parameter f
 """
 
 import numpy as np
+from htof.polynomial import polynomial
 
-FIT_BASIS = np.polynomial.polynomial.Polynomial
-FIT_VANDER = np.polynomial.polynomial.polyvander
-# the polynomial type for FIT_VANDER and FIT_BASIS must agree.
+FIT_BASIS = polynomial.TaylorSeries
+FIT_VANDER = polynomial.taylorvander
+# FIT_VANDER must follow np.polynomial.polynomial.Polynomial and
+# np.polynomial.polynomial.polyvander syntax, respectively. For example, one could set:
+# FIT_BASIS = np.polynomial.polynomial.Polynomial
+# FIT_VANDER = np.polynomial.polynomial.polyvander
+# if they wanted to use a polynomial basis without the 1/2, 1/6 etc... prefactors.
 
 
 def _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, vander, deg):
@@ -33,7 +38,7 @@ def ra_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, vander=FIT_VANDER, deg=
     :return:
     """
     f, g = _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, vander=vander, deg=deg)
-    ra_vec = np.array([2*a*f[i] + (b+c)*g[i] for i in range(2*deg + 3)], dtype=float)
+    ra_vec = np.array([a*f[i] + (b+c)/2*g[i] for i in range(2*deg + 3)], dtype=float)
     return ra_vec
 
 
@@ -54,7 +59,7 @@ def dec_sol_vec(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, vander=FIT_VANDER, deg
     :return:
     """
     f, g = _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, vander=vander, deg=deg)
-    dec_vec = np.array([(b+c)*f[i] + 2*d*g[i] for i in range(2*deg + 3)], dtype=float)
+    dec_vec = np.array([(b+c)/2*f[i] + d*g[i] for i in range(2*deg + 3)], dtype=float)
     return dec_vec
 
 
@@ -77,14 +82,18 @@ def chi2_matrix(a, b, c, d, ra_t, dec_t, w_ra=0, w_dec=0, vander=FIT_VANDER, deg
 
     A = np.zeros((2*deg + 3, 2*deg + 3), dtype=np.float32)
     f, g = _evaluate_basis_functions(w_ra, w_dec, ra_t, dec_t, vander=vander, deg=deg)
+    # note that b = c for any realistic covariance (or inverse covariance) matrix.
     for k in range(A.shape[0]):
-        A[k] = [2 * f[i] * a * f[k] + g[i] * (b+c) * f[k] + 
-                f[i] * (b+c) * g[k] + 2 * g[i] * d * g[k] for i in range(2*deg + 3)]
+        A[k] = [f[i] * a * f[k] + g[i] * (b+c)/2 * f[k] +
+                f[i] * (b+c)/2 * g[k] + g[i] * d * g[k] for i in range(2*deg + 3)]
     return np.array(A, dtype=float)
 
 
 def transform_coefficients_to_unnormalized_domain(coeffs, ra_min_t, ra_max_t, dec_min_t, dec_max_t,
                                                   use_parallax, old_domain=None, basis=FIT_BASIS):
+    # Using basis= taylor does not convert from normalized to unnormalized properly.
+    # TODO fix htof.polynomial.polynomial.TaylorSeries so that its .convert() method works properly
+    basis = np.polynomial.polynomial.Polynomial
     if old_domain is None:
         old_domain = [-1, 1]
     padded = np.pad(coeffs[1 * use_parallax:], (0, 2 * 3 + 2 - len(coeffs[1 * use_parallax:])),
@@ -96,6 +105,7 @@ def transform_coefficients_to_unnormalized_domain(coeffs, ra_min_t, ra_max_t, de
     new_coeffs = np.copy(coeffs).astype(np.float64)
     new_coeffs[1 * use_parallax::2] = ra_poly.convert(domain=old_domain).coef
     new_coeffs[1 * use_parallax + 1::2] = dec_poly.convert(domain=old_domain).coef
+    # probably need to return the scl of the .mapparms here in order to calculate the unnormed covariance matrix.
     return new_coeffs
 
 

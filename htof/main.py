@@ -31,6 +31,7 @@ class Astrometry(object):
                        intermediate_data_directory=intermediate_data_directory)
             data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
 
+        parallactic_pertubations = None
         if use_parallax and isinstance(central_ra, Angle) and isinstance(central_dec, Angle):
             if central_epoch_dec != central_epoch_ra:
                 warnings.warn('central_epoch_dec != central_epoch_ra. '
@@ -41,8 +42,6 @@ class Astrometry(object):
                                                        Time(central_epoch_ra, format=format).jyear,
                                                        ephemeris=self.ephemeri[data_choice.lower()])
             parallactic_pertubations = {'ra_plx': ra_motion, 'dec_plx': dec_motion}
-        else:
-            parallactic_pertubations = None
 
         if fitter is None and data is not None:
             fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix,

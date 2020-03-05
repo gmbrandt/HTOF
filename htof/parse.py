@@ -251,12 +251,33 @@ class HipparcosRereductionData(DecimalYearData):
         Hipparcos and Gaia (Source: private communication between Daniel
         Michalik and Floor van Leeuwen, April 2019).
         """
+        header = self.read_intermediate_data_file(star_id, intermediate_data_directory,
+                                                  skiprows=0, header=None, sep='\s+').iloc[0]
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=1, header=None, sep='\s+')
         self.scan_angle = np.arctan2(data[3], data[4])  # data[3] = sin(psi), data[4] = cos(psi)
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
         self.along_scan_errs = data[6]  # unit milli-arcseconds (mas)
+        self.along_scan_errs *= self.error_inflation_factor(header[2], header[4], header[6])
+
+    @staticmethod
+    def error_inflation_factor(ntr, nparam, f2):
+        """
+        :param ntr: int. Number of transits
+        :param nparam: int. Number of parameters used in the solution (e.g. 5, 7, 9..)
+        :param f2: float. Goodness of fit metric. field F2 in the Hipparcos Re-reduction catalog.
+        :return: u. float.
+        The errors are to be scaled by u = Sqrt(Q/v) in equation B.4 of D. Michalik et al. 2014.
+        (Title: Joint astrometric solution of Hipparcos and Gaia)
+        NOTE: ntr (the number of transits) given in the header of the Hip2 IAD, is not necessarily
+        the number of transits used.
+        """
+        num_transits_used = ntr
+        nu = num_transits_used - nparam  # equation B.1 of D. Michalik et al. 2014
+        Q = nu * (np.sqrt(2/(9*nu))*f2 + 1 - 2/(9*nu))**3  # equation B.3
+        u = np.sqrt(Q/nu)  # equation B.4. This is the chi squared statistic of the fit.
+        return u
 
 
 class GaiaDR2(GaiaData):
