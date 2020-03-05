@@ -126,3 +126,28 @@ def test_Hip1_fit_to_hip27321():
     assert np.allclose([pmRA, pmDec], np.array([coeffs[3], coeffs[4]]).round(2))
     assert np.isclose(plx, coeffs[0].round(2), atol=0.01)
     assert np.allclose(errors.round(2), np.array([0.51, 0.45, 0.46, 0.53, 0.61]))
+
+
+@pytest.mark.e2e
+def test_Hip1_fit_to_hip27321_no_parallax():
+    # Hip 27321 parameters from the Hipparcos 1 catalogue via Vizier
+    pmRA = 4.65  # mas/year
+    pmDec = 81.96  # mas/year
+    # generate fitter and parse intermediate data
+    astro = Astrometry('Hip1', '27321', 'htof/test/data_for_tests/Hip1', central_epoch_ra=1991.25,
+                       central_epoch_dec=1991.25, format='jyear', fit_degree=1,
+                       use_parallax=False, normed=False)
+    chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
+    # generate ra and dec for each observation.
+    year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
+                  Time(1991.25, format='decimalyear').jyear
+    ra = Angle(pmRA * year_epochs, unit='mas')
+    dec = Angle(pmDec * year_epochs, unit='mas')
+    # add residuals
+    ra += Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
+    dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
+    #
+    coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
+    assert np.isclose(chisq, chisq_found, atol=1E-3)
+    assert np.allclose([pmRA, pmDec], np.array([coeffs[2], coeffs[3]]).round(2))
+    assert np.allclose(errors.round(2), np.array([0.45, 0.46, 0.53, 0.61]), atol=0.01)

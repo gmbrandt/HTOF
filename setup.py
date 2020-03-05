@@ -4,7 +4,7 @@ with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
 setup(name='htof',
-      author=['G. Mirek Brandt, Daniel Michalik'],
+      author='G. Mirek Brandt, Daniel Michalik',
       version='0.2.10',
       python_requires='>=3.5',
       packages=find_packages(),
