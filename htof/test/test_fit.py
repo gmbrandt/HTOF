@@ -128,7 +128,6 @@ class TestAstrometricFitter:
                                    parallactic_pertubations={'ra_plx': ra_pert, 'dec_plx': dec_pert},
                                    fit_degree=1, normed=False)
         solution, errors, chisq = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'], return_all=True)
-        print(np.array([real_plx, *astrometric_data['linear_solution']]) - solution)
         assert np.allclose(solution[1:], astrometric_data['linear_solution'], atol=0, rtol=1E-6)
         assert np.allclose(solution[0], real_plx)
 
@@ -144,7 +143,6 @@ class TestAstrometricFitter:
                                    parallactic_pertubations={'ra_plx': ra_pert, 'dec_plx': dec_pert},
                                    fit_degree=3, normed=False)
         solution, errors, chisq = fitter.fit_line(astrometric_data['ra'], astrometric_data['dec'], return_all=True)
-        print(np.array([real_plx, *astrometric_data['nonlinear_solution']]) - solution)
         assert np.allclose(solution[1:], astrometric_data['nonlinear_solution'], atol=0, rtol=1E-4)
         assert np.allclose(solution[0], real_plx)
 
