@@ -1,6 +1,7 @@
 import numpy as np
 import mock
 from astropy.time import Time
+from astropy.coordinates import Angle
 
 from htof.fit import unpack_elements_of_matrix, AstrometricFitter, normalize
 from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix, transform_coefficients_to_unnormalized_domain
@@ -108,7 +109,7 @@ class TestAstrometricFitter:
                                    central_epoch_dec=dec_cnt, central_epoch_ra=ra_cnt, normed=True)
         assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']), expected_vec)
 
-    def test_fitting_to_cubic_astrometric_data_without_parallax(self):
+    def test_fitting_to_cubic_astrometric_data(self):
         astrometric_data = generate_astrometric_data(acc=True, jerk=True)
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
                                    epoch_times=astrometric_data['epoch_delta_t'], use_parallax=False, fit_degree=3,
@@ -117,10 +118,11 @@ class TestAstrometricFitter:
                            astrometric_data['nonlinear_solution'], atol=0, rtol=1E-4)
 
     def test_fitting_to_linear_astrometric_data_with_parallax(self):
-        real_plx = 0
+        real_plx = 100
+        cntr_dec, cntr_ra = Angle(45, unit='degree'), Angle(45, unit='degree')
         astrometric_data = generate_astrometric_data(acc=False, jerk=False)
         jyear_epochs = Time(astrometric_data['epoch_delta_t'] + 2012, format='decimalyear').jyear
-        ra_pert, dec_pert = parallactic_motion(jyear_epochs, 45, 45, 'degree', 2012, parallax=1)
+        ra_pert, dec_pert = parallactic_motion(jyear_epochs, cntr_dec.mas, cntr_ra.mas, 'mas', 2012, parallax=1)
         astrometric_data['dec'] += dec_pert * real_plx
         astrometric_data['ra'] += ra_pert * real_plx
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
@@ -133,9 +135,10 @@ class TestAstrometricFitter:
 
     def test_fitting_to_cubic_astrometric_data_with_parallax(self):
         real_plx = 100
+        cntr_dec, cntr_ra = Angle(45, unit='degree'), Angle(45, unit='degree')
         astrometric_data = generate_astrometric_data(acc=True, jerk=True)
         jyear_epochs = Time(astrometric_data['epoch_delta_t'] + 2012, format='decimalyear').jyear
-        ra_pert, dec_pert = parallactic_motion(jyear_epochs, 45, 45, 'degree', 2012, parallax=1)
+        ra_pert, dec_pert = parallactic_motion(jyear_epochs, cntr_dec.mas, cntr_ra.mas, 'mas', 2012, parallax=1)
         astrometric_data['dec'] += dec_pert * real_plx
         astrometric_data['ra'] += ra_pert * real_plx
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
@@ -148,9 +151,10 @@ class TestAstrometricFitter:
 
     def test_solutions_equal_on_normed_and_unnormed(self):
         real_plx = 100
+        cntr_dec, cntr_ra = Angle(45, unit='degree'), Angle(45, unit='degree')
         astrometric_data = generate_astrometric_data(acc=True, jerk=True)
         jyear_epochs = Time(astrometric_data['epoch_delta_t'] + 2012, format='decimalyear').jyear
-        ra_pert, dec_pert = parallactic_motion(jyear_epochs, 45, 45, 'degree', 2012, parallax=1)
+        ra_pert, dec_pert = parallactic_motion(jyear_epochs, cntr_dec.mas, cntr_ra.mas, 'mas', 2012, parallax=1)
         astrometric_data['dec'] += dec_pert * real_plx
         astrometric_data['ra'] += ra_pert * real_plx
         fitters = []
@@ -198,6 +202,7 @@ def test_normalize():
     out = normalize(np.arange(9), (0, 8))
     assert out.min() == -1 and out.max() == 1
 
+
 """
 Utility functions
 """
@@ -205,7 +210,7 @@ Utility functions
 
 def generate_astrometric_data(acc=False, jerk=False):
     astrometric_data = {}
-    num_measurements = 50
+    num_measurements = 20
     mu_ra, mu_dec = 20, 30
     acc_ra, acc_dec = acc * 5, acc * 10
     jerk_ra, jerk_dec = jerk * 2, jerk * 1
