@@ -3,5 +3,6 @@ omit =
     */python?.?/*
     */site-packages/nose/*
     *__init__*
+    */validation/*
 exclude_lines =
     pragma: no cover

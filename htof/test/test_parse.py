@@ -19,7 +19,7 @@ class TestHipparcosOriginalData:
         data.parse(star_id=hip_id,
                    intermediate_data_directory=test_data_directory,
                    data_choice='FAST')
-        assert len(data._epoch) == 32
+        assert len(data) == 32
         assert np.isclose(data._epoch[0], 1990.005772)
         assert np.isclose(np.sin(data.scan_angle[0]), -0.9053, rtol=.01)
         assert np.isclose(data._epoch[17], 1990.779865)
@@ -28,7 +28,7 @@ class TestHipparcosOriginalData:
         data.parse(star_id=hip_id,
                    intermediate_data_directory=test_data_directory,
                    data_choice='NDAC')
-        assert len(data._epoch) == 34
+        assert len(data) == 34
         assert np.isclose(data._epoch[1], 1990.005386)
         assert np.isclose(np.sin(data.scan_angle[1]), -0.9051, rtol=.01)
         assert np.isclose(data._epoch[10], 1990.455515)
@@ -36,7 +36,7 @@ class TestHipparcosOriginalData:
         data.parse(star_id=hip_id,
                    intermediate_data_directory=test_data_directory,
                    data_choice='MERGED')
-        assert len(data._epoch) == 34
+        assert len(data) == 34
         assert np.isclose(data._epoch[0], 1990.005386)
         assert np.isclose(np.sin(data.scan_angle[0]), -0.9053, atol=.001)
         assert np.isclose(data._epoch[5], 1990.455515)
@@ -78,7 +78,7 @@ class TestHipparcosOriginalData:
         data.parse(star_id='999999',
                    intermediate_data_directory=test_data_directory,
                    data_choice='MERGED')
-        assert len(data._epoch) == 32
+        assert len(data) == 32
 
     def test_raises_exception_on_bad_data_choice(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip1')
@@ -89,19 +89,29 @@ class TestHipparcosOriginalData:
                        data_choice='something')
 
 
-class TestDataParser:
-    def test_parse_rereduced_data(self):
+class TestHipparcosRereductionData:
+    def test_error_inflation_factor(self):
+        u = 0.875291 # D. Michalik et al. 2014 Q factor for Hip 27321, calculated by hand
+        assert np.isclose(HipparcosRereductionData.error_inflation_factor(111, 5, -1.81), u, rtol=1e-5)
+
+    def test_parse(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
         data = HipparcosRereductionData()
         data.parse(star_id='027321',
                    intermediate_data_directory=test_data_directory, convert_to_jd=False)
-        assert len(data._epoch) == 111
+        nu = 111 - 5
+        Q = nu * (np.sqrt(2/(9*nu))*-1.81 + 1 - 2/(9*nu))**3  # D. Michalik et al. 2014 Q factor for Hip 27321
+        # Note that F2 = -1.81 in the CD intermediate data, while F2 = -1.63 on Vizier.
+        u = np.sqrt(Q/nu)  # error inflation factor.
+        assert len(data) == 111
         assert np.isclose(data._epoch[0], 1990.005)
         assert np.isclose(np.sin(data.scan_angle[0]), -0.9065, rtol=.01)
-        assert np.isclose(data.along_scan_errs.values[0], 0.81)
+        assert np.isclose(data.along_scan_errs.values[0], 0.81 * u)
         assert np.isclose(data._epoch[84], 1991.952)
         assert np.isclose(np.sin(data.scan_angle[84]), -0.8083, rtol=.01)
 
+
+class TestDataParser:
     def test_parse_raises_file_not_found_error(self):
         with pytest.raises(FileNotFoundError):
             test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')

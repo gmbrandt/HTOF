@@ -1,8 +1,4 @@
-from htof.main import Astrometry
 from htof.validation.utils import refit_hip_object
-from astropy.time import Time
-import numpy as np
-from astropy.coordinates import Angle
 import os
 from astropy.table import Table
 

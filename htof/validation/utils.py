@@ -69,7 +69,6 @@ def refit_hip_object(data_choice, iad_dir, hip_id, use_parallax=False):
         return None, None, None, soltype
 
 
-
 def get_cat_values_hip1(fname):
     with open(fname) as f:
         lines = f.readlines()
