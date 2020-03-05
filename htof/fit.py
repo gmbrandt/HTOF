@@ -57,25 +57,27 @@ class AstrometricFitter(object):
                  E.g. [ra0, dec0, mu_ra, mu_dec] if use_parallax=False
                  or, [parallax_angle, ra0, dec0, mu_ra, mu_dec] if use_parallax=True
         """
-        solution = np.linalg.solve(self._chi2_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch))
-        errors = np.sqrt(np.diagonal(np.linalg.pinv(self._chi2_matrix)))
+        # performing the SVD fit.
+        # linalg.pinv calculates the pseudo inverse via singular-value-decomposition.
+        # hermitian=True forces the _chi2_matrix to be symmetric.
+        cov_matrix = np.linalg.pinv(self._chi2_matrix, hermitian=True)
+        solution = np.matmul(cov_matrix, self._chi2_vector(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch))
+        errors = np.sqrt(np.diagonal(cov_matrix))
+        # calculating chisq of the fit.
         chisq = chisq_of_fit(solution, ra_vs_epoch, dec_vs_epoch,
                              self.ra_epochs, self.dec_epochs,
                              self.inverse_covariance_matrices, **self.parallactic_pertubations,
                              use_parallax=self.use_parallax)
-
         if self.normed:
             # transforming out of normalized coordinates.
             c_ra, c_dec = self.central_epoch_ra, self.central_epoch_dec
             t = self.epoch_times
             solution = transform_coefficients_to_unnormalized_domain(solution, t.min() - c_ra, t.max() - c_ra,
                                                                      t.min() - c_dec, t.max() - c_dec, self.use_parallax)
+            # TODO : One should not transform the errors like the solution vector.
+            # TODO: easy but bulky way: reconstruct the chi^2 matrix here.
             errors = transform_coefficients_to_unnormalized_domain(errors, t.min() - c_ra, t.max() - c_ra,
                                                                    t.min() - c_dec, t.max() - c_dec, self.use_parallax)
-
-        # multiply coefficients by n! so that RA(t) = RA0 + v*t + 1/2 a*t^2 etc... and for declination.
-        degree_plus_one = len(solution[1 * self.use_parallax:]) // 2
-        solution[1 * self.use_parallax:] *= factorial(np.array([(i, i) for i in range(degree_plus_one)]).flatten())
         return solution if not return_all else (solution, errors, chisq)
 
     def _chi2_vector(self, ra_vs_epoch, dec_vs_epoch):

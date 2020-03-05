@@ -1,3 +1,16 @@
+0.2.10 (2019-03-05)
+------------------
+- The standard errors on fit parameters for Hipparcos 1 and the re-reduction are now correct.  
+There was an erroneous factor of the square root of two in both cases. 
+- The D. Michalik et al. 2014 error inflation factor (appendix B) is now applied to the Hipparcos 2
+intermediate data along-scan errors, which brings the standard errors on the best-fit parameters
+into agreement with the values on **the CD** (note the CD catalog values disagree slightly
+with those on Vizier)
+
+0.2.9 (2019-02-05)
+------------------
+- Removed the half day correction when converting from decimal year to julian date.
+
 0.2.8 (2019-01-24)
 ------------------
 - Instances of IntermediateDataParser can now be added to each other with the 
