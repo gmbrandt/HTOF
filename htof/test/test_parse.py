@@ -94,6 +94,10 @@ class TestHipparcosRereductionData:
         u = 0.875291 # D. Michalik et al. 2014 Q factor for Hip 27321, calculated by hand
         assert np.isclose(HipparcosRereductionData.error_inflation_factor(111, 5, -1.81), u, rtol=1e-5)
 
+    def test_error_inflation_factor_on_improper_nparam(self):
+        u = 0.875291  # D. Michalik et al. 2014 Q factor for Hip 27321, calculated by hand
+        assert np.isclose(HipparcosRereductionData.error_inflation_factor(111, 23115, -1.81), u, rtol=1e-5)
+
     def test_parse(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
         data = HipparcosRereductionData()

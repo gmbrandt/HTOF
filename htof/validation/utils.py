@@ -6,13 +6,14 @@ from htof.fit import AstrometricFitter
 from htof.sky_path import parallactic_motion, earth_ephemeris
 from astropy import time
 from astropy.coordinates import Angle
+from astropy.table import Table
 import os
 import numpy as np
 
 
 def refit_hip_fromdata(data: DataParser, fit_degree, pmRA, pmDec, accRA=0, accDec=0, jerkRA=0, jerkDec=0,
                        cntr_RA=Angle(0, unit='degree'), cntr_Dec=Angle(0, unit='degree'),
-                       plx=0, use_parallax=False):
+                       plx=0., use_parallax=False):
     data.calculate_inverse_covariance_matrices()
     mas_to_degree = 1. / 60 / 60 / 1000
     # generate parallax motion
@@ -45,23 +46,38 @@ def refit_hip_fromdata(data: DataParser, fit_degree, pmRA, pmDec, accRA=0, accDe
     fit_coeffs, errors, chisq = fitter.fit_line(ra_ref.mas, dec_ref.mas, return_all=True)
     if not use_parallax:
         fit_coeffs -= np.array([0, 0, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec])[:len(fit_coeffs)]
+        fit_coeffs = np.hstack([[0], fit_coeffs])
     if use_parallax:
         fit_coeffs -= np.array([0, 0, 0, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec])[:len(fit_coeffs)]
     return fit_coeffs, errors, chisq
 
 
-def refit_hip_object(data_choice, iad_dir, hip_id, use_parallax=False):
-    data = {'hip1': HipparcosOriginalData(), 'hip2': HipparcosRereductionData()}[data_choice]
+def refit_hip1_object(iad_dir, hip_id, use_parallax=False):
+    data = HipparcosOriginalData()
     data.parse(star_id=hip_id, intermediate_data_directory=iad_dir)
     fname = os.path.join(iad_dir, hip_id + '.txt')
-    if data_choice == 'hip1':
-        plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip1(fname)
-        soltype = soltype.strip()
-        fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype, None)
-    else:
-        plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip2(fname)
+
+    plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip1(fname)
+    soltype = soltype.strip()
+    fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype, None)
     # For five/seven/nine parameter fits, do the fit. For other solution types, return None
     if fit_degree is not None:
+        return tuple((*refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
+                                  jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
+                                  plx=plx, use_parallax=use_parallax), soltype))
+    else:
+        return None, None, None, soltype
+
+
+def refit_hip2_object(iad_dir, hip_id, catalog: Table, use_parallax=False):
+    data = HipparcosRereductionData()
+    data.parse(star_id=hip_id, intermediate_data_directory=iad_dir)
+
+    plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip2(hip_id, catalog)
+    soltype = soltype.strip()
+    fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype[-1], None)
+    # For now, just do the 5 parameter sources of Hip2.
+    if fit_degree == 1:
         return tuple((*refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
                                   jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
                                   plx=plx, use_parallax=use_parallax), soltype))
@@ -84,5 +100,19 @@ def get_cat_values_hip1(fname):
     return plx, cntr_RA, cntr_Dec, pmRA, pmDec, sol_type
 
 
-def get_cat_values_hip2(iad_dir, hip_id):
-    return 0,0,0,0,0,'' 
+def get_cat_values_hip2(hip_id, catalog: Table):
+    idx = np.searchsorted(catalog['hip_id'].data, hip_id)
+    plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = catalog[idx]['plx', 'ra', 'dec', 'pmRA', 'pmDec', 'soltype']
+    cntr_RA, cntr_Dec = Angle(cntr_RA, unit=catalog['ra'].unit), Angle(cntr_Dec, unit=catalog['dec'].unit)
+    return plx, cntr_RA, cntr_Dec, pmRA, pmDec, str(int(soltype))
+
+
+def load_hip2_catalog(catalog_path):
+    catalog = Table.read(catalog_path, format='ascii')
+    catalog = catalog['col1', 'col7', 'col5', 'col6', 'col8', 'col9', 'col2']
+    catalog['col5'] = Angle(Angle(catalog['col5'], unit='rad'), unit='degree')
+    catalog['col6'] = Angle(Angle(catalog['col6'], unit='rad'), unit='degree')
+    for name, rename in zip(['col1', 'col7', 'col5', 'col6', 'col8', 'col9', 'col2'],
+                            ['hip_id', 'plx', 'ra', 'dec', 'pmRA', 'pmDec', 'soltype']):
+        catalog.rename_column(name, rename)
+    return catalog

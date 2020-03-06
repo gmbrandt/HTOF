@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import os
 import glob
+import warnings
 
 from astropy.time import Time
 from astropy.table import QTable, Column
@@ -273,6 +274,10 @@ class HipparcosRereductionData(DecimalYearData):
         NOTE: ntr (the number of transits) given in the header of the Hip2 IAD, is not necessarily
         the number of transits used.
         """
+        # strip the solution type (5, 7, or 9) from the solution type, which is a number 10xd+s consisting of two parts d and s
+        # see Note 1 on Vizier for the Hipparcos re-reduction
+        nparam = int(str(int(nparam))[-1])
+        #
         num_transits_used = ntr
         nu = num_transits_used - nparam  # equation B.1 of D. Michalik et al. 2014
         Q = nu * (np.sqrt(2/(9*nu))*f2 + 1 - 2/(9*nu))**3  # equation B.3
