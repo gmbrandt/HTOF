@@ -216,8 +216,8 @@ class TestGaiaData:
 
     def test_get_from_web(self):
         data, data2 = GaiaData(), GaiaData()
-        data.parse('hip49699')
-        data2.parse('GaiaDR2747266452000257280')
+        data.parse('hip 49699')
+        data2.parse('Gaia DR2 747266452000257280')
         for d in [data, data2]:
             assert np.isclose(d._epoch[0], 2456951.7659301492)
             assert np.isclose(d.scan_angle[0], -1.8904696884345342)

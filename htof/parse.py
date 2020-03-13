@@ -15,7 +15,8 @@ import os
 import glob
 import tempfile
 import urllib.request
-from xml.etree import ElementTree
+import requests
+import warnings
 
 from astropy.time import Time
 from astropy.table import QTable, Column
@@ -173,11 +174,15 @@ class GaiaData(DataParser):
         :param star_id: Simbad identifier for the star. E.g. hip 27321, Gaia DR2 4792774797545105664 .
         :return: bytes
         """
+        if not ('hip' in star_id.lower() or 'gaia' in star_id.lower()):
+            warnings.warn('Pulling GOST data from Web but neither hip nor gaia string found in star_id {0}. '
+                          'Query to simbad may fail. consider entering star id as e.g. hip 27321, '
+                          'or GAIA XXXX, when trying to pull the data from the web.'.format(star_id), UserWarning)
         url = 'https://gaia.esac.esa.int/gost/GostServlet?name={0}&service=1'.format(star_id.replace(' ', '+'))
-        xmldata = urllib.request.urlopen(url).read()
-        text = ''
-        #text = urllib.request.urlopen(url).read().decode('utf-8')
-        return bytes(text, 'utf-8')
+        # get cookies to validate the subsequent GOST request
+        cookiejar = requests.get("https://gaia.esac.esa.int/gost/index.jsp").cookies
+        xmldata = requests.get(url, cookies=cookiejar).text
+        return xmldata
 
 
 class DecimalYearData(DataParser):
@@ -251,9 +256,9 @@ class HipparcosOriginalData(DecimalYearData):
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
         self.along_scan_errs = data['IA9']  # unit milli-arcseconds
 
-    def get_from_web(self, hip_id):
+    def get_from_web(self, star_id):
         # Really we should query simbad here given the star id, then get the hip id from the simbad query.
-        url = 'https://hipparcos-tools.cosmos.esa.int/cgi-bin/HIPcatalogueSearch.pl?hipiId={0}'.format(hip_id)
+        url = 'https://hipparcos-tools.cosmos.esa.int/cgi-bin/HIPcatalogueSearch.pl?hipiId={0}'.format(star_id)
         text = urllib.request.urlopen(url).read().decode('utf-8')
         text = 'IH1' + text.split('\nIH1')[1]
         return bytes(text, 'utf-8')
