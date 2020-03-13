@@ -188,14 +188,14 @@ def test_calculate_inverse_covariances(mock_cov_matrix):
     assert np.allclose(parser.inverse_covariance_matrix[0], 1/4 * np.ones((2, 2)))
 
 
-class TestParseGaiaData:
+class TestGaiaData:
     @pytest.mark.integration
     def test_parse_all_epochs(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
         data = GaiaData(max_epoch=np.inf, min_epoch=-np.inf)
         data.parse(intermediate_data_directory=test_data_directory,
                    star_id='049699')
-        assert len(data._epoch) == 72
+        assert len(data) == 72
         assert np.isclose(data._epoch[0], 2456951.7659301492)
         assert np.isclose(data.scan_angle[0], -1.8904696884345342)
         assert np.isclose(data._epoch[70], 2458426.7784441216)
@@ -208,11 +208,20 @@ class TestParseGaiaData:
         data.parse(intermediate_data_directory=test_data_directory,
                    star_id='049699')
 
-        assert len(data._epoch) == 68
+        assert len(data) == 68
         assert np.isclose(data._epoch.iloc[0], 2457143.4935643715)
         assert np.isclose(data.scan_angle.iloc[0], -0.3066803677989655)
         assert np.isclose(data._epoch.iloc[67], 2458426.7784441216)
         assert np.isclose(data.scan_angle.iloc[67], 2.821818345385301)
+
+    def test_get_from_web(self):
+        data, data2 = GaiaData(), GaiaData()
+        data.parse('hip49699')
+        data2.parse('GaiaDR2747266452000257280')
+        for d in [data, data2]:
+            assert np.isclose(d._epoch[0], 2456951.7659301492)
+            assert np.isclose(d.scan_angle[0], -1.8904696884345342)
+        assert len(data) == len(data2)
 
 
 def test_write_with_missing_info():

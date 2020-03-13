@@ -15,6 +15,7 @@ import os
 import glob
 import tempfile
 import urllib.request
+from xml.etree import ElementTree
 
 from astropy.time import Time
 from astropy.table import QTable, Column
@@ -48,7 +49,7 @@ class DataParser(object):
             return self._read_intermediate_data_file(star_id, tmp_dir, skiprows, header, sep)
 
     def get_from_web(self, star_id) -> bytearray:
-        raise ValueError('No method has been defined for how to get the data for {0} from the web.'.format(star_id))
+        raise NotImplementedError('No method has been defined for how to get the data for {0} from the web.'.format(star_id))
 
     @staticmethod
     def _read_intermediate_data_file(star_id, intermediate_data_directory, skiprows, header, sep):
@@ -160,6 +161,24 @@ class GaiaData(DataParser):
         valid = np.logical_and(epochs >= min_mjd, epochs <= max_mjd)
         return data[valid].dropna()
 
+    def get_from_web(self, star_id):
+        """
+        Queries the Gaia Observation Forecast Tool (GOST) for the scanning law of the source.
+
+        We use the syntax from the GOST Software User Manual, issue 06, revision 1;
+        section 4.3: Direct Query by name.
+        Retrieved from https://gaia.esac.esa.int/gost/docs/gost_software_user_manual.pdf
+        on March 13th 2020.
+
+        :param star_id: Simbad identifier for the star. E.g. hip 27321, Gaia DR2 4792774797545105664 .
+        :return: bytes
+        """
+        url = 'https://gaia.esac.esa.int/gost/GostServlet?name={0}&service=1'.format(star_id.replace(' ', '+'))
+        xmldata = urllib.request.urlopen(url).read()
+        text = ''
+        #text = urllib.request.urlopen(url).read().decode('utf-8')
+        return bytes(text, 'utf-8')
+
 
 class DecimalYearData(DataParser):
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
@@ -232,8 +251,9 @@ class HipparcosOriginalData(DecimalYearData):
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
         self.along_scan_errs = data['IA9']  # unit milli-arcseconds
 
-    def get_from_web(self, star_id):
-        url = 'https://hipparcos-tools.cosmos.esa.int/cgi-bin/HIPcatalogueSearch.pl?hipiId={0}'.format(star_id)
+    def get_from_web(self, hip_id):
+        # Really we should query simbad here given the star id, then get the hip id from the simbad query.
+        url = 'https://hipparcos-tools.cosmos.esa.int/cgi-bin/HIPcatalogueSearch.pl?hipiId={0}'.format(hip_id)
         text = urllib.request.urlopen(url).read().decode('utf-8')
         text = 'IH1' + text.split('\nIH1')[1]
         return bytes(text, 'utf-8')
