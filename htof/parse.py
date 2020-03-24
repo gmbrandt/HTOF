@@ -241,7 +241,7 @@ class HipparcosRereductionData(DecimalYearData):
                                                        epoch=epoch, residuals=residuals,
                                                        inverse_covariance_matrix=inverse_covariance_matrix)
 
-    def parse(self, star_id, intermediate_data_directory, **kwargs):
+    def parse(self, star_id, intermediate_data_directory, cat_version="2", **kwargs):
         """
         Compute scan angles and observations epochs from van Leeuwen 2007, table G.8
         see also Figure 2.1, section 2.5.1, and section 4.1.2
@@ -254,8 +254,12 @@ class HipparcosRereductionData(DecimalYearData):
         """
         header = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                   skiprows=0, header=None, sep='\s+').iloc[0]
+        if (cat_version == "2.1"):
+            skiprows=5
+        else:
+            skiprows=1
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
-                                                skiprows=1, header=None, sep='\s+')
+                                                skiprows=skiprows, header=None, sep='\s+')
         self.scan_angle = np.arctan2(data[3], data[4])  # data[3] = sin(psi), data[4] = cos(psi)
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)

@@ -7,6 +7,7 @@ from htof.sky_path import parallactic_motion, earth_ephemeris
 from astropy import time
 from astropy.coordinates import Angle
 from astropy.table import Table
+from glob import glob
 import os
 import numpy as np
 
@@ -68,6 +69,22 @@ def refit_hip1_object(iad_dir, hip_id, use_parallax=False):
     else:
         return None, None, None, soltype
 
+def refit_hip21_object(iad_dir, hip_id, use_parallax=False):
+    data = HipparcosRereductionData()
+    data.parse(star_id=hip_id, intermediate_data_directory=iad_dir,
+            cat_version="2.1")
+    fname = glob(os.path.join(iad_dir, '**/', "H" + hip_id + ".csv"))[0]
+
+    plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip21(fname)
+    soltype = soltype.strip()
+    fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype[-1], None)
+    # For now, just do the 5 parameter sources of Hip2.
+    if fit_degree == 1:
+        return tuple((*refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
+                                  jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
+                                  plx=plx, use_parallax=use_parallax), soltype))
+    else:
+        return None, None, None, soltype
 
 def refit_hip2_object(iad_dir, hip_id, catalog: Table, use_parallax=False):
     data = HipparcosRereductionData()
@@ -99,6 +116,19 @@ def get_cat_values_hip1(fname):
             raise UnboundLocalError('could not read pmRA or pmDec from intermediate data of {0}'.format(fname))
     return plx, cntr_RA, cntr_Dec, pmRA, pmDec, sol_type
 
+def get_cat_values_hip21(fname):
+    with open(fname) as f:
+        lines = f.readlines()
+        try:
+            pmRA = float(lines[2].split()[3])
+            pmDec = float(lines[2].split()[4])
+            cntr_RA = Angle(float(lines[2].split()[0]), unit='degree')
+            cntr_Dec = Angle(float(lines[2].split()[1]), unit='degree')
+            plx = float(lines[2].split()[2])
+            sol_type = str(lines[0].split()[4])
+        except:
+            raise UnboundLocalError('could not read pmRA or pmDec from intermediate data of {0}'.format(fname))
+    return plx, cntr_RA, cntr_Dec, pmRA, pmDec, str(int(sol_type))
 
 def get_cat_values_hip2(hip_id, catalog: Table):
     idx = np.searchsorted(catalog['hip_id'].data, hip_id)

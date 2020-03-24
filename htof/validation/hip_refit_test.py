@@ -1,4 +1,4 @@
-from htof.validation.utils import refit_hip1_object, refit_hip2_object, load_hip2_catalog
+from htof.validation.utils import refit_hip1_object, refit_hip2_object, load_hip2_catalog, refit_hip21_object
 import os
 from astropy.table import Table
 from argparse import ArgumentParser
@@ -45,6 +45,16 @@ class Hip2Engine(Engine):
         soltype = result[3]
         return self.format_result(result, hip_id, soltype[-1])
 
+class Hip21Engine(Engine):
+    def __init__(self, dirname, use_parallax, *args):
+        self.dirname = dirname
+        self.use_parallax = use_parallax
+
+    def __call__(self, fname):
+        hip_id = os.path.basename(fname).split('.csv')[0].split('H')[1]
+        result = refit_hip21_object(self.dirname, hip_id, use_parallax=self.use_parallax)
+        soltype = result[3]
+        return self.format_result(result, hip_id, soltype[-1])
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='Script for refitting the entire hipparcos catalog, 1997 or 2007.'
@@ -53,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument("-dir", "--iad-directory", required=True, default=None,
                         help="full path to the intermediate data directory")
     parser.add_argument("-hr", "--hip-reduction", required=True, default=None, type=int,
-                        help="integer. 1 for 1997 reduction, 2 for 2007 CD reduction.")
+                        help="integer. 1 for 1997 reduction, 2 for 2007 CD reduction, 21 for 2007 IADT tool.")
     parser.add_argument("-o", "--output-file", required=False, default=None,
                         help="The output filename, with .csv extension. E.g. hip1_refit.csv."
                              "Will default to hip_processid.csv.")
@@ -63,7 +73,7 @@ if __name__ == "__main__":
                         help="Number of cores to use. Default is 1.")
     parser.add_argument("-cpath", "--catalog-path", required=False, default=None,
                         help="path to the Hip re-reduction main catalog, e.g. Main_cat.d. Only required"
-                             "if using hip 2.")
+                             "if using the 2007 CD data.")
 
     args = parser.parse_args()
 
@@ -81,10 +91,14 @@ if __name__ == "__main__":
         files = glob(os.path.join(args.iad_directory, '*.txt'))[:3]
         engine = Hip1Engine
         catalog = None
-    else:
+    elif args.hip_reduction == 2:
         files = glob(os.path.join(args.iad_directory, '**/H*.d'))[:3]
         engine = Hip2Engine
         catalog = load_hip2_catalog(args.catalog_path)
+    else:
+        files = glob(os.path.join(args.iad_directory, '**/H*.csv'))[:3]
+        engine = Hip21Engine
+        catalog = None
 
     print('will fit {0} total hip {1} objects'.format(len(files), str(args.hip_reduction)))
     print('will save output table at', output_file)
