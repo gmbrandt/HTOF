@@ -67,7 +67,8 @@ def refit_hip1_object(iad_dir, hip_id, use_parallax=False):
                                   jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
                                   plx=plx, use_parallax=use_parallax), soltype))
     else:
-        return None, None, None, soltype
+        return [None]*9, [None]*9, None, soltype
+
 
 def refit_hip21_object(iad_dir, hip_id, use_parallax=False):
     data = HipparcosRereductionData()
@@ -84,7 +85,8 @@ def refit_hip21_object(iad_dir, hip_id, use_parallax=False):
                                   jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
                                   plx=plx, use_parallax=use_parallax), soltype))
     else:
-        return None, None, None, soltype
+        return [None]*9, [None]*9, None, soltype
+
 
 def refit_hip2_object(iad_dir, hip_id, catalog: Table, use_parallax=False):
     data = HipparcosRereductionData()
@@ -99,7 +101,7 @@ def refit_hip2_object(iad_dir, hip_id, catalog: Table, use_parallax=False):
                                   jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
                                   plx=plx, use_parallax=use_parallax), soltype))
     else:
-        return None, None, None, soltype
+        return [None]*9, [None]*9, None, soltype
 
 
 def get_cat_values_hip1(fname):
@@ -116,6 +118,7 @@ def get_cat_values_hip1(fname):
             raise UnboundLocalError('could not read pmRA or pmDec from intermediate data of {0}'.format(fname))
     return plx, cntr_RA, cntr_Dec, pmRA, pmDec, sol_type
 
+
 def get_cat_values_hip21(fname):
     with open(fname) as f:
         lines = f.readlines()
@@ -130,8 +133,9 @@ def get_cat_values_hip21(fname):
             raise UnboundLocalError('could not read pmRA or pmDec from intermediate data of {0}'.format(fname))
     return plx, cntr_RA, cntr_Dec, pmRA, pmDec, str(int(sol_type))
 
+
 def get_cat_values_hip2(hip_id, catalog: Table):
-    idx = np.searchsorted(catalog['hip_id'].data, hip_id)
+    idx = np.searchsorted(catalog['hip_id'].data, int(hip_id))  # int(hip_id) strips leading zeroes.
     plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = catalog[idx]['plx', 'ra', 'dec', 'pmRA', 'pmDec', 'soltype']
     cntr_RA, cntr_Dec = Angle(cntr_RA, unit=catalog['ra'].unit), Angle(cntr_Dec, unit=catalog['dec'].unit)
     return plx, cntr_RA, cntr_Dec, pmRA, pmDec, str(int(soltype))

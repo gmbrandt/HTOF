@@ -45,6 +45,7 @@ class Hip2Engine(Engine):
         soltype = result[3]
         return self.format_result(result, hip_id, soltype[-1])
 
+
 class Hip21Engine(Engine):
     def __init__(self, dirname, use_parallax, *args):
         self.dirname = dirname
@@ -55,6 +56,7 @@ class Hip21Engine(Engine):
         result = refit_hip21_object(self.dirname, hip_id, use_parallax=self.use_parallax)
         soltype = result[3]
         return self.format_result(result, hip_id, soltype[-1])
+
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='Script for refitting the entire hipparcos catalog, 1997 or 2007.'
@@ -70,7 +72,8 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--cores", required=False, default=1, type=int,
                         help="Number of cores to use. Default is 1.")
     parser.add_argument("--ignore-parallax", required=False, action='store_true', default=False,
-                        help="Number of cores to use. Default is 1.")
+                        help="Whether or not to ignore parallax in the fits. Default is False, i.e. parallax"
+                             "will be fit.")
     parser.add_argument("-cpath", "--catalog-path", required=False, default=None,
                         help="path to the Hip re-reduction main catalog, e.g. Main_cat.d. Only required"
                              "if using the 2007 CD data.")
