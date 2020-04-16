@@ -90,7 +90,7 @@ if __name__ == "__main__":
         raise ValueError('Hip 2 selected but no --catalog-path provided.')
 
     if args.output_file is None:
-        output_file = 'hip' + args.hipreduction + '_refit' + (str)(os.getpid()) + '.csv'
+        output_file = 'hip' + args.hip_reduction + '_refit' + (str)(os.getpid()) + '.csv'
     else:
         output_file = args.output_file
 

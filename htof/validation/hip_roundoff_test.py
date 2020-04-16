@@ -30,6 +30,7 @@ def parse(datacsv, data, data_choice='MERGED', perturb=True):
     data.along_scan_errs = datacsv['IA9']  # unit milli-arcseconds
     return data
 
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     parser = ArgumentParser(description='Enter a hip id (string)')
