@@ -9,6 +9,7 @@ from astropy.coordinates import Angle
 from astropy.table import Table
 from glob import glob
 import os
+import warnings
 import numpy as np
 
 
@@ -46,26 +47,33 @@ def refit_hip_fromdata(data: DataParser, fit_degree, pmRA, pmDec, accRA=0, accDe
                                                          'dec_plx': Angle(dec_motion, 'degree').mas})
     fit_coeffs, errors, chisq = fitter.fit_line(ra_ref.mas, dec_ref.mas, return_all=True)
     if not use_parallax:
-        fit_coeffs -= np.array([0, 0, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec])[:len(fit_coeffs)]
         fit_coeffs = np.hstack([[0], fit_coeffs])
-    if use_parallax:
-        fit_coeffs -= np.array([0, 0, 0, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec])[:len(fit_coeffs)]
     return fit_coeffs, errors, chisq
 
 
-def refit_hip1_object(iad_dir, hip_id, use_parallax=False):
+def refit_hip1_object(iad_dir, hip_id, hip_dm_g=None, use_parallax=False):
     data = HipparcosOriginalData()
     data.parse(star_id=hip_id, intermediate_data_directory=iad_dir)
     fname = os.path.join(iad_dir, hip_id + '.txt')
 
     plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip1(fname)
     soltype = soltype.strip()
-    fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype, None)
-    # For five/seven/nine parameter fits, do the fit. For other solution types, return None
+    accRA, accDec, jerkRA, jerkDec = 0, 0, 0, 0
+    fit_degree = {'5': 1}.get(soltype, None)
+    if hip_dm_g is not None and (soltype == '7' or soltype == '9'):
+        # do the fit for seven/nine parameter fits if we have the 7th and 9th parameters.
+        idx = np.searchsorted(hip_dm_g['hip_id'].data, int(hip_id))  # int(hip_id) strips leading zeroes.
+        accRA, accDec, jerkRA, jerkDec = hip_dm_g[idx][['accRA', 'accDec', 'jerkRA', 'jerkDec']]
+        fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype, None)
+
     if fit_degree is not None:
-        return tuple((*refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
-                                  jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
-                                  plx=plx, use_parallax=use_parallax), soltype))
+        # abscissa residuals are always with respect to 5p solution for hip1. Do not feed accRA, etc..
+        # when reconstructing the skypath
+        fit_coeffs, errors, chisq = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
+                                    jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
+                                    plx=plx, use_parallax=use_parallax)
+        diffs = compute_diffs(fit_coeffs, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec)
+        return tuple((diffs, errors, chisq, soltype))
     else:
         return [None]*9, [None]*9, None, soltype
 
@@ -77,13 +85,16 @@ def refit_hip21_object(iad_dir, hip_id, use_parallax=False):
     fname = glob(os.path.join(iad_dir, '**/', "H" + hip_id + ".csv"))[0]
 
     plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip21(fname)
+    accRA, accDec, jerkRA, jerkDec = 0, 0, 0, 0
     soltype = soltype.strip()
     fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype[-1], None)
     # For now, just do the 5 parameter sources of Hip2.
     if fit_degree == 1:
-        return tuple((*refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
-                                  jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
-                                  plx=plx, use_parallax=use_parallax), soltype))
+        fit_coeffs, errors, chisq = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
+                                                       jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
+                                                       plx=plx, use_parallax=use_parallax)
+        diffs = compute_diffs(fit_coeffs, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec)
+        return tuple((diffs, errors, chisq, soltype))
     else:
         return [None]*9, [None]*9, None, soltype
 
@@ -93,13 +104,16 @@ def refit_hip2_object(iad_dir, hip_id, catalog: Table, use_parallax=False):
     data.parse(star_id=hip_id, intermediate_data_directory=iad_dir)
 
     plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip2(hip_id, catalog)
+    accRA, accDec, jerkRA, jerkDec = 0, 0, 0, 0
     soltype = soltype.strip()
     fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype[-1], None)
     # For now, just do the 5 parameter sources of Hip2.
     if fit_degree == 1:
-        return tuple((*refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
-                                  jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
-                                  plx=plx, use_parallax=use_parallax), soltype))
+        fit_coeffs, errors, chisq = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
+                                                       jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
+                                                       plx=plx, use_parallax=use_parallax)
+        diffs = compute_diffs(fit_coeffs, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec)
+        return tuple((diffs, errors, chisq, soltype))
     else:
         return [None]*9, [None]*9, None, soltype
 
@@ -149,4 +163,34 @@ def load_hip2_catalog(catalog_path):
     for name, rename in zip(['col1', 'col7', 'col5', 'col6', 'col8', 'col9', 'col2'],
                             ['hip_id', 'plx', 'ra', 'dec', 'pmRA', 'pmDec', 'soltype']):
         catalog.rename_column(name, rename)
+    # sort for quick retrieval of data for any source.
+    catalog.sort('hip_id')
     return catalog
+
+
+def load_hip1_dm_annex(catalog_path):
+    # load the hip1 doubles and multiples annex for the accelerating systems
+    if not os.path.exists(catalog_path):
+        warnings.warn('Doubles and multiples annex {0} file not found. Will only fit 5 parameter solutions.'
+                      'For 7,9 parameter validation, please download hip_dm_g.dat from Vizier. E.g. from '
+                      'https://cdsarc.unistra.fr/ftp/I/239/hip_dm_g.dat.gz . Unzip it, and place it inside the hip1'
+                      'intermediate data directory.'.format(catalog_path), UserWarning)
+        return None
+    catalog = Table.read(catalog_path, format='ascii')
+    catalog = catalog['col1', 'col2', 'col3', 'col7', 'col8']
+    for name, rename in zip(['col1', 'col2', 'col3', 'col7', 'col8'],
+                            ['hip_id', 'accRA', 'accDec', 'jerkRA', 'jerkDec']):
+        catalog.rename_column(name, rename)
+    # sort for quick retrieval of data for any source.
+    catalog.sort('hip_id')
+    return catalog.filled(0)  # this sets missing acc/jerks to 0 and returns a Table instead of a Masked Table
+
+
+def compute_diffs(fit_coeffs, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec):
+    catalog_parameters = np.array([0, 0, 0, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec])
+    # account for the 0.81 yr and 1.69 yr^2 basis offsets:
+    # See THE HIPPARCOS CATALOGUE DOUBLE AND MULTIPLE SYSTEMS ANNEX by Lennart Lindegren (1997)
+    a, b = 0.81, 1.69  # yr^2
+    offsets = np.array([0, -a / 2 * accRA, -a / 2 * accDec, -b / 6 * jerkRA, -b / 6 * jerkDec, 0, 0, 0, 0])
+    # compute differences between reference parameters and our best fit parameters
+    return fit_coeffs - (catalog_parameters + offsets)[:len(fit_coeffs)]
