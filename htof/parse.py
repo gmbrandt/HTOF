@@ -45,16 +45,13 @@ class DataParser(object):
             filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id.lstrip('0') + '*')
             filepath_list = glob.glob(filepath, recursive=True)
         if len(filepath_list) == 0:
-            filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id.zfill(6) + '*')
-            filepath_list = glob.glob(filepath, recursive=True)
-        if len(filepath_list) == 0:
-            raise FileNotFoundError('No file with name containing {0} or {1} found in {2}'
+            raise FileNotFoundError('No file with name containing {0} or {1} or {2} found in {3}'
                                     ''.format(star_id, star_id.lstrip('0'), star_id.zfill(6), intermediate_data_directory))
         if len(filepath_list) > 1:
             filepath_list = _match_filename_to_star_id(star_id, filepath_list)
         if len(filepath_list) > 1:
-            raise ValueError('More than one filename containing {0}'
-                             'found in {1}'.format(star_id, intermediate_data_directory))
+            raise ValueError('Unable to find the correct file among the {0} files containing {1}'
+                             'found in {2}'.format(len(filepath_list), star_id, intermediate_data_directory))
         data = pd.read_csv(filepath_list[0], sep=sep, skiprows=skiprows, header=header, engine='python')
         return data
 
@@ -166,7 +163,9 @@ class DecimalYearData(DataParser):
 
 
 def _match_filename_to_star_id(star_id, filepath_list):
-    return [path for path in filepath_list if os.path.basename(path).split('.')[0] == str(star_id)]
+    # among all file matches, select the file whose name matches star_id
+    return [path for path in filepath_list if
+            os.path.basename(path).split('.')[0].split('HIP')[-1].zfill(6) == str(star_id).zfill(6)]
 
 
 def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1E5,

@@ -135,8 +135,10 @@ class TestDataParser:
         assert data.read_intermediate_data_file('27321', test_data_directory, None, None, None) is None
 
     def test_match_filename_to_star_id(self):
-        paths = _match_filename_to_star_id('232', ['/fake/path/1232.dat', '/fake/path/23211.dat', '/fake/path/232.dat'])
-        assert paths == ['/fake/path/232.dat']
+        paths = ['/fake/path/1232.dat', '/fake/path/23211.dat', '/fake/path/232.dat']
+        assert ['/fake/path/232.dat'] == _match_filename_to_star_id('232', paths)
+        paths = ['H075/HIP075290.d', 'H075/HIP075293.d', 'H107/HIP107529.d', 'H007/HIP007529.d', 'H117/HIP117529.d']
+        assert ['H007/HIP007529.d'] == _match_filename_to_star_id('7529', paths)
 
     def test_len(self):
         assert len(DataParser()) == 0
