@@ -11,18 +11,14 @@ from htof.main import Astrometry
 from astropy.table import Table
 
 
-def calculate_chisq_partials(astro: Astrometry):
-    ra_resid = Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
-    dec_resid = Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
-    return astro.fitter._chi2_vector(ra_resid.mas, dec_resid.mas)
-
-
-def calculate_chisq_partials_for_source(hip_id: str, iad_dir: str, reduction: str):
+def chisq_partials(hip_id: str, iad_dir: str, reduction: str):
     if not reduction.lower() == 'hip1' and not reduction.lower() == 'hip2':
         raise RuntimeError('reduction is not hip1 and reduction is not hip2')
     astro = Astrometry(reduction, hip_id, iad_dir, central_epoch_ra=1991.25, normed=False,
                        central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=False)
-    return calculate_chisq_partials(astro)
+    ra_resid = Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
+    dec_resid = Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
+    return astro.fitter._chi2_vector(ra_resid.mas, dec_resid.mas)
 
 
 class ChisqNullTestEngine(object):
@@ -31,7 +27,7 @@ class ChisqNullTestEngine(object):
         self.reduction = reduction
 
     def __call__(self, hip_id):
-        result = calculate_chisq_partials_for_source(hip_id, self.dirname, self.reduction)
+        result = chisq_partials(hip_id, self.dirname, self.reduction)
         return {'hip_id': hip_id, 'dxdra0': result[0], 'dxddec0': result[1], 'dxdmura': result[2], 'dxdmudec': result[3]}
 
 
@@ -57,7 +53,7 @@ if __name__ == "__main__":
     if '.csv' not in args.in_list:
         hip_ids = np.genfromtxt(args.in_list).flatten().astype(str)
     else:
-        hip_ids = Table.read(args.in_list)['hip_id'].data.flatten().astype(str)
+        hip_ids = np.array(Table.read(args.in_list)['hip_id'].data, dtype=str).flatten()
 
     if args.output_file is None:
         output_file = 'hip' + args.hip_reduction + '_chisq_null_test' + (str)(os.getpid()) + '.csv'
@@ -67,13 +63,14 @@ if __name__ == "__main__":
     engine = ChisqNullTestEngine(args.iad_directory, 'hip' + str(args.hip_reduction))
     if args.debug:
         hip_ids = hip_ids[:500]
-    print('will fit {0} total hip {1} objects'.format(len(hip_ids), str(args.hip_reduction)))
+    print('will check {0} total hip {1} objects'.format(len(hip_ids), str(args.hip_reduction)))
     print('will save output table at', output_file)
     # do the fit.
     try:
         pool = Pool(args.cores)
         data_outputs = pool.map(engine, hip_ids)
         out = Table(data_outputs)
+        out.sort('hip_id')
         out.write(output_file, overwrite=True)
     finally: # To make sure processes are closed in the end, even if errors happen
         pool.close()

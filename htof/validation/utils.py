@@ -48,6 +48,9 @@ def refit_hip_fromdata(data: DataParser, fit_degree, pmRA, pmDec, accRA=0, accDe
     fit_coeffs, errors, chisq = fitter.fit_line(ra_ref.mas, dec_ref.mas, return_all=True)
     if not use_parallax:
         fit_coeffs = np.hstack([[0], fit_coeffs])
+    # pad so coeffs and errors are 9 long.
+    fit_coeffs = np.pad(fit_coeffs, (0, 9 - len(fit_coeffs)))
+    errors = np.pad(fit_coeffs, (0, 9 - len(fit_coeffs)))
     return fit_coeffs, errors, chisq
 
 
@@ -193,4 +196,4 @@ def compute_diffs(fit_coeffs, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec):
     a, b = 0.81, 1.69  # yr^2
     offsets = np.array([0, -a / 2 * accRA, -a / 2 * accDec, -b / 6 * jerkRA, -b / 6 * jerkDec, 0, 0, 0, 0])
     # compute differences between reference parameters and our best fit parameters
-    return fit_coeffs - (catalog_parameters + offsets)[:len(fit_coeffs)]
+    return fit_coeffs - (catalog_parameters + offsets)

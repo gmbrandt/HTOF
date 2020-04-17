@@ -11,15 +11,11 @@ from multiprocessing import Pool
 class Engine(object):
     @staticmethod
     def format_result(result, hip_id, soltype):
-        ra, dec, plx, pm_ra, pm_dec, acc_ra, acc_dec, jerk_ra, jerk_dec = [None]*9
-        if soltype is '5':
-            plx, ra, dec, pm_ra, pm_dec = result[0][0:5]
-        elif soltype is '7':
-            plx, ra, dec, pm_ra, pm_dec, acc_ra, acc_dec = result[0][0:7]
-        elif soltype is '9':
-            plx, ra, dec, pm_ra, pm_dec, acc_ra, acc_dec, jerk_ra, jerk_dec = result[0][0:9]
-        return {'hip_id': hip_id, 'diff_ra': ra, 'diff_dec': dec, 'diff_plx' : plx, 'diff_pm_ra': pm_ra, 'diff_pm_dec': pm_dec,
-                'soltype': soltype, 'diff_acc_ra': acc_ra, 'diff_acc_dec': acc_dec, 'diff_jerk_ra': jerk_ra, 'diff_jerk_dec': jerk_dec}
+        diffs, errors, chisq = result[:3]
+        ra, dec, plx, pm_ra, pm_dec, acc_ra, acc_dec, jerk_ra, jerk_dec = diffs
+        return {'hip_id': hip_id, 'diff_ra': ra, 'diff_dec': dec, 'diff_plx': plx, 'diff_pm_ra': pm_ra, 'diff_pm_dec': pm_dec,
+                'soltype': soltype, 'diff_acc_ra': acc_ra, 'diff_acc_dec': acc_dec, 'diff_jerk_ra': jerk_ra, 'diff_jerk_dec': jerk_dec,
+                'chisquared': chisq}
 
 
 class Hip1Engine(Engine):
@@ -118,6 +114,7 @@ if __name__ == "__main__":
         engine = engine(args.iad_directory, not args.ignore_parallax, **kwargs)
         data_outputs = pool.map(engine, files)
         out = Table(data_outputs)
+        out.sort('hip_id')
         out.write(output_file, overwrite=True)
     finally: # To make sure processes are closed in the end, even if errors happen
         pool.close()
