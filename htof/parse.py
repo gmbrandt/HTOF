@@ -37,25 +37,29 @@ class DataParser(object):
         self.inverse_covariance_matrix = inverse_covariance_matrix
 
     @staticmethod
-    def read_intermediate_data_file(star_id, intermediate_data_directory, skiprows, header, sep):
+    def read_intermediate_data_file(star_id: str, intermediate_data_directory: str, skiprows, header, sep):
+        star_id = str(star_id)
         filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id + '*')
         filepath_list = glob.glob(filepath, recursive=True)
         if len(filepath_list) == 0:
             filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id.lstrip('0') + '*')
             filepath_list = glob.glob(filepath, recursive=True)
         if len(filepath_list) == 0:
-            raise FileNotFoundError('No file with name containing {0} or {1}'
-                                    ' found in {2}'.format(str(star_id), str(star_id).lstrip('0'), intermediate_data_directory))
+            filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id.zfill(6) + '*')
+            filepath_list = glob.glob(filepath, recursive=True)
+        if len(filepath_list) == 0:
+            raise FileNotFoundError('No file with name containing {0} or {1} found in {2}'
+                                    ''.format(star_id, star_id.lstrip('0'), star_id.zfill(6), intermediate_data_directory))
         if len(filepath_list) > 1:
             filepath_list = _match_filename_to_star_id(star_id, filepath_list)
         if len(filepath_list) > 1:
             raise ValueError('More than one filename containing {0}'
-                             'found in {1}'.format(str(star_id), intermediate_data_directory))
+                             'found in {1}'.format(star_id, intermediate_data_directory))
         data = pd.read_csv(filepath_list[0], sep=sep, skiprows=skiprows, header=header, engine='python')
         return data
 
     @abc.abstractmethod
-    def parse(self, star_id, intermediate_data_parent_directory, **kwargs):
+    def parse(self, star_id: str, intermediate_data_parent_directory: str, **kwargs):
         pass    # pragma: no cover
 
     def julian_day_epoch(self):
