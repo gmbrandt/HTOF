@@ -80,6 +80,7 @@ class AstrometricFitter(object):
         return solution if not return_all else (solution, errors, chisq)
 
     def _chi2_vector(self, ra_vs_epoch, dec_vs_epoch):
+        # this is the vector of partial derivatives of chisquared with respect to each astrometric parameter
         ra_solution_vecs = self.astrometric_solution_vector_components['ra']
         dec_solution_vecs = self.astrometric_solution_vector_components['dec']
         # sum together the individual solution vectors for each epoch
