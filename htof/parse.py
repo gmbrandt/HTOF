@@ -264,7 +264,9 @@ class HipparcosRereductionData(DecimalYearData):
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
         self.along_scan_errs = data[6]  # unit milli-arcseconds (mas)
-        self.along_scan_errs *= self.error_inflation_factor(header[2], header[4], header[6])
+        # FIXME: add error inflation for Hipparcos 2.1. Currently F2 is not available in the headers of 2.1 data.
+        if (cat_version == "2"):
+            self.along_scan_errs *= self.error_inflation_factor(header[2], header[4], header[6])
 
     @staticmethod
     def error_inflation_factor(ntr, nparam, f2):
