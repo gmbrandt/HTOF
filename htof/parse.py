@@ -54,6 +54,7 @@ class DataParser(object):
             raise ValueError('Unable to find the correct file among the {0} files containing {1}'
                              'found in {2}'.format(len(filepath_list), star_id, intermediate_data_directory))
         data = pd.read_csv(filepath_list[0], sep=sep, skiprows=skiprows, header=header, engine='python')
+        data = data[data[6] >= 0] # Remove rejected observations in Hip2.1. Hip2.0 and Hip1 uncertainties are always positive.
         return data
 
     @abc.abstractmethod
