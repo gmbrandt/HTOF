@@ -54,6 +54,7 @@ class DataParser(object):
             raise ValueError('Unable to find the correct file among the {0} files containing {1}'
                              'found in {2}'.format(len(filepath_list), star_id, intermediate_data_directory))
         data = pd.read_csv(filepath_list[0], sep=sep, skiprows=skiprows, header=header, engine='python')
+        data = data[data[6] >= 0] # Remove rejected observations in Hip2.1. Hip2.0 and Hip1 uncertainties are always positive.
         return data
 
     @abc.abstractmethod
@@ -267,7 +268,9 @@ class HipparcosRereductionData(DecimalYearData):
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
         self.along_scan_errs = data[6]  # unit milli-arcseconds (mas)
-        self.along_scan_errs *= self.error_inflation_factor(header[2], header[4], header[6])
+        # FIXME: add error inflation for Hipparcos 2.1. Currently F2 is not available in the headers of 2.1 data.
+        if (cat_version == "2"):
+            self.along_scan_errs *= self.error_inflation_factor(header[2], header[4], header[6])
 
     @staticmethod
     def error_inflation_factor(ntr, nparam, f2):
