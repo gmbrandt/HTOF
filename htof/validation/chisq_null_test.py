@@ -12,10 +12,13 @@ from astropy.table import Table
 
 
 def chisq_partials(hip_id: str, iad_dir: str, reduction: str, fit_degree=1):
-    astro = Astrometry(reduction, hip_id, iad_dir, central_epoch_ra=1991.25, normed=False,
-                       central_epoch_dec=1991.25, format='jyear', fit_degree=fit_degree, use_parallax=False)
-    ra_resid = Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
-    dec_resid = Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
+    try:
+        astro = Astrometry(reduction, hip_id, iad_dir, central_epoch_ra=1991.25, normed=False,
+                           central_epoch_dec=1991.25, format='jyear', fit_degree=fit_degree, use_parallax=False)
+        ra_resid = Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
+        dec_resid = Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
+    except FileNotFoundError:
+        return np.ones(5, dtype=float) * 10000
     return astro.fitter._chi2_vector(ra_resid.mas, dec_resid.mas)
 
 
@@ -63,6 +66,7 @@ if __name__ == "__main__":
         hip_ids = hip_ids[:500]
     print('will check {0} total hip {1} objects'.format(len(hip_ids), str(args.hip_reduction)))
     print('will save output table at', output_file)
+    print(chisq_partials('67694', args.iad_directory, 'hip21'))
     try:
         pool = Pool(args.cores)
         data_outputs = pool.map(engine, hip_ids)
