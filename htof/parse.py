@@ -12,8 +12,8 @@
 import numpy as np
 import pandas as pd
 import os
+import re
 import glob
-import warnings
 
 from astropy.time import Time
 from astropy.table import QTable, Column
@@ -43,16 +43,24 @@ class DataParser(object):
         filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id + '*')
         filepath_list = glob.glob(filepath, recursive=True)
         if len(filepath_list) == 0:
+            # search for the star id with leading zeros stripped
             filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id.lstrip('0') + '*')
             filepath_list = glob.glob(filepath, recursive=True)
+        if len(filepath_list) > 1:
+            # search for files with the full 6 digit hipparcos string
+            filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id.zfill(6) + '*')
+            filepath_list = glob.glob(filepath, recursive=True)
+        if len(filepath_list) > 1:
+            # take the file with which contains only the hip id if there are multiple matches
+            filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id.lstrip('0') + '*')
+            filepath_list = glob.glob(filepath, recursive=True)
+            filepath_list = [f for f in filepath_list if digits_only(os.path.basename(f).split('.')[0]).zfill(6) == star_id.zfill(6)]
         if len(filepath_list) == 0:
             raise FileNotFoundError('No file with name containing {0} or {1} or {2} found in {3}'
                                     ''.format(star_id, star_id.lstrip('0'), star_id.zfill(6), intermediate_data_directory))
         if len(filepath_list) > 1:
-            filepath_list = _match_filename_to_star_id(star_id, filepath_list)
-        if len(filepath_list) > 1:
-            raise ValueError('Unable to find the correct file among the {0} files containing {1}'
-                             'found in {2}'.format(len(filepath_list), star_id, intermediate_data_directory))
+            raise FileNotFoundError('Unable to find the correct file among the {0} files containing {1}'
+                                    'found in {2}'.format(len(filepath_list), star_id, intermediate_data_directory))
         data = pd.read_csv(filepath_list[0], sep=sep, skiprows=skiprows, header=header, engine='python')
         return data
 
@@ -161,12 +169,6 @@ class DecimalYearData(DataParser):
 
     def julian_day_epoch(self):
         return Time(self._epoch.values.flatten(), format='decimalyear').jd
-
-
-def _match_filename_to_star_id(star_id, filepath_list):
-    # among all file matches, select the file whose name matches star_id
-    return [path for path in filepath_list if
-            os.path.basename(path).split('.')[0].split('HIP')[-1].zfill(6) == str(star_id).zfill(6)]
 
 
 def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1E5,
@@ -321,3 +323,8 @@ class GaiaDR2(GaiaData):
                                       epoch=epoch, residuals=residuals,
                                       inverse_covariance_matrix=inverse_covariance_matrix,
                                       min_epoch=min_epoch, max_epoch=max_epoch)
+
+
+def digits_only(x: str):
+    return re.sub("[^0-9]", "", x)
+

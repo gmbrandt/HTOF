@@ -8,8 +8,8 @@ from ast import literal_eval
 
 from astropy.table import Table
 from htof.parse import HipparcosOriginalData, HipparcosRereductionCDBook,\
-    GaiaData, DataParser, GaiaDR2, DecimalYearData, HipparcosRereductionJavaTool
-from htof.parse import calculate_covariance_matrices, _match_filename_to_star_id
+    GaiaData, DataParser, GaiaDR2, DecimalYearData, HipparcosRereductionJavaTool, digits_only
+from htof.parse import calculate_covariance_matrices
 
 
 class TestHipparcosOriginalData:
@@ -149,22 +149,36 @@ class TestDataParser:
     def test_parse_raises_error_on_many_files_found(self, fake_glob):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
         data = HipparcosRereductionCDBook()
-        with pytest.raises(ValueError):
+        with pytest.raises(FileNotFoundError):
             data.parse(star_id='027321',
                        intermediate_data_directory=test_data_directory, convert_to_jd=False)
 
     @mock.patch('htof.parse.pd.read_csv', return_value=None)
     @mock.patch('htof.parse.glob.glob', return_value=['path/127321.dat', 'path/27321.dat'])
-    def test_read_matches_filename_if_needed(self, fake_glob, fake_load):
-        test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
-        data = DataParser()
-        assert data.read_intermediate_data_file('27321', test_data_directory, None, None, None) is None
+    def test_read_on_couple_similar_filepaths(self, fake_glob, fake_load):
+        test_data_directory = os.path.join(os.getcwd(), 'path/')
+        DataParser().read_intermediate_data_file('27321', test_data_directory, None, None, None)
+        fake_load.assert_called_with('path/27321.dat', sep=None, skiprows=None, header=None, engine='python')
 
-    def test_match_filename_to_star_id(self):
-        paths = ['/fake/path/1232.dat', '/fake/path/23211.dat', '/fake/path/232.dat']
-        assert ['/fake/path/232.dat'] == _match_filename_to_star_id('232', paths)
-        paths = ['H075/HIP075290.d', 'H075/HIP075293.d', 'H107/HIP107529.d', 'H007/HIP007529.d', 'H117/HIP117529.d']
-        assert ['H007/HIP007529.d'] == _match_filename_to_star_id('7529', paths)
+    @mock.patch('htof.parse.pd.read_csv', return_value=None)
+    @mock.patch('htof.parse.glob.glob')
+    def test_match_filename_to_star_id(self, fake_glob, fake_load):
+        test_data_directory = os.path.join(os.getcwd(), 'path/')
+        fake_glob.return_value = ['/fake/path/1232.dat', '/fake/path/23211.dat', '/fake/path/232.dat']
+        DataParser().read_intermediate_data_file('232', test_data_directory, None, None, None)
+        fake_load.assert_called_with('/fake/path/232.dat', sep=None, skiprows=None, header=None, engine='python')
+        # Test hip2 style names
+        fake_glob.return_value = ['H075/HIP075290.d', 'H075/HIP075293.d', 'H107/HIP107529.d', 'H007/HIP007529.d', 'H117/HIP117529.d']
+        DataParser().read_intermediate_data_file('7529', test_data_directory, None, None, None)
+        fake_load.assert_called_with('H007/HIP007529.d', sep=None, skiprows=None, header=None, engine='python')
+
+    @mock.patch('htof.parse.pd.read_csv', return_value=None)
+    @mock.patch('htof.parse.glob.glob')
+    def test_match_filename_irregular(self, fake_glob, fake_load):
+        test_data_directory = os.path.join(os.getcwd(), 'path/')
+        fake_glob.return_value = ['/fake/path/SSADSx1232.dat', '/fake/path/WDASxs23211.dat', '/fake/path/OMGH232.dat']
+        DataParser().read_intermediate_data_file('232', test_data_directory, None, None, None)
+        fake_load.assert_called_with('/fake/path/OMGH232.dat', sep=None, skiprows=None, header=None, engine='python')
 
     def test_len(self):
         assert len(DataParser()) == 0
@@ -334,3 +348,7 @@ def angle_of_short_axis_of_error_ellipse(cov_matrix):
     x, y = vecs[:, 0]
     theta = np.arctan2(y, x) - np.pi/2
     return theta
+
+
+def test_digits_only():
+    assert '987978098098098' == digits_only("sdkjh987978asd098as0980a98sd")

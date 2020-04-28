@@ -63,7 +63,6 @@ if __name__ == "__main__":
         hip_ids = hip_ids[:500]
     print('will check {0} total hip {1} objects'.format(len(hip_ids), str(args.hip_reduction)))
     print('will save output table at', output_file)
-    # do the fit.
     try:
         pool = Pool(args.cores)
         data_outputs = pool.map(engine, hip_ids)
