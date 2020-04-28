@@ -12,8 +12,6 @@ from astropy.table import Table
 
 
 def chisq_partials(hip_id: str, iad_dir: str, reduction: str, fit_degree=1):
-    if not reduction.lower() == 'hip1' and not reduction.lower() == 'hip2':
-        raise RuntimeError('reduction is not hip1 and reduction is not hip2')
     astro = Astrometry(reduction, hip_id, iad_dir, central_epoch_ra=1991.25, normed=False,
                        central_epoch_dec=1991.25, format='jyear', fit_degree=fit_degree, use_parallax=False)
     ra_resid = Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
