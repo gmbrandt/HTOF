@@ -7,8 +7,8 @@ import tempfile
 from ast import literal_eval
 
 from astropy.table import Table
-from htof.parse import HipparcosOriginalData, HipparcosRereductionData,\
-    GaiaData, DataParser, GaiaDR2, DecimalYearData
+from htof.parse import HipparcosOriginalData, HipparcosRereductionCDBook,\
+    GaiaData, DataParser, GaiaDR2, DecimalYearData, HipparcosRereductionJavaTool
 from htof.parse import calculate_covariance_matrices, _match_filename_to_star_id
 
 
@@ -89,18 +89,18 @@ class TestHipparcosOriginalData:
                        data_choice='something')
 
 
-class TestHipparcosRereductionData:
+class TestHipparcosRereductionCDBook:
     def test_error_inflation_factor(self):
         u = 0.875291 # D. Michalik et al. 2014 Q factor for Hip 27321, calculated by hand
-        assert np.isclose(HipparcosRereductionData.error_inflation_factor(111, 5, -1.81), u, rtol=1e-5)
+        assert np.isclose(HipparcosRereductionCDBook.error_inflation_factor(111, 5, -1.81), u, rtol=1e-5)
 
     def test_error_inflation_factor_on_improper_nparam(self):
         u = 0.875291  # D. Michalik et al. 2014 Q factor for Hip 27321, calculated by hand
-        assert np.isclose(HipparcosRereductionData.error_inflation_factor(111, 23115, -1.81), u, rtol=1e-5)
+        assert np.isclose(HipparcosRereductionCDBook.error_inflation_factor(111, 23115, -1.81), u, rtol=1e-5)
 
     def test_parse(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
-        data = HipparcosRereductionData()
+        data = HipparcosRereductionCDBook()
         data.parse(star_id='027321',
                    intermediate_data_directory=test_data_directory, convert_to_jd=False)
         nu = 111 - 5
@@ -115,18 +115,40 @@ class TestHipparcosRereductionData:
         assert np.isclose(np.sin(data.scan_angle[84]), -0.8083, rtol=.01)
 
 
+class TestHipparcosRereductionJavaTool:
+    test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip21')
+
+    def test_parse(self):
+        data = HipparcosRereductionJavaTool()
+        data.parse(star_id='27321', intermediate_data_directory=self.test_data_directory, convert_to_jd=False)
+        u = 1  # Error inflation factor
+        assert len(data) == 111
+        assert np.isclose(data._epoch[0], 1990.0055)
+        assert np.isclose(np.sin(data.scan_angle[0]), -0.9050, rtol=.01)
+        assert np.isclose(data.along_scan_errs.values[0], 0.80 * u)
+        assert np.isclose(data._epoch[84], 1991.9523)
+        assert np.isclose(np.sin(data.scan_angle[84]), -0.8083, rtol=.01)
+
+    def test_outlier_reject(self):
+        data = HipparcosRereductionJavaTool()
+        data.parse(star_id='27100', intermediate_data_directory=self.test_data_directory, convert_to_jd=False)
+        assert len(data) == 147 - 2  # num entries - num outliers
+        # outliers are marked with negative AL errors. Assert outliers are gone.
+        assert np.all(data.along_scan_errs > 0)
+
+
 class TestDataParser:
     def test_parse_raises_file_not_found_error(self):
         with pytest.raises(FileNotFoundError):
             test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
-            data = HipparcosRereductionData()
+            data = HipparcosRereductionCDBook()
             data.parse(star_id='12gjas2',
                        intermediate_data_directory=test_data_directory, convert_to_jd=False)
 
     @mock.patch('htof.parse.glob.glob', return_value=['path/027321.dat', 'path/027321.dat'])
     def test_parse_raises_error_on_many_files_found(self, fake_glob):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
-        data = HipparcosRereductionData()
+        data = HipparcosRereductionCDBook()
         with pytest.raises(ValueError):
             data.parse(star_id='027321',
                        intermediate_data_directory=test_data_directory, convert_to_jd=False)

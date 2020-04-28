@@ -54,7 +54,6 @@ class DataParser(object):
             raise ValueError('Unable to find the correct file among the {0} files containing {1}'
                              'found in {2}'.format(len(filepath_list), star_id, intermediate_data_directory))
         data = pd.read_csv(filepath_list[0], sep=sep, skiprows=skiprows, header=header, engine='python')
-        data = data[data[6] >= 0] # Remove rejected observations in Hip2.1. Hip2.0 and Hip1 uncertainties are always positive.
         return data
 
     @abc.abstractmethod
@@ -238,15 +237,23 @@ class HipparcosOriginalData(DecimalYearData):
         return data
 
 
-class HipparcosRereductionData(DecimalYearData):
+class HipparcosRereductionCDBook(DecimalYearData):
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  along_scan_errs=None):
-        super(HipparcosRereductionData, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
-                                                       epoch=epoch, residuals=residuals,
-                                                       inverse_covariance_matrix=inverse_covariance_matrix)
+        super(HipparcosRereductionCDBook, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
+                                                         epoch=epoch, residuals=residuals,
+                                                         inverse_covariance_matrix=inverse_covariance_matrix)
 
-    def parse(self, star_id, intermediate_data_directory, cat_version="2", **kwargs):
+    def parse(self, star_id, intermediate_data_directory, error_inflate=True, header_rows=1, **kwargs):
         """
+        :param: star_id:
+        :param: intermediate_data_directory:
+        :param: error_inflate: True if the along-scan errors are to be corrected by the inflation factor
+        according to equation B.1 of D. Michalik et al. 2014. Only turn this off for tests, or if the parameters
+        required to compute the error inflation are unavailable.
+        :param: header_rows: int.
+        :return:
+
         Compute scan angles and observations epochs from van Leeuwen 2007, table G.8
         see also Figure 2.1, section 2.5.1, and section 4.1.2
         NOTE: that the Hipparcos re-reduction book and the figures therein describe the
@@ -258,18 +265,13 @@ class HipparcosRereductionData(DecimalYearData):
         """
         header = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                   skiprows=0, header=None, sep='\s+').iloc[0]
-        if (cat_version == "2.1"):
-            skiprows=5
-        else:
-            skiprows=1
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
-                                                skiprows=skiprows, header=None, sep='\s+')
+                                                skiprows=header_rows, header=None, sep='\s+')
         self.scan_angle = np.arctan2(data[3], data[4])  # data[3] = sin(psi), data[4] = cos(psi)
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
         self.along_scan_errs = data[6]  # unit milli-arcseconds (mas)
-        # FIXME: add error inflation for Hipparcos 2.1. Currently F2 is not available in the headers of 2.1 data.
-        if (cat_version == "2"):
+        if error_inflate:
             self.along_scan_errs *= self.error_inflation_factor(header[2], header[4], header[6])
 
     @staticmethod
@@ -284,8 +286,8 @@ class HipparcosRereductionData(DecimalYearData):
         NOTE: ntr (the number of transits) given in the header of the Hip2 IAD, is not necessarily
         the number of transits used.
         """
-        # strip the solution type (5, 7, or 9) from the solution type, which is a number 10xd+s consisting of two parts d and s
-        # see Note 1 on Vizier for the Hipparcos re-reduction
+        # strip the solution type (5, 7, or 9) from the solution type, which is a number 10xd+s consisting of
+        # two parts: d and s. see Note 1 on Vizier for the Hipparcos re-reduction.
         nparam = int(str(int(nparam))[-1])
         #
         num_transits_used = ntr
@@ -293,6 +295,23 @@ class HipparcosRereductionData(DecimalYearData):
         Q = nu * (np.sqrt(2/(9*nu))*f2 + 1 - 2/(9*nu))**3  # equation B.3
         u = np.sqrt(Q/nu)  # equation B.4. This is the chi squared statistic of the fit.
         return u
+
+
+class HipparcosRereductionJavaTool(HipparcosRereductionCDBook):
+    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
+                 along_scan_errs=None):
+        super(HipparcosRereductionJavaTool, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
+                                                         epoch=epoch, residuals=residuals,
+                                                         inverse_covariance_matrix=inverse_covariance_matrix)
+
+    def parse(self, star_id, intermediate_data_directory, **kwargs):
+        # TODO set error error_inflate=True when the F2 value is available in the headers of 2.1 data.
+        super(HipparcosRereductionJavaTool, self).parse(star_id, intermediate_data_directory,
+                                                        error_inflate=False, header_rows=5)
+        # remove outliers. Outliers have negative along scan errors.
+        not_outlier = (self.along_scan_errs > 0)
+        self.along_scan_errs, self.scan_angle = self.along_scan_errs[not_outlier], self.scan_angle[not_outlier]
+        self.residuals, self._epoch = self.residuals[not_outlier], self._epoch[not_outlier]
 
 
 class GaiaDR2(GaiaData):
