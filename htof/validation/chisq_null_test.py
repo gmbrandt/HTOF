@@ -66,7 +66,6 @@ if __name__ == "__main__":
         hip_ids = hip_ids[:500]
     print('will check {0} total hip {1} objects'.format(len(hip_ids), str(args.hip_reduction)))
     print('will save output table at', output_file)
-    print(chisq_partials('67694', args.iad_directory, 'hip21'))
     try:
         pool = Pool(args.cores)
         data_outputs = pool.map(engine, hip_ids)

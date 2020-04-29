@@ -8,7 +8,7 @@ from ast import literal_eval
 
 from astropy.table import Table
 from htof.parse import HipparcosOriginalData, HipparcosRereductionCDBook,\
-    GaiaData, DataParser, GaiaDR2, DecimalYearData, HipparcosRereductionJavaTool, digits_only
+    GaiaData, DataParser, GaiaDR2, DecimalYearData, HipparcosRereductionJavaTool, digits_only, match_filename
 from htof.parse import calculate_covariance_matrices
 
 
@@ -162,7 +162,7 @@ class TestDataParser:
 
     @mock.patch('htof.parse.pd.read_csv', return_value=None)
     @mock.patch('htof.parse.glob.glob')
-    def test_match_filename_to_star_id(self, fake_glob, fake_load):
+    def test_read_on_many_filepaths(self, fake_glob, fake_load):
         test_data_directory = os.path.join(os.getcwd(), 'path/')
         fake_glob.return_value = ['/fake/path/1232.dat', '/fake/path/23211.dat', '/fake/path/232.dat']
         DataParser().read_intermediate_data_file('232', test_data_directory, None, None, None)
@@ -172,9 +172,13 @@ class TestDataParser:
         DataParser().read_intermediate_data_file('7529', test_data_directory, None, None, None)
         fake_load.assert_called_with('H007/HIP007529.d', sep=None, skiprows=None, header=None, engine='python')
 
+    def test_match_filename(self):
+        paths = ['/hip/24374.txt', 'hip/43749.txt', 'hip/43740.txt', 'hip/4374.txt']
+        assert 'hip/4374.txt' == match_filename(paths, '4374')[0]
+
     @mock.patch('htof.parse.pd.read_csv', return_value=None)
     @mock.patch('htof.parse.glob.glob')
-    def test_match_filename_irregular(self, fake_glob, fake_load):
+    def test_read_on_irregular_paths(self, fake_glob, fake_load):
         test_data_directory = os.path.join(os.getcwd(), 'path/')
         fake_glob.return_value = ['/fake/path/SSADSx1232.dat', '/fake/path/WDASxs23211.dat', '/fake/path/OMGH232.dat']
         DataParser().read_intermediate_data_file('232', test_data_directory, None, None, None)
