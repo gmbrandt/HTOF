@@ -42,22 +42,18 @@ class DataParser(object):
         star_id = str(star_id)
         filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id + '*')
         filepath_list = glob.glob(filepath, recursive=True)
-        print(filepath_list)
         if len(filepath_list) != 1:
             # search for the star id with leading zeros stripped
             filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id.lstrip('0') + '*')
             filepath_list = glob.glob(filepath, recursive=True)
-            print(filepath_list)
         if len(filepath_list) != 1:
             # search for files with the full 6 digit hipparcos string
             filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id.zfill(6) + '*')
             filepath_list = glob.glob(filepath, recursive=True)
-            print(filepath_list)
         if len(filepath_list) != 1:
             # take the file with which contains only the hip id if there are multiple matches
             filepath = os.path.join(os.path.join(intermediate_data_directory, '**/'), '*' + star_id.lstrip('0') + '*')
             filepath_list = match_filename(glob.glob(filepath, recursive=True), star_id)
-            print(filepath_list)
         if len(filepath_list) == 0:
             raise FileNotFoundError('No file with name containing {0} or {1} or {2} found in {3}'
                                     ''.format(star_id, star_id.lstrip('0'), star_id.zfill(6), intermediate_data_directory))
