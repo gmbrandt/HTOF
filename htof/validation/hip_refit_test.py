@@ -12,7 +12,7 @@ class Engine(object):
     @staticmethod
     def format_result(result, hip_id, soltype):
         diffs, errors, chisq = result[:3]
-        ra, dec, plx, pm_ra, pm_dec, acc_ra, acc_dec, jerk_ra, jerk_dec = diffs
+        plx, ra, dec, pm_ra, pm_dec, acc_ra, acc_dec, jerk_ra, jerk_dec = diffs
         return {'hip_id': hip_id, 'diff_ra': ra, 'diff_dec': dec, 'diff_plx': plx, 'diff_pm_ra': pm_ra, 'diff_pm_dec': pm_dec,
                 'soltype': soltype, 'diff_acc_ra': acc_ra, 'diff_acc_dec': acc_dec, 'diff_jerk_ra': jerk_ra, 'diff_jerk_dec': jerk_dec,
                 'chisquared': chisq}
