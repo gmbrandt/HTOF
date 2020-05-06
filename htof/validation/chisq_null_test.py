@@ -22,6 +22,48 @@ def chisq_partials(hip_id: str, iad_dir: str, reduction: str, fit_degree=1):
     return astro.fitter._chi2_vector(ra_resid.mas, dec_resid.mas)
 
 
+def find_probable_outliers(hip_id, iad_dir, reduction, fit_degree=1, max_n_reject=1, thresh=0.1):
+    try:
+        astro = Astrometry(reduction, hip_id, iad_dir, central_epoch_ra=1991.25, normed=False,
+                           central_epoch_dec=1991.25, format='jyear', fit_degree=fit_degree, use_parallax=False)
+        ra_resid = Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
+        dec_resid = Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
+        dchisq_per_epoch = astro.fitter.astrometric_solution_vector_components['ra'] * ra_resid.mas.reshape(-1, 1) + \
+                           astro.fitter.astrometric_solution_vector_components['dec'] * dec_resid.mas.reshape(-1, 1)
+        # compute sum of squared components for a random sampling of rejected observations. See if ignoring one or two
+        # give you chisq zero. We might need to take two pairs at a time, but perhaps we can reject one at a time, which
+        # will be very computationally cheap
+        epochs = find_epochs_to_reject(dchisq_per_epoch, max_n_reject, thresh)
+        return epochs
+    except FileNotFoundError:
+        return []
+
+
+def find_epochs_to_reject(dchisq_per_epoch, max_n_reject, thresh=0.1):
+    init_dchisq = np.sum(np.sum(dchisq_per_epoch, axis=0)**2)
+    reject_idx = []
+    n_reject = 0
+    dchisq_too_large = (init_dchisq > thresh)
+    idx = list(np.arange(dchisq_per_epoch.shape[0]))
+    while n_reject < max_n_reject and dchisq_too_large:
+        # compute sum of dchisq components**2 for every possible combination of rejecting one observation.
+        trials = np.ones((len(dchisq_per_epoch), len(dchisq_per_epoch)))
+        np.fill_diagonal(trials, 0)
+        trials = np.stack([trials] * dchisq_per_epoch.shape[1], axis=-1)
+        dchisq_trials = dchisq_per_epoch * trials
+        sum_squared_components = np.sum(np.sum(dchisq_trials, axis=1)**2, axis=1)
+        reject = np.argmin(sum_squared_components).flatten()[0]
+        # save the true index of the rejected observation
+        reject_idx.append(idx[reject])
+        # remove the rejected observation from the dchisq array and the true index array.
+        idx.pop(reject)
+        dchisq_per_epoch = np.delete(dchisq_per_epoch, reject, axis=0)
+        # see if we should keep trying to reject
+        n_reject += 1
+        dchisq_too_large = (np.min(sum_squared_components) > thresh)
+    return reject_idx
+
+
 class ChisqNullTestEngine(object):
     def __init__(self, dirname, reduction):
         self.dirname = dirname

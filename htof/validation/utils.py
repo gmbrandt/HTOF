@@ -50,7 +50,7 @@ def refit_hip_fromdata(data: DataParser, fit_degree, pmRA, pmDec, accRA=0, accDe
         fit_coeffs = np.hstack([[0], fit_coeffs])
     # pad so coeffs and errors are 9 long.
     fit_coeffs = np.pad(fit_coeffs, (0, 9 - len(fit_coeffs)))
-    errors = np.pad(fit_coeffs, (0, 9 - len(fit_coeffs)))
+    errors = np.pad(errors, (0, 9 - len(fit_coeffs)))
     return fit_coeffs, errors, chisq
 
 
@@ -84,7 +84,7 @@ def refit_hip1_object(iad_dir, hip_id, hip_dm_g=None, use_parallax=False):
 def refit_hip21_object(iad_dir, hip_id, use_parallax=False):
     data = HipparcosRereductionJavaTool()
     data.parse(star_id=hip_id, intermediate_data_directory=iad_dir)
-    fname = glob(os.path.join(iad_dir, '**/', "H" + hip_id + ".csv"))[0]
+    fname = glob(os.path.join(iad_dir, '**/', "H" + hip_id.zfill(6) + ".csv"))[0]
 
     plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip21(fname)
     accRA, accDec, jerkRA, jerkDec = 0, 0, 0, 0

@@ -291,7 +291,7 @@ class HipparcosRereductionCDBook(DecimalYearData):
         # two parts: d and s. see Note 1 on Vizier for the Hipparcos re-reduction.
         nparam = int(str(int(nparam))[-1])
         #
-        num_transits_used = ntr
+        num_transits_used = ntr  # TODO take into account the n_rejected_obs when calculating num_transits_used
         nu = num_transits_used - nparam  # equation B.1 of D. Michalik et al. 2014
         Q = nu * (np.sqrt(2/(9*nu))*f2 + 1 - 2/(9*nu))**3  # equation B.3
         u = np.sqrt(Q/nu)  # equation B.4. This is the chi squared statistic of the fit.
