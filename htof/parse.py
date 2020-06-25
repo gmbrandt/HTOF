@@ -23,6 +23,7 @@ from astropy.coordinates import Angle
 from htof import settings as st
 from htof.utils.data_utils import merge_consortia, safe_concatenate
 from htof.fit import AstrometricFitter
+from htof.utils.fit_utils import chisq_of_fit
 
 import abc
 
@@ -371,9 +372,6 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, max_
         trials = np.stack([trials] * dchisq_per_epoch.shape[1], axis=-1)
         dchisq_trials = dchisq_per_epoch * trials
         sum_squared_components = np.sum(np.sum(dchisq_trials, axis=1)**2, axis=1)
-        #plt.figure()
-        #plt.scatter(np.array(idx).reshape(-1, 1) * np.ones_like(np.sum(dchisq_trials, axis=1)**2), np.sum(dchisq_trials, axis=1)**2)
-        #plt.show()
         reject = np.argmin(sum_squared_components).flatten()[0]
         # save the true index of the rejected observation
         reject_idx.append(idx[reject])
@@ -381,11 +379,16 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, max_
         idx.pop(reject)
         dchisq_per_epoch = np.delete(dchisq_per_epoch, reject, axis=0)
         n_reject += 1  # record that we rejected an observation.
-        # recompute f2
-        fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix[idx],
-                                   epoch_times=data.epoch[idx], central_epoch_dec=1991.25, central_epoch_ra=1991.25,
-                                   fit_degree=1, use_parallax=False)
-        _, _, chisquared = fitter.fit_line(ra_resid.mas[idx], dec_resid.mas[idx], return_all=True)
+        # find the best fit solution
+        cov_matrix = np.linalg.pinv(np.sum(fitter.astrometric_chi_squared_matrices[idx], axis=0), hermitian=True)
+        ra_solution_vecs = fitter.astrometric_solution_vector_components['ra'][idx]
+        dec_solution_vecs = fitter.astrometric_solution_vector_components['dec'][idx]
+        chi2_vector = np.dot(ra_resid.mas[idx], ra_solution_vecs) + np.dot(dec_resid.mas[idx], dec_solution_vecs)
+        solution = np.matmul(cov_matrix, chi2_vector)
+        # calculating chisq of the fit.
+        chisquared = chisq_of_fit(solution, ra_resid.mas[idx], dec_resid.mas[idx],
+                                  fitter.ra_epochs[idx], fitter.dec_epochs[idx],
+                                  fitter.inverse_covariance_matrices[idx], use_parallax=False)
         f2 = compute_f2(n_transits - n_reject - nparam, chisquared)
     print(f2, catalog_f2)
     if not np.isclose(catalog_f2, f2, atol=0.05):
