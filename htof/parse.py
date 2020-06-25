@@ -357,12 +357,10 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, max_
 
     dchisq_per_epoch = fitter.astrometric_solution_vector_components['ra'] * ra_resid.mas.reshape(-1, 1) + \
                        fitter.astrometric_solution_vector_components['dec'] * dec_resid.mas.reshape(-1, 1)
-
     reject_idx = []
     n_reject = 0
     # calculate f2 without rejecting any observations
     f2 = compute_f2(n_transits - nparam, chisquared)
-    print(f2, catalog_f2)
     idx = list(np.arange(dchisq_per_epoch.shape[0]))
     # if f2 does not agree, try and find outliers based on making chisquared a stationary point.
     while n_reject < max_n_reject and not np.isclose(catalog_f2, f2, atol=0.05):
@@ -390,10 +388,13 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, max_
                                   fitter.ra_epochs[idx], fitter.dec_epochs[idx],
                                   fitter.inverse_covariance_matrices[idx], use_parallax=False)
         f2 = compute_f2(n_transits - n_reject - nparam, chisquared)
-    print(f2, catalog_f2)
     if not np.isclose(catalog_f2, f2, atol=0.05):
         print('catalog f2 value is {0} while the found value is {1}. Outlier rejection was not'
               'able to recover which observations were rejected in the catalog entry.'.format(catalog_f2, f2))
+    sum_squared_chisq = np.sum(np.sum(dchisq_per_epoch, axis=0) ** 2)
+    if sum_squared_chisq > 0.1:
+        print('sum of the squares of the chisquared derivatives is {0}. This should be closer to zero. The solution'
+              'is likely not a stationary point of the residuals.'.format(sum_squared_chisq))
     return reject_idx
 
 
