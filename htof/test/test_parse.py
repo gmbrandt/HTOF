@@ -101,8 +101,7 @@ class TestHipparcosRereductionCDBook:
     def test_parse(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
         data = HipparcosRereductionCDBook()
-        data.parse(star_id='027321',
-                   intermediate_data_directory=test_data_directory, convert_to_jd=False)
+        data.parse(star_id='027321', intermediate_data_directory=test_data_directory)
         nu = 111 - 5
         Q = nu * (np.sqrt(2/(9*nu))*-1.81 + 1 - 2/(9*nu))**3  # D. Michalik et al. 2014 Q factor for Hip 27321
         # Note that F2 = -1.81 in the CD intermediate data, while F2 = -1.63 on Vizier.
@@ -114,13 +113,19 @@ class TestHipparcosRereductionCDBook:
         assert np.isclose(data._epoch[84], 1991.952)
         assert np.isclose(np.sin(data.scan_angle[84]), -0.8083, rtol=.01)
 
+    def test_reject_obs(self):
+        test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
+        data = HipparcosRereductionCDBook()
+        data.parse(star_id='70', intermediate_data_directory=test_data_directory)
+        data.parse(star_id='84', intermediate_data_directory=test_data_directory)
+
 
 class TestHipparcosRereductionJavaTool:
     test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip21')
 
     def test_parse(self):
         data = HipparcosRereductionJavaTool()
-        data.parse(star_id='27321', intermediate_data_directory=self.test_data_directory, convert_to_jd=False)
+        data.parse(star_id='27321', intermediate_data_directory=self.test_data_directory)
         u = 1  # Error inflation factor
         assert len(data) == 111
         assert np.isclose(data._epoch[0], 1990.0055)
@@ -131,7 +136,7 @@ class TestHipparcosRereductionJavaTool:
 
     def test_outlier_reject(self):
         data = HipparcosRereductionJavaTool()
-        data.parse(star_id='27100', intermediate_data_directory=self.test_data_directory, convert_to_jd=False)
+        data.parse(star_id='27100', intermediate_data_directory=self.test_data_directory)
         assert len(data) == 147 - 2  # num entries - num outliers
         # outliers are marked with negative AL errors. Assert outliers are gone.
         assert np.all(data.along_scan_errs > 0)
@@ -143,7 +148,7 @@ class TestDataParser:
             test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
             data = HipparcosRereductionCDBook()
             data.parse(star_id='12gjas2',
-                       intermediate_data_directory=test_data_directory, convert_to_jd=False)
+                       intermediate_data_directory=test_data_directory)
 
     @mock.patch('htof.parse.glob.glob', return_value=['path/027321.dat', 'path/027321.dat'])
     def test_parse_raises_error_on_many_files_found(self, fake_glob):
@@ -151,7 +156,7 @@ class TestDataParser:
         data = HipparcosRereductionCDBook()
         with pytest.raises(FileNotFoundError):
             data.parse(star_id='027321',
-                       intermediate_data_directory=test_data_directory, convert_to_jd=False)
+                       intermediate_data_directory=test_data_directory)
 
     @mock.patch('htof.parse.pd.read_csv', return_value=None)
     @mock.patch('htof.parse.glob.glob', return_value=['path/127321.dat', 'path/27321.dat'])

@@ -45,7 +45,8 @@ class AstrometricFitter(object):
         if astrometric_solution_vector_components is None:
             self.astrometric_solution_vector_components = self._init_astrometric_solution_vectors(fit_degree)
         if astrometric_chi_squared_matrices is None:
-            self._chi2_matrix = self._init_astrometric_chi_squared_matrix(fit_degree)
+            self._chi2_matrix, astrometric_chi_squared_matrices = self._init_astrometric_chi_squared_matrix(fit_degree)
+        self.astrometric_chi_squared_matrices = astrometric_chi_squared_matrices
 
     def fit_line(self, ra_vs_epoch, dec_vs_epoch, return_all=False):
         """
@@ -114,7 +115,7 @@ class AstrometricFitter(object):
             astrometric_chi_squared_matrices[obs] = chi2_matrix(a, b, c, d,
                                                                 self.ra_epochs[obs], self.dec_epochs[obs],
                                                                 w_ra, w_dec, deg=fit_degree)[clip_i:, clip_i:]
-        return np.sum(astrometric_chi_squared_matrices, axis=0)
+        return np.sum(astrometric_chi_squared_matrices, axis=0), astrometric_chi_squared_matrices
 
     def _init_epochs(self):
         if not self.normed:

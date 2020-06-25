@@ -14,12 +14,15 @@ import pandas as pd
 import os
 import re
 import glob
+from math import ceil
 
 from astropy.time import Time
 from astropy.table import QTable, Column
+from astropy.coordinates import Angle
 
 from htof import settings as st
 from htof.utils.data_utils import merge_consortia, safe_concatenate
+from htof.fit import AstrometricFitter
 
 import abc
 
@@ -68,6 +71,10 @@ class DataParser(object):
         pass    # pragma: no cover
 
     def julian_day_epoch(self):
+        return self._epoch.values.flatten()
+
+    @property
+    def epoch(self):
         return self._epoch.values.flatten()
 
     def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=1E5):
@@ -245,7 +252,7 @@ class HipparcosRereductionCDBook(DecimalYearData):
                                                          epoch=epoch, residuals=residuals,
                                                          inverse_covariance_matrix=inverse_covariance_matrix)
 
-    def parse(self, star_id, intermediate_data_directory, error_inflate=True, header_rows=1, **kwargs):
+    def parse(self, star_id, intermediate_data_directory, error_inflate=True, header_rows=1, reject_obs=True, **kwargs):
         """
         :param: star_id:
         :param: intermediate_data_directory:
@@ -272,8 +279,13 @@ class HipparcosRereductionCDBook(DecimalYearData):
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
         self.along_scan_errs = data[6]  # unit milli-arcseconds (mas)
+        n_transits, nparam, f2, percent_rejected = header[2], header[4], header[6], header[7]
+        if reject_obs:
+            n_reject = ceil((percent_rejected + 1)/100 * n_transits)
+            epochs_to_reject = find_epochs_to_reject(self, f2, n_transits, nparam, n_reject)
         if error_inflate:
-            self.along_scan_errs *= self.error_inflation_factor(header[2], header[4], header[6])
+            self.along_scan_errs *= self.error_inflation_factor(n_transits, nparam, f2)
+
 
     @staticmethod
     def error_inflation_factor(ntr, nparam, f2):
@@ -308,7 +320,7 @@ class HipparcosRereductionJavaTool(HipparcosRereductionCDBook):
     def parse(self, star_id, intermediate_data_directory, **kwargs):
         # TODO set error error_inflate=True when the F2 value is available in the headers of 2.1 data.
         super(HipparcosRereductionJavaTool, self).parse(star_id, intermediate_data_directory,
-                                                        error_inflate=False, header_rows=5)
+                                                        error_inflate=False, header_rows=5, reject_obs=False)
         # remove outliers. Outliers have negative along scan errors.
         not_outlier = (self.along_scan_errs > 0)
         self.along_scan_errs, self.scan_angle = self.along_scan_errs[not_outlier], self.scan_angle[not_outlier]
@@ -330,3 +342,57 @@ def digits_only(x: str):
 
 def match_filename(paths, star_id):
     return [f for f in paths if digits_only(os.path.basename(f).split('.')[0]).zfill(6) == star_id.zfill(6)]
+
+
+def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, max_n_reject):
+    ra_resid = Angle(data.residuals.values * np.sin(data.scan_angle.values), unit='mas')
+    dec_resid = Angle(data.residuals.values * np.cos(data.scan_angle.values), unit='mas')
+
+    data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
+    fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix,
+                               epoch_times=data.epoch, central_epoch_dec=1991.25, central_epoch_ra=1991.25,
+                               fit_degree=1, use_parallax=False)
+    _, _, chisquared = fitter.fit_line(ra_resid.mas, dec_resid.mas, return_all=True)
+
+    dchisq_per_epoch = fitter.astrometric_solution_vector_components['ra'] * ra_resid.mas.reshape(-1, 1) + \
+                       fitter.astrometric_solution_vector_components['dec'] * dec_resid.mas.reshape(-1, 1)
+
+    reject_idx = []
+    n_reject = 0
+    # calculate f2 without rejecting any observations
+    f2 = compute_f2(n_transits - nparam, chisquared)
+    print(f2, catalog_f2)
+    idx = list(np.arange(dchisq_per_epoch.shape[0]))
+    # if f2 does not agree, try and find outliers based on making chisquared a stationary point.
+    while n_reject < max_n_reject and not np.isclose(catalog_f2, f2, atol=0.05):
+        # compute sum of dchisq components**2 for every possible combination of rejecting one observation.
+        trials = np.ones((len(dchisq_per_epoch), len(dchisq_per_epoch)))
+        np.fill_diagonal(trials, 0)
+        trials = np.stack([trials] * dchisq_per_epoch.shape[1], axis=-1)
+        dchisq_trials = dchisq_per_epoch * trials
+        sum_squared_components = np.sum(np.sum(dchisq_trials, axis=1)**2, axis=1)
+        #plt.figure()
+        #plt.scatter(np.array(idx).reshape(-1, 1) * np.ones_like(np.sum(dchisq_trials, axis=1)**2), np.sum(dchisq_trials, axis=1)**2)
+        #plt.show()
+        reject = np.argmin(sum_squared_components).flatten()[0]
+        # save the true index of the rejected observation
+        reject_idx.append(idx[reject])
+        # remove the rejected observation from the dchisq array and the true index array.
+        idx.pop(reject)
+        dchisq_per_epoch = np.delete(dchisq_per_epoch, reject, axis=0)
+        n_reject += 1  # record that we rejected an observation.
+        # recompute f2
+        fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix[idx],
+                                   epoch_times=data.epoch[idx], central_epoch_dec=1991.25, central_epoch_ra=1991.25,
+                                   fit_degree=1, use_parallax=False)
+        _, _, chisquared = fitter.fit_line(ra_resid.mas[idx], dec_resid.mas[idx], return_all=True)
+        f2 = compute_f2(n_transits - n_reject - nparam, chisquared)
+    print(f2, catalog_f2)
+    if not np.isclose(catalog_f2, f2, atol=0.05):
+        print('catalog f2 value is {0} while the found value is {1}. Outlier rejection was not'
+              'able to recover which observations were rejected in the catalog entry.'.format(catalog_f2, f2))
+    return reject_idx
+
+
+def compute_f2(nu, chisquared):
+    return (9*nu/2)**(1/2)*((chisquared/nu)**(1/3) + 2/(9*nu) - 1)
