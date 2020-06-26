@@ -348,8 +348,6 @@ def match_filename(paths, star_id):
 
 
 def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, percent_rejected):
-    ra_resid = Angle(data.residuals.values * np.sin(data.scan_angle.values), unit='mas')
-    dec_resid = Angle(data.residuals.values * np.cos(data.scan_angle.values), unit='mas')
     # Calculate how many observations were probably rejected
     n_reject = max(floor((percent_rejected - 1) / 100 * n_transits), 0)
     max_n_reject = max(ceil((percent_rejected + 1) / 100 * n_transits), 1)
@@ -363,24 +361,17 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
     valid_solution = np.isclose(catalog_f2, f2, rtol=0.05, atol=0.05)
     # If f2 does not agree with the catalog, reject points until f2 agrees with the catalog value.
     reject_idx = []
-    idx = np.ones(len(data), dtype=bool)
     if not valid_solution:
         while n_reject < max_n_reject and not valid_solution:
             n_reject += 1
-            chisquareds = []
-            combinations = itertools.combinations(possible_rejects, n_reject)
-            subsets = set(combinations)
-            for idx_to_reject in subsets:
-                # Set the trial rejects so that they are not used in the solution.
-                np.put(idx, idx_to_reject, False)
-                # arrify this chisquared calculation and get rid of the for loop.
-                chisquareds.append(np.sum((data.residuals.values[idx]/data.along_scan_errs.values[idx])**2))
-                # Reset so that all observations are used.
-                np.put(idx, idx_to_reject, True)
+            combinations = set(itertools.combinations(possible_rejects, n_reject))
+            idx = np.ones((len(combinations), len(data)), dtype=bool)
+            idx[[(i,) for i in range(len(combinations))], list(combinations)] = False
+            chisquareds = np.nansum((data.residuals.values * idx / (data.along_scan_errs.values * idx))**2, axis=1)
             f2_trials = compute_f2(n_transits - n_reject - nparam, chisquareds)
             best_trial = np.nanargmin(np.abs(f2_trials - catalog_f2))
             f2 = f2_trials[best_trial]
-            reject_idx = list(list(subsets)[best_trial])
+            reject_idx = list(list(combinations)[best_trial])
             valid_solution = np.isclose(f2_trials[best_trial], catalog_f2, atol=0.05)
 
     if not np.isclose(catalog_f2, f2, rtol=0.05, atol=0.05) and len(reject_idx) > 0:
@@ -395,6 +386,8 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
                                    fit_degree=1, use_parallax=False)
         ra_solution_vecs = fitter.astrometric_solution_vector_components['ra'][idx]
         dec_solution_vecs = fitter.astrometric_solution_vector_components['dec'][idx]
+        ra_resid = Angle(data.residuals.values * np.sin(data.scan_angle.values), unit='mas')
+        dec_resid = Angle(data.residuals.values * np.cos(data.scan_angle.values), unit='mas')
         chi2_vector = np.dot(ra_resid.mas[idx], ra_solution_vecs) + np.dot(dec_resid.mas[idx], dec_solution_vecs)
         sum_squared_partials = np.sum(np.sum(chi2_vector, axis=0) ** 2)
         warning_statement = 'These rejected observations could be valid.' if sum_squared_partials < 0.01 \
