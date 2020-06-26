@@ -15,7 +15,7 @@ import os
 import re
 import glob
 import itertools
-from math import ceil
+from math import ceil, floor
 
 from astropy.time import Time
 from astropy.table import QTable, Column
@@ -351,7 +351,7 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
     ra_resid = Angle(data.residuals.values * np.sin(data.scan_angle.values), unit='mas')
     dec_resid = Angle(data.residuals.values * np.cos(data.scan_angle.values), unit='mas')
     # Calculate how many observations were probably rejected
-    n_reject = max(ceil((percent_rejected - 1) / 100 * n_transits), 0)
+    n_reject = max(floor((percent_rejected - 1) / 100 * n_transits), 0)
     max_n_reject = max(ceil((percent_rejected + 1) / 100 * n_transits), 1)
     # Calculate z_score and grab the worst max_n_reject observations plus a few for wiggle room.
     z_score = np.abs(data.residuals.values/data.along_scan_errs.values)
@@ -378,7 +378,7 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
                 # Reset so that all observations are used.
                 np.put(idx, idx_to_reject, True)
             f2_trials = compute_f2(n_transits - n_reject - nparam, chisquareds)
-            best_trial = np.argmin(np.abs(f2_trials - catalog_f2))
+            best_trial = np.nanargmin(np.abs(f2_trials - catalog_f2))
             f2 = f2_trials[best_trial]
             reject_idx = list(list(subsets)[best_trial])
             valid_solution = np.isclose(f2_trials[best_trial], catalog_f2, atol=0.05)
@@ -386,6 +386,7 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
     if not np.isclose(catalog_f2, f2, rtol=0.05, atol=0.05) and len(reject_idx) > 0:
         print(f'catalog f2 value is {catalog_f2} while the found value is {f2}. It is possible that the '
               f'rejected observations numbered {reject_idx} are not the correct rejections to make.')
+        """
         # Check and print the sum of the squared derivatives of chisquared with respect to each parameter.
         np.put(idx, reject_idx, False)
         data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
@@ -399,6 +400,7 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
         warning_statement = 'These rejected observations could be valid.' if sum_squared_partials < 0.01 \
             else 'These rejected observations are likely not valid.'
         print(f'The sum of the squared partials of chisquared is {sum_squared_partials}. ' + warning_statement)
+        """
     return reject_idx
 
 
