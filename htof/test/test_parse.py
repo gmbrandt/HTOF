@@ -116,8 +116,9 @@ class TestHipparcosRereductionCDBook:
     def test_reject_obs(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
         data = HipparcosRereductionCDBook()
-        data.parse(star_id='70', intermediate_data_directory=test_data_directory)
+        #data.parse(star_id='70', intermediate_data_directory=test_data_directory)
         data.parse(star_id='84', intermediate_data_directory=test_data_directory)
+        data.parse(star_id='40', intermediate_data_directory=test_data_directory)
 
 
 class TestHipparcosRereductionJavaTool:

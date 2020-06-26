@@ -14,6 +14,7 @@ import pandas as pd
 import os
 import re
 import glob
+import itertools
 from math import ceil
 
 from astropy.time import Time
@@ -282,8 +283,10 @@ class HipparcosRereductionCDBook(DecimalYearData):
         self.along_scan_errs = data[6]  # unit milli-arcseconds (mas)
         n_transits, nparam, f2, percent_rejected = header[2], header[4], header[6], header[7]
         if reject_obs:
+            print(star_id)
             n_reject = ceil((percent_rejected + 1)/100 * n_transits)
             epochs_to_reject = find_epochs_to_reject(self, f2, n_transits, nparam, n_reject)
+            print(epochs_to_reject)
         if error_inflate:
             self.along_scan_errs *= self.error_inflation_factor(n_transits, nparam, f2)
 
@@ -345,7 +348,7 @@ def match_filename(paths, star_id):
     return [f for f in paths if digits_only(os.path.basename(f).split('.')[0]).zfill(6) == star_id.zfill(6)]
 
 
-def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, max_n_reject):
+def find_epochs_to_reject_old(data: DataParser, catalog_f2, n_transits, nparam, max_n_reject):
     ra_resid = Angle(data.residuals.values * np.sin(data.scan_angle.values), unit='mas')
     dec_resid = Angle(data.residuals.values * np.cos(data.scan_angle.values), unit='mas')
 
@@ -395,6 +398,55 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, max_
     if sum_squared_chisq > 0.1:
         print('sum of the squares of the chisquared derivatives is {0}. This should be closer to zero. The solution'
               'is likely not a stationary point of the residuals.'.format(sum_squared_chisq))
+    return reject_idx
+
+
+def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, max_n_reject):
+    ra_resid = Angle(data.residuals.values * np.sin(data.scan_angle.values), unit='mas')
+    dec_resid = Angle(data.residuals.values * np.cos(data.scan_angle.values), unit='mas')
+
+    data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
+    fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix,
+                               epoch_times=data.epoch, central_epoch_dec=1991.25, central_epoch_ra=1991.25,
+                               fit_degree=1, use_parallax=False)
+    _, _, chisquared = fitter.fit_line(ra_resid.mas, dec_resid.mas, return_all=True)
+    #z_score = data.residuals.values/data.along_scan_errs.values
+
+    # calculate f2 without rejecting any observations
+    reject_idx = []
+    f2 = compute_f2(n_transits - nparam, chisquared)
+    valid_solution = np.isclose(catalog_f2, f2, atol=0.05)
+    max_n_reject = 3
+    if not valid_solution:
+        full_idx = np.arange(len(data))
+        n_reject = 0
+        # sort by zscore and only brute force search over the worst 15 observations or something.
+        while n_reject < max_n_reject and not valid_solution:
+            n_reject += 1
+            chisquareds = []
+            combinations = itertools.combinations(full_idx, n_reject)
+            subsets = set(combinations)
+            print(len(subsets))
+            for idx_to_reject in subsets:
+                idx = [i for i in full_idx if i not in idx_to_reject]
+                # find the best fit solution
+                cov_matrix = np.linalg.pinv(np.sum(fitter.astrometric_chi_squared_matrices[idx], axis=0), hermitian=True)
+                ra_solution_vecs = fitter.astrometric_solution_vector_components['ra'][idx]
+                dec_solution_vecs = fitter.astrometric_solution_vector_components['dec'][idx]
+                chi2_vector = np.dot(ra_resid.mas[idx], ra_solution_vecs) + np.dot(dec_resid.mas[idx], dec_solution_vecs)
+                solution = np.matmul(cov_matrix, chi2_vector)
+                # calculating chisq of the fit.
+                chisquareds.append(chisq_of_fit(solution, ra_resid.mas[idx], dec_resid.mas[idx],
+                                   fitter.ra_epochs[idx], fitter.dec_epochs[idx],
+                                   fitter.inverse_covariance_matrices[idx], use_parallax=False))
+            f2_trials = compute_f2(n_transits - n_reject - nparam, chisquareds)
+            best_trial = np.argmin(np.abs(f2_trials - catalog_f2))
+            f2 = f2_trials[best_trial]
+            reject_idx = list(list(subsets)[best_trial])
+            valid_solution = np.isclose(f2_trials[best_trial], catalog_f2, atol=0.05)
+    if not np.isclose(catalog_f2, f2, atol=0.05):
+        print('catalog f2 value is {0} while the found value is {1}. Outlier rejection was not '
+              'able to recover which observations were rejected in the catalog entry.'.format(catalog_f2, f2))
     return reject_idx
 
 
