@@ -280,7 +280,7 @@ class HipparcosRereductionCDBook(DecimalYearData):
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
         self.along_scan_errs = data[6]  # unit milli-arcseconds (mas)
-        n_transits, nparam, catalog_f2, percent_rejected = header[2], header[4], header[6], header[7]
+        n_transits, nparam, catalog_f2, percent_rejected = header[2], get_nparam(header[4]), header[6], header[7]
         if attempt_adhoc_rejection:
             # must reject before inflating errors, otherwise F2 is around zero.
             epochs_to_reject = find_epochs_to_reject(self, catalog_f2, n_transits, nparam, percent_rejected)
@@ -302,10 +302,6 @@ class HipparcosRereductionCDBook(DecimalYearData):
         NOTE: ntr (the number of transits) given in the header of the Hip2 IAD, is not necessarily
         the number of transits used.
         """
-        # strip the solution type (5, 7, or 9) from the solution type, which is a number 10xd+s consisting of
-        # two parts: d and s. see Note 1 on Vizier for the Hipparcos re-reduction.
-        nparam = int(str(int(nparam))[-1])
-        #
         num_transits_used = ntr  # TODO take into account the n_rejected_obs when calculating num_transits_used
         nu = num_transits_used - nparam  # equation B.1 of D. Michalik et al. 2014
         Q = nu * (np.sqrt(2/(9*nu))*f2 + 1 - 2/(9*nu))**3  # equation B.3
@@ -395,6 +391,12 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
         print(f'The sum of the squared partials of chisquared is {sum_squared_partials}. ' + warning_statement)
         """
     return reject_idx
+
+
+def get_nparam(nparam_header_val):
+    # strip the solution type (5, 7, or 9) from the solution type, which is a number 10xd+s consisting of
+    # two parts: d and s. see Note 1 on Vizier for the Hipparcos re-reduction.
+    return int(str(int(nparam_header_val))[-1])
 
 
 def compute_f2(nu, chisquared):

@@ -8,7 +8,8 @@ from ast import literal_eval
 
 from astropy.table import Table
 from htof.parse import HipparcosOriginalData, HipparcosRereductionCDBook,\
-    GaiaData, DataParser, GaiaDR2, DecimalYearData, HipparcosRereductionJavaTool, digits_only, match_filename
+    GaiaData, DataParser, GaiaDR2, DecimalYearData, HipparcosRereductionJavaTool, digits_only, \
+    match_filename, get_nparam
 from htof.parse import calculate_covariance_matrices
 
 
@@ -94,10 +95,6 @@ class TestHipparcosRereductionCDBook:
         u = 0.875291 # D. Michalik et al. 2014 Q factor for Hip 27321, calculated by hand
         assert np.isclose(HipparcosRereductionCDBook.error_inflation_factor(111, 5, -1.81), u, rtol=1e-5)
 
-    def test_error_inflation_factor_on_improper_nparam(self):
-        u = 0.875291  # D. Michalik et al. 2014 Q factor for Hip 27321, calculated by hand
-        assert np.isclose(HipparcosRereductionCDBook.error_inflation_factor(111, 23115, -1.81), u, rtol=1e-5)
-
     def test_parse(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
         data = HipparcosRereductionCDBook()
@@ -124,6 +121,8 @@ class TestHipparcosRereductionCDBook:
         # no test for HIP 70 yet because we don't know how many observations were really rejected.
         data.parse(star_id='40', intermediate_data_directory=test_data_directory)
         # no test for HIP 40 yet because we don't know how many observations were really rejected.
+        data.parse(star_id='072477', intermediate_data_directory=test_data_directory)
+        # no test for HIP 072477 yet because we don't know how many observations were really rejected.
 
 
 class TestHipparcosRereductionJavaTool:
@@ -367,3 +366,9 @@ def angle_of_short_axis_of_error_ellipse(cov_matrix):
 
 def test_digits_only():
     assert '987978098098098' == digits_only("sdkjh987978asd098as0980a98sd")
+
+
+def test_get_nparam():
+    assert 5 == get_nparam('23115')
+    assert 5 == get_nparam('95')
+    assert 7 == get_nparam('97')
