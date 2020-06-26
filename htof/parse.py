@@ -293,7 +293,8 @@ class HipparcosRereductionCDBook(DecimalYearData):
     @staticmethod
     def error_inflation_factor(ntr, nparam, f2):
         """
-        :param ntr: int. Number of transits
+        :param ntr: int. Number of transits used in the catalog solution. I.e. this should be
+        N_transit_total - N_reject. So if N_reject is unknown, then the error inflation factor will be slightly wrong.
         :param nparam: int. Number of parameters used in the solution (e.g. 5, 7, 9..)
         :param f2: float. Goodness of fit metric. field F2 in the Hipparcos Re-reduction catalog.
         :return: u. float.
@@ -302,7 +303,7 @@ class HipparcosRereductionCDBook(DecimalYearData):
         NOTE: ntr (the number of transits) given in the header of the Hip2 IAD, is not necessarily
         the number of transits used.
         """
-        num_transits_used = ntr  # TODO take into account the n_rejected_obs when calculating num_transits_used
+        num_transits_used = ntr
         nu = num_transits_used - nparam  # equation B.1 of D. Michalik et al. 2014
         Q = nu * (np.sqrt(2/(9*nu))*f2 + 1 - 2/(9*nu))**3  # equation B.3
         u = np.sqrt(Q/nu)  # equation B.4. This is the chi squared statistic of the fit.
