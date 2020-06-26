@@ -254,7 +254,7 @@ class HipparcosRereductionCDBook(DecimalYearData):
                                                          epoch=epoch, residuals=residuals,
                                                          inverse_covariance_matrix=inverse_covariance_matrix)
 
-    def parse(self, star_id, intermediate_data_directory, error_inflate=True, header_rows=1, reject_obs=True, **kwargs):
+    def parse(self, star_id, intermediate_data_directory, error_inflate=True, header_rows=1, attempt_adhoc_rejection=True, **kwargs):
         """
         :param: star_id:
         :param: intermediate_data_directory:
@@ -281,13 +281,15 @@ class HipparcosRereductionCDBook(DecimalYearData):
         self._epoch = data[1] + 1991.25
         self.residuals = data[5]  # unit milli-arcseconds (mas)
         self.along_scan_errs = data[6]  # unit milli-arcseconds (mas)
-        n_transits, nparam, f2, percent_rejected = header[2], header[4], header[6], header[7]
-        if reject_obs:
-            print(star_id)
-            epochs_to_reject = find_epochs_to_reject(self, f2, n_transits, nparam, percent_rejected)
-            print(epochs_to_reject)
+        n_transits, nparam, catalog_f2, percent_rejected = header[2], header[4], header[6], header[7]
+        if attempt_adhoc_rejection:
+            # must reject before inflating errors, otherwise F2 is around zero.
+            epochs_to_reject = find_epochs_to_reject(self, catalog_f2, n_transits, nparam, percent_rejected)
+            not_outlier = [i for i in range(len(data)) if i not in epochs_to_reject]
+            self.along_scan_errs, self.scan_angle = self.along_scan_errs[not_outlier], self.scan_angle[not_outlier]
+            self.residuals, self._epoch = self.residuals[not_outlier], self._epoch[not_outlier]
         if error_inflate:
-            self.along_scan_errs *= self.error_inflation_factor(n_transits, nparam, f2)
+            self.along_scan_errs *= self.error_inflation_factor(n_transits, nparam, catalog_f2)
 
 
     @staticmethod
@@ -323,7 +325,7 @@ class HipparcosRereductionJavaTool(HipparcosRereductionCDBook):
     def parse(self, star_id, intermediate_data_directory, **kwargs):
         # TODO set error error_inflate=True when the F2 value is available in the headers of 2.1 data.
         super(HipparcosRereductionJavaTool, self).parse(star_id, intermediate_data_directory,
-                                                        error_inflate=False, header_rows=5, reject_obs=False)
+                                                        error_inflate=False, header_rows=5, attempt_adhoc_rejection=False)
         # remove outliers. Outliers have negative along scan errors.
         not_outlier = (self.along_scan_errs > 0)
         self.along_scan_errs, self.scan_angle = self.along_scan_errs[not_outlier], self.scan_angle[not_outlier]
@@ -361,16 +363,13 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
     # calculate z_score and grab the worst max_n_reject observations plus a few for wiggle room.
     z_score = np.abs(data.residuals.values/data.along_scan_errs.values)
     possible_rejects = np.arange(len(data))[np.argsort(z_score)[::-1]][:max_n_reject + 3]
-
-
-    reject_idx = []
-
     # calculate f2 without rejecting any observations
     _, _, chisquared = fitter.fit_line(ra_resid.mas, dec_resid.mas, return_all=True)
     f2 = compute_f2(n_transits - nparam, chisquared)
     # Check if f2 agrees with the catalog.
     valid_solution = np.isclose(catalog_f2, f2, rtol=0.05, atol=0.05)
     # if f2 does not agree with the catalog, reject points until f2 agrees with the catalog value.
+    reject_idx = []
     if not valid_solution:
         idx = np.ones(len(data), dtype=bool)
         while n_reject < max_n_reject and not valid_solution:
@@ -378,7 +377,6 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
             chisquareds = []
             combinations = itertools.combinations(possible_rejects, n_reject)
             subsets = set(combinations)
-            print(len(subsets))
             for idx_to_reject in subsets:
                 np.put(idx, idx_to_reject, False)
                 # find the best fit solution

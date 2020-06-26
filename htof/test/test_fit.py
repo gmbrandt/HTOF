@@ -53,9 +53,9 @@ class TestAstrometricFitter:
         ivar = np.ones((2, 2))
         fitter = AstrometricFitter(inverse_covariance_matrices=[ivar, ivar, ivar], epoch_times=[1, 2, 3],
                                    astrometric_solution_vector_components=[], use_parallax=True, fit_degree=3)
-        assert np.allclose(np.ones((9, 9)) * 3, fitter._init_astrometric_chi_squared_matrix(3))
+        assert np.allclose(np.ones((9, 9)) * 3, fitter._init_astrometric_chi_squared_matrix(3)[0])
         fake_chi2_matrix_per_epoch.return_value = np.ones((7, 7))
-        assert np.allclose(np.ones((7, 7)) * 3, fitter._init_astrometric_chi_squared_matrix(2))
+        assert np.allclose(np.ones((7, 7)) * 3, fitter._init_astrometric_chi_squared_matrix(2)[0])
 
     @mock.patch('htof.fit.ra_sol_vec', return_value=np.ones(5))
     @mock.patch('htof.fit.dec_sol_vec', return_value=np.ones(5))
