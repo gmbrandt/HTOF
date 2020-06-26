@@ -116,9 +116,14 @@ class TestHipparcosRereductionCDBook:
     def test_reject_obs(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
         data = HipparcosRereductionCDBook()
-        data.parse(star_id='70', intermediate_data_directory=test_data_directory)
+        data.parse(star_id='27321', intermediate_data_directory=test_data_directory)
+        assert len(data) == 111 - 0
         data.parse(star_id='84', intermediate_data_directory=test_data_directory)
+        assert len(data) == 96 - 1
+        data.parse(star_id='70', intermediate_data_directory=test_data_directory)
+        # no test for HIP 70 yet because we don't know how many observations were really rejected.
         data.parse(star_id='40', intermediate_data_directory=test_data_directory)
+        # no test for HIP 40 yet because we don't know how many observations were really rejected.
 
 
 class TestHipparcosRereductionJavaTool:

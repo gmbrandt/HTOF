@@ -291,7 +291,6 @@ class HipparcosRereductionCDBook(DecimalYearData):
         if error_inflate:
             self.along_scan_errs *= self.error_inflation_factor(n_transits, nparam, catalog_f2)
 
-
     @staticmethod
     def error_inflation_factor(ntr, nparam, f2):
         """
@@ -357,18 +356,18 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
     fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix,
                                epoch_times=data.epoch, central_epoch_dec=1991.25, central_epoch_ra=1991.25,
                                fit_degree=1, use_parallax=False)
-    # calculate how many observations were probably rejected
+    # Calculate how many observations were probably rejected
     n_reject = max(ceil((percent_rejected - 1) / 100 * n_transits), 0)
     max_n_reject = max(ceil((percent_rejected + 1) / 100 * n_transits), 1)
-    # calculate z_score and grab the worst max_n_reject observations plus a few for wiggle room.
+    # Calculate z_score and grab the worst max_n_reject observations plus a few for wiggle room.
     z_score = np.abs(data.residuals.values/data.along_scan_errs.values)
     possible_rejects = np.arange(len(data))[np.argsort(z_score)[::-1]][:max_n_reject + 3]
-    # calculate f2 without rejecting any observations
+    # Calculate f2 without rejecting any observations
     _, _, chisquared = fitter.fit_line(ra_resid.mas, dec_resid.mas, return_all=True)
     f2 = compute_f2(n_transits - nparam, chisquared)
     # Check if f2 agrees with the catalog.
     valid_solution = np.isclose(catalog_f2, f2, rtol=0.05, atol=0.05)
-    # if f2 does not agree with the catalog, reject points until f2 agrees with the catalog value.
+    # If f2 does not agree with the catalog, reject points until f2 agrees with the catalog value.
     reject_idx = []
     if not valid_solution:
         idx = np.ones(len(data), dtype=bool)
@@ -378,18 +377,19 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
             combinations = itertools.combinations(possible_rejects, n_reject)
             subsets = set(combinations)
             for idx_to_reject in subsets:
+                # Set the trial rejects so that they are not used in the solution.
                 np.put(idx, idx_to_reject, False)
-                # find the best fit solution
+                # Find the best fit solution.
                 cov_matrix = np.linalg.pinv(np.sum(fitter.astrometric_chi_squared_matrices[idx], axis=0), hermitian=True)
                 ra_solution_vecs = fitter.astrometric_solution_vector_components['ra'][idx]
                 dec_solution_vecs = fitter.astrometric_solution_vector_components['dec'][idx]
                 chi2_vector = np.dot(ra_resid.mas[idx], ra_solution_vecs) + np.dot(dec_resid.mas[idx], dec_solution_vecs)
                 solution = np.matmul(cov_matrix, chi2_vector)
-                # calculating chisq of the fit.
+                # Calculate chisquared statistic of the fit.
                 chisquareds.append(chisq_of_fit(solution, ra_resid.mas[idx], dec_resid.mas[idx],
                                    fitter.ra_epochs[idx], fitter.dec_epochs[idx],
                                    fitter.inverse_covariance_matrices[idx], use_parallax=False))
-                # reset the indices to use
+                # Reset so that all observations are used.
                 np.put(idx, idx_to_reject, True)
             f2_trials = compute_f2(n_transits - n_reject - nparam, chisquareds)
             best_trial = np.argmin(np.abs(f2_trials - catalog_f2))
@@ -400,7 +400,7 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
     if not np.isclose(catalog_f2, f2, atol=0.05):
         print(f'catalog f2 value is {catalog_f2} while the found value is {f2}. It is possible that the '
               f'rejected observations numbered {reject_idx} are not the correct rejections to make.')
-        # check and print the sum of the squared derivatives of chisquared with respect to each parameter.
+        # Check and print the sum of the squared derivatives of chisquared with respect to each parameter.
         np.put(idx, reject_idx, False)
         ra_solution_vecs = fitter.astrometric_solution_vector_components['ra'][idx]
         dec_solution_vecs = fitter.astrometric_solution_vector_components['dec'][idx]
