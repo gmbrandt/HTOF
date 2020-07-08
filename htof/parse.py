@@ -19,11 +19,9 @@ from math import ceil, floor
 
 from astropy.time import Time
 from astropy.table import QTable, Column
-from astropy.coordinates import Angle
 
 from htof import settings as st
 from htof.utils.data_utils import merge_consortia, safe_concatenate
-from htof.fit import AstrometricFitter
 
 import abc
 
