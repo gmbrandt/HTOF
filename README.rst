@@ -138,6 +138,9 @@ a central ra and dec, and that those must be instances of astropy.coordinates.An
 
 Appendix
 --------
+
+Parsing and fitting manually
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The Astrometry object is essentially just a wrapper for data parsing and fitting all in one, and consequently
 could be limiting. This section describes how to reproduce Astrometry.fit by accessing the data parser objects and
 the fitter object separately. You would do this if, for instance, you did not want to use
@@ -187,6 +190,14 @@ where :code:`ra(mjd) = ra0 + mu_ra * mjd`, and same for declination.
 
 To fit a line with parallax, we first have to generate the parallactic motion about the central ra and dec. We do this
 with the following code.
+
+Flagged Sources
+~~~~~~~~~~~~~~~
+There are a small number of sources in the original reduction of Hipparcos and the re-reductions (e.g. the CD version
+of the 2007 re-reduction) that HTOF cannot well refit. These sources should be used cautiously and are listed by HIP ID in
+the files in the htof/data directory, e.g. htof/data/hip1_flagged.txt for the 1997 reduction and
+htof/data/hip2_cd_flagged.txt for the 2007 re-reduction which came on the CD accompanying the book.
+
 
 License
 -------
