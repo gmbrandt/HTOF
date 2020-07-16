@@ -38,6 +38,7 @@ class DataParser(object):
         self.residuals = pd.Series(residuals)
         self.along_scan_errs = pd.Series(along_scan_errs)
         self.inverse_covariance_matrix = inverse_covariance_matrix
+        self._rejected_epochs = []
 
     @staticmethod
     def read_intermediate_data_file(star_id: str, intermediate_data_directory: str, skiprows, header, sep):
@@ -117,6 +118,18 @@ class DataParser(object):
 
         t = QTable(cols, names=['scan_angle', 'julian_day_epoch', 'residuals', 'along_scan_errs', 'icov'])
         return t
+
+    @property
+    def rejected_epochs(self):
+        return self._rejected_epochs
+
+    @rejected_epochs.setter
+    def rejected_epochs(self, value):
+        not_outlier = np.ones(len(self), dtype=bool)
+        np.put(not_outlier, value, False)
+        self.along_scan_errs, self.scan_angle = self.along_scan_errs[not_outlier], self.scan_angle[not_outlier]
+        self.residuals, self._epoch = self.residuals[not_outlier], self._epoch[not_outlier]
+        self._rejected_epochs = value
 
     def __add__(self, other):
         all_scan_angles = pd.concat([self.scan_angle, other.scan_angle])
@@ -281,12 +294,11 @@ class HipparcosRereductionCDBook(DecimalYearData):
         n_transits, nparam, catalog_f2, percent_rejected = header[2], get_nparam(header[4]), header[6], header[7]
         if attempt_adhoc_rejection:
             # must reject before inflating errors, otherwise F2 is around zero.
-            print(star_id)
             epochs_to_reject = find_epochs_to_reject(self, catalog_f2, n_transits, nparam, percent_rejected)
-            not_outlier = [i for i in range(len(data)) if i not in epochs_to_reject]
-            self.along_scan_errs, self.scan_angle = self.along_scan_errs[not_outlier], self.scan_angle[not_outlier]
-            self.residuals, self._epoch = self.residuals[not_outlier], self._epoch[not_outlier]
+            print(star_id, epochs_to_reject)
+            self.rejected_epochs = epochs_to_reject  # setting rejected_epochs also rejects the epochs (see the @setter)
         if error_inflate:
+            # adjust the along scan errors so that the errors on the best fit parameters match the catalog.
             self.along_scan_errs *= self.error_inflation_factor(n_transits, nparam, catalog_f2)
 
     @staticmethod
@@ -319,10 +331,8 @@ class HipparcosRereductionJavaTool(HipparcosRereductionCDBook):
         # TODO set error error_inflate=True when the F2 value is available in the headers of 2.1 data.
         super(HipparcosRereductionJavaTool, self).parse(star_id, intermediate_data_directory,
                                                         error_inflate=False, header_rows=5, attempt_adhoc_rejection=False)
-        # remove outliers. Outliers have negative along scan errors.
-        not_outlier = (self.along_scan_errs > 0)
-        self.along_scan_errs, self.scan_angle = self.along_scan_errs[not_outlier], self.scan_angle[not_outlier]
-        self.residuals, self._epoch = self.residuals[not_outlier], self._epoch[not_outlier]
+        epochs_to_reject = np.where(self.along_scan_errs < 0)[0]
+        self.rejected_epochs = epochs_to_reject  # setting rejected_epochs also rejects the epochs (see the @setter)
 
 
 class GaiaDR2(GaiaData):
@@ -374,8 +384,7 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
             reject_idx_per_possibility.append(list(list(combinations)[best_trial]))
 
         # see which reject combinations give an f2 value that is close to the catalog value (with wiggle room)
-        reject_idx_viable = np.asarray(reject_idx_per_possibility)[np.isclose(catalog_f2, f2_per_possibility,
-                                                                            atol=3 * atol_f2)]
+        reject_idx_viable = np.asarray(reject_idx_per_possibility)[np.isclose(catalog_f2, f2_per_possibility, atol=3 * atol_f2)]
         if len(reject_idx_viable) == 0:
             print(f'Could not find a set of epochs to reject that yielded an f2 value within {atol_f2}'
                   f' of the catalog value for f2. Will proceed without rejecting ANY observations')
@@ -401,8 +410,15 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
                 # reset the rejected observations for the next loop
                 np.put(idx, reject_idx, True)
             reject_idx = reject_idx_viable[np.argmin(sum_squared_chisq_partials)]
+        # Done trying to outlier reject.
+        # Compute chisquared and f2 for final status check.
+        idx = np.ones(len(data), dtype=bool)
+        np.put(idx, reject_idx, False)
+        chisquared = np.sum((data.residuals.values[idx] / data.along_scan_errs.values[idx]) ** 2)
+        f2 = compute_f2(n_transits - nparam - len(reject_idx), chisquared)
+        print(f2, catalog_f2)
         if not np.isclose(catalog_f2, f2, atol=0.05):
-            print(f'catalog f2 value is {catalog_f2} while the found value is {f2}. It is possible that the '
+            print(f'catalog f2 value is {catalog_f2} while the found value is {round(f2, 2)}. It is possible that the '
                   f'rejected observations numbered {reject_idx} are not the correct rejections to make.')
     return reject_idx
 
