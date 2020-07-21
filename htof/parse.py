@@ -387,8 +387,8 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
         # see which reject combinations give an f2 value that is close to the catalog value (with wiggle room)
         reject_idx_viable = np.asarray(reject_idx_per_possibility)[np.isclose(catalog_f2, f2_per_possibility, atol=3 * atol_f2)]
         if len(reject_idx_viable) == 0:
-            print(f'Could not find a set of epochs to reject that yielded an f2 value within {atol_f2}'
-                  f' of the catalog value for f2. Will proceed without rejecting ANY observations')
+            print('Could not find a set of epochs to reject that yielded an f2 value within {0} of the catalog value '
+                  'for f2. Will proceed without rejecting ANY observations'.format(atol_f2))
             reject_idx = []
         elif len(reject_idx_viable) == 1:
             # if there is one viable combination, take that one
@@ -419,8 +419,9 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
         f2 = compute_f2(n_transits - nparam - len(reject_idx), chisquared)
         print(f2, catalog_f2)
         if not np.isclose(catalog_f2, f2, atol=0.05):
-            print(f'catalog f2 value is {catalog_f2} while the found value is {round(f2, 2)}. It is possible that the '
-                  f'rejected observations numbered {reject_idx} are not the correct rejections to make.')
+            print('catalog f2 value is {0} while the found value is {1}. It is possible that the '
+                  'rejected observations numbered {2} are not the correct '
+                  'rejections to make.'.format(catalog_f2, round(f2, 2), reject_idx))
     return reject_idx
 
 
