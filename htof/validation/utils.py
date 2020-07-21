@@ -51,7 +51,14 @@ def refit_hip_fromdata(data: DataParser, fit_degree, pmRA, pmDec, accRA=0, accDe
     # pad so coeffs and errors are 9 long.
     fit_coeffs = np.pad(fit_coeffs, (0, 9 - len(fit_coeffs)))
     errors = np.pad(errors, (0, 9 - len(fit_coeffs)))
-    return fit_coeffs, errors, chisq
+    # calculate the chisquared partials
+    sin_scan = np.sin(data.scan_angle.values)
+    cos_scan = np.cos(data.scan_angle.values)
+    dt = data.epoch - 1991.25
+    chi2_vector = (2 * data.residuals.values / data.along_scan_errs.values ** 2 * np.array(
+        [sin_scan, cos_scan, dt * sin_scan, dt * cos_scan])).T
+    chi2_partials = np.sum(chi2_vector, axis=0) ** 2
+    return fit_coeffs, errors, chisq, chi2_partials
 
 
 def refit_hip1_object(iad_dir, hip_id, hip_dm_g=None, use_parallax=False):
@@ -72,13 +79,13 @@ def refit_hip1_object(iad_dir, hip_id, hip_dm_g=None, use_parallax=False):
     if fit_degree is not None:
         # abscissa residuals are always with respect to 5p solution for hip1. Do not feed accRA, etc..
         # when reconstructing the skypath
-        fit_coeffs, errors, chisq = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
+        fit_coeffs, errors, chisq, chi2_partials = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
                                     jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
                                     plx=plx, use_parallax=use_parallax)
         diffs = compute_diffs(fit_coeffs, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec)
-        return tuple((diffs, errors, chisq, soltype))
+        return tuple((diffs, errors, chisq, chi2_partials, soltype))
     else:
-        return [None]*9, [None]*9, None, soltype
+        return [None] * 9, [None] * 9, None, [None] * 4, soltype
 
 
 def refit_hip21_object(iad_dir, hip_id, use_parallax=False):
@@ -92,13 +99,13 @@ def refit_hip21_object(iad_dir, hip_id, use_parallax=False):
     fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype[-1], None)
     # For now, just do the 5 parameter sources of Hip2.
     if fit_degree == 1:
-        fit_coeffs, errors, chisq = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
+        fit_coeffs, errors, chisq, chi2_partials = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
                                                        jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
                                                        plx=plx, use_parallax=use_parallax)
         diffs = compute_diffs(fit_coeffs, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec)
-        return tuple((diffs, errors, chisq, soltype))
+        return tuple((diffs, errors, chisq, chi2_partials, soltype))
     else:
-        return [None]*9, [None]*9, None, soltype
+        return [None] * 9, [None] * 9, None, [None] * 4, soltype
 
 
 def refit_hip2_object(iad_dir, hip_id, catalog: Table, use_parallax=False):
@@ -111,13 +118,13 @@ def refit_hip2_object(iad_dir, hip_id, catalog: Table, use_parallax=False):
     fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype[-1], None)
     # For now, just do the 5 parameter sources of Hip2.
     if fit_degree == 1:
-        fit_coeffs, errors, chisq = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
+        fit_coeffs, errors, chisq, chi2_partials = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
                                                        jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
                                                        plx=plx, use_parallax=use_parallax)
         diffs = compute_diffs(fit_coeffs, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec)
-        return tuple((diffs, errors, chisq, soltype))
+        return tuple((diffs, errors, chisq, chi2_partials, soltype))
     else:
-        return [None]*9, [None]*9, None, soltype
+        return [None] * 9, [None] * 9, None, [None] * 4, soltype
 
 
 def get_cat_values_hip1(fname):

@@ -11,11 +11,11 @@ from multiprocessing import Pool
 class Engine(object):
     @staticmethod
     def format_result(result, hip_id, soltype):
-        diffs, errors, chisq = result[:3]
+        diffs, errors, chisq, partials = result[:4]
         plx, ra, dec, pm_ra, pm_dec, acc_ra, acc_dec, jerk_ra, jerk_dec = diffs
         return {'hip_id': hip_id, 'diff_ra': ra, 'diff_dec': dec, 'diff_plx': plx, 'diff_pm_ra': pm_ra, 'diff_pm_dec': pm_dec,
                 'soltype': soltype, 'diff_acc_ra': acc_ra, 'diff_acc_dec': acc_dec, 'diff_jerk_ra': jerk_ra, 'diff_jerk_dec': jerk_dec,
-                'chisquared': chisq}
+                'chisquared': chisq, 'dxdra0': partials[0], 'dxddec0': partials[1], 'dxdmura': partials[2], 'dxdmudec': partials[3]}
 
 
 class Hip1Engine(Engine):
@@ -27,7 +27,7 @@ class Hip1Engine(Engine):
     def __call__(self, fname):
         hip_id = os.path.basename(fname).split('.txt')[0]
         result = refit_hip1_object(self.dirname, hip_id, self.hip_dm_g, use_parallax=self.use_parallax)
-        soltype = result[3]
+        soltype = result[4]
         return self.format_result(result, hip_id, soltype)
 
 
@@ -40,7 +40,7 @@ class Hip2Engine(Engine):
     def __call__(self, fname):
         hip_id = os.path.basename(fname).split('.d')[0].split('HIP')[1]
         result = refit_hip2_object(self.dirname, hip_id, self.catalog, use_parallax=self.use_parallax)
-        soltype = result[3]
+        soltype = result[4]
         return self.format_result(result, hip_id, soltype[-1])
 
 
@@ -52,14 +52,15 @@ class Hip21Engine(Engine):
     def __call__(self, fname):
         hip_id = os.path.basename(fname).split('.csv')[0].split('H')[1]
         result = refit_hip21_object(self.dirname, hip_id, use_parallax=self.use_parallax)
-        soltype = result[3]
+        soltype = result[4]
         return self.format_result(result, hip_id, soltype[-1])
 
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='Script for refitting the entire hipparcos catalog, 1997 or 2007.'
                                         'This will output a csv type file. Each row gives'
-                                        'the difference in the best-fit parameters and the catalog parameters')
+                                        'the difference in the best-fit parameters and the catalog parameters '
+                                        'along with other metrics of interest.')
     parser.add_argument("-dir", "--iad-directory", required=True, default=None,
                         help="full path to the intermediate data directory")
     parser.add_argument("-hr", "--hip-reduction", required=True, default=None, type=int,
@@ -116,7 +117,7 @@ if __name__ == "__main__":
         out = Table(data_outputs)
         out.sort('hip_id')
         out.write(output_file, overwrite=True)
-    finally: # To make sure processes are closed in the end, even if errors happen
+    finally:  # This makes sure processes are closed in the end, even if errors happen
         pool.close()
         pool.join()
 
