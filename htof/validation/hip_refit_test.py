@@ -112,7 +112,7 @@ if __name__ == "__main__":
         engine = Hip21Engine
     # fit a small subset of sources if debugging.
     if args.debug:
-        files = files[:5000]
+        files = files[:500]
     print('will fit {0} total hip {1} objects'.format(len(files), str(args.hip_reduction)))
     print('will save output table at', output_file)
     # do the fit.
