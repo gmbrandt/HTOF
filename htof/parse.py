@@ -295,7 +295,6 @@ class HipparcosRereductionCDBook(DecimalYearData):
         if attempt_adhoc_rejection:
             # must reject before inflating errors, otherwise F2 is around zero.
             epochs_to_reject = find_epochs_to_reject(self, catalog_f2, n_transits, nparam, percent_rejected)
-            print(star_id, epochs_to_reject)
             self.rejected_epochs = epochs_to_reject  # setting rejected_epochs also rejects the epochs (see the @setter)
         if error_inflate:
             # adjust the along scan errors so that the errors on the best fit parameters match the catalog.
@@ -417,7 +416,6 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
         np.put(idx, reject_idx, False)
         chisquared = np.sum((data.residuals.values[idx] / data.along_scan_errs.values[idx]) ** 2)
         f2 = compute_f2(n_transits - nparam - len(reject_idx), chisquared)
-        print(f2, catalog_f2)
         if not np.isclose(catalog_f2, f2, atol=0.05):
             print('catalog f2 value is {0} while the found value is {1}. It is possible that the '
                   'rejected observations numbered {2} are not the correct '
