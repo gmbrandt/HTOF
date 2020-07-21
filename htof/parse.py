@@ -401,4 +401,5 @@ def get_nparam(nparam_header_val):
 
 
 def compute_f2(nu, chisquared):
+    # equation B.2 of D. Michalik et al. 2014. Joint astrometric solution of Hipparcos and Gaia
     return (9*nu/2)**(1/2)*((chisquared/nu)**(1/3) + 2/(9*nu) - 1)
