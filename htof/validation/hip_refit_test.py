@@ -1,5 +1,5 @@
 from htof.validation.utils import refit_hip1_object, refit_hip2_object, load_hip2_catalog, refit_hip21_object
-from htof.validation.utils import load_hip1_dm_annex
+from htof.validation.utils import load_hip1_dm_annex, load_hip2_seven_p_annex, load_hip2_nine_p_annex
 import os
 from astropy.table import Table
 from argparse import ArgumentParser
@@ -32,14 +32,17 @@ class Hip1Engine(Engine):
 
 
 class Hip2Engine(Engine):
-    def __init__(self, dirname, use_parallax, catalog=None):
+    def __init__(self, dirname, use_parallax, catalog=None, seven_p_annex=None, nine_p_annex=None):
         self.dirname = dirname
         self.catalog = catalog
         self.use_parallax = use_parallax
+        self.seven_p_annex = seven_p_annex
+        self.nine_p_annex = nine_p_annex
 
     def __call__(self, fname):
         hip_id = os.path.basename(fname).split('.d')[0].split('HIP')[1]
-        result = refit_hip2_object(self.dirname, hip_id, self.catalog, use_parallax=self.use_parallax)
+        result = refit_hip2_object(self.dirname, hip_id, self.catalog, seven_p_annex=self.seven_p_annex,
+                                   nine_p_annex=self.nine_p_annex, use_parallax=self.use_parallax)
         soltype = result[4]
         return self.format_result(result, hip_id, soltype[-1])
 
@@ -100,13 +103,16 @@ if __name__ == "__main__":
     elif args.hip_reduction == 2:
         files = glob(os.path.join(args.iad_directory, '**/H*.d'))
         engine = Hip2Engine
-        kwargs = {'catalog': load_hip2_catalog(args.catalog_path)}
+        ninep_path = os.path.join(os.path.dirname(args.catalog_path), 'NineP_Cat.d')
+        sevenp_path = os.path.join(os.path.dirname(args.catalog_path), 'SevenP_Cat.d')
+        kwargs = {'catalog': load_hip2_catalog(args.catalog_path),
+                  'seven_p_annex': load_hip2_seven_p_annex(sevenp_path), 'nine_p_annex': load_hip2_nine_p_annex(ninep_path)}
     else:
         files = glob(os.path.join(args.iad_directory, '**/H*.csv'))
         engine = Hip21Engine
     # fit a small subset of sources if debugging.
     if args.debug:
-        files = files[:500]
+        files = files[:5000]
     print('will fit {0} total hip {1} objects'.format(len(files), str(args.hip_reduction)))
     print('will save output table at', output_file)
     # do the fit.

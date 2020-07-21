@@ -353,7 +353,7 @@ def match_filename(paths, star_id):
 
 
 def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, percent_rejected):
-    atol_f2 = 0.05  # f2 must match to the catalog within this to be considered valid.
+    atol_f2 = 0.1  # f2 must match to the catalog within this to be considered valid.
     # Calculate how many observations were probably rejected
     n_reject = max(floor((percent_rejected - 1) / 100 * n_transits), 0)
     max_n_reject = max(ceil((percent_rejected + 1) / 100 * n_transits), 1)

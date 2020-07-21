@@ -25,12 +25,12 @@ def refit_hip_fromdata(data: DataParser, fit_degree, pmRA, pmDec, accRA=0, accDe
     year_epochs = jyear_epoch - time.Time(1991.25, format='decimalyear', scale='tcb').jyear
     ra_ref = Angle(pmRA * mas_to_degree * year_epochs, unit='degree')
     dec_ref = Angle(pmDec * mas_to_degree * year_epochs, unit='degree')
-    # acceleration terms
+    # acceleration terms. See Van Leewen: Hipparcos, The New Reduction of the Raw Data (2010) Equation 3.35
     ra_ref += Angle(1 / 2 * accRA * mas_to_degree * (year_epochs ** 2 - 0.81), unit='degree')
     dec_ref += Angle(1 / 2 * accDec * mas_to_degree * (year_epochs ** 2 - 0.81), unit='degree')
-    # jerk terms
-    ra_ref += 0
-    dec_ref += 0
+    # jerk terms. See Van Leewen: Hipparcos, The New Reduction of the Raw Data (2010) Equation 3.35
+    ra_ref += Angle(1 / 6 * accRA * mas_to_degree * (year_epochs ** 2 - 1.69) * year_epochs, unit='degree')
+    dec_ref += Angle(1 / 6 * accDec * mas_to_degree * (year_epochs ** 2 - 1.69) * year_epochs, unit='degree')
     # add parallax if necessary
     ra_motion, dec_motion = parallactic_motion(jyear_epoch, cntr_RA.degree, cntr_Dec.degree, 'degree',
                                                time.Time(1991.25, format='decimalyear', scale='tcb').jyear,
@@ -108,7 +108,7 @@ def refit_hip21_object(iad_dir, hip_id, use_parallax=False):
         return [None] * 9, [None] * 9, None, [None] * 4, soltype
 
 
-def refit_hip2_object(iad_dir, hip_id, catalog: Table, use_parallax=False):
+def refit_hip2_object(iad_dir, hip_id, catalog: Table, seven_p_annex: Table = None, nine_p_annex: Table = None, use_parallax=False):
     data = HipparcosRereductionCDBook()
     data.parse(star_id=hip_id, intermediate_data_directory=iad_dir)
 
@@ -116,10 +116,17 @@ def refit_hip2_object(iad_dir, hip_id, catalog: Table, use_parallax=False):
     accRA, accDec, jerkRA, jerkDec = 0, 0, 0, 0
     soltype = soltype.strip()
     fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype[-1], None)
-    # For now, just do the 5 parameter sources of Hip2.
-    if fit_degree == 1:
-        fit_coeffs, errors, chisq, chi2_partials = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
-                                                       jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
+    # do the fit for seven/nine parameter fits if we have the 7th and 9th parameters.
+    if seven_p_annex is not None and fit_degree == 2:
+        idx = np.searchsorted(seven_p_annex['hip_id'].data, int(hip_id))  # int(hip_id) strips leading zeroes.
+        accRA, accDec = seven_p_annex[idx][['acc_ra', 'acc_dec']]
+    if seven_p_annex is not None and fit_degree == 3:
+        idx = np.searchsorted(nine_p_annex['hip_id'].data, int(hip_id))  # int(hip_id) strips leading zeroes.
+        jerkRA, jerkDec = nine_p_annex[idx][['jerk_ra', 'jerk_dec']]
+    # do the fit
+    if fit_degree is not None:
+        fit_coeffs, errors, chisq, chi2_partials = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=accRA, accDec=accDec,
+                                                       jerkRA=jerkRA, jerkDec=jerkDec, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
                                                        plx=plx, use_parallax=use_parallax)
         diffs = compute_diffs(fit_coeffs, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec)
         return tuple((diffs, errors, chisq, chi2_partials, soltype))
@@ -171,6 +178,28 @@ def load_hip2_catalog(catalog_path):
     catalog['col6'] = Angle(Angle(catalog['col6'], unit='rad'), unit='degree')
     for name, rename in zip(['col1', 'col7', 'col5', 'col6', 'col8', 'col9', 'col2'],
                             ['hip_id', 'plx', 'ra', 'dec', 'pmRA', 'pmDec', 'soltype']):
+        catalog.rename_column(name, rename)
+    # sort for quick retrieval of data for any source.
+    catalog.sort('hip_id')
+    return catalog
+
+
+def load_hip2_seven_p_annex(path):
+    catalog = Table.read(path, format='ascii')
+    catalog = catalog['col1', 'col3', 'col4']
+    for name, rename in zip(['col1', 'col3', 'col4'],
+                            ['hip_id', 'acc_ra', 'acc_dec']):
+        catalog.rename_column(name, rename)
+    # sort for quick retrieval of data for any source.
+    catalog.sort('hip_id')
+    return catalog
+
+
+def load_hip2_nine_p_annex(path):
+    catalog = Table.read(path, format='ascii')
+    catalog = catalog['col1', 'col3', 'col4', 'col5', 'col6']
+    for name, rename in zip(['col1', 'col3', 'col4', 'col5', 'col6'],
+                            ['hip_id', 'acc_ra', 'acc_dec', 'jerk_ra', 'jerk_dec']):
         catalog.rename_column(name, rename)
     # sort for quick retrieval of data for any source.
     catalog.sort('hip_id')
