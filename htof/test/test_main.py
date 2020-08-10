@@ -38,6 +38,9 @@ def test_parse_and_fit_to_line():
         assert np.isclose(mu_dec, 1)
 
 
+# TODO refactor all the below tests into a form that just uses refit_hip1_object or refit_hip2_object
+#  then have it check the chisq_found and the chisq from summing, the prop motions, the plx and the errors.
+
 @pytest.mark.e2e
 def test_Hip2_fit_to_hip27321():
     # Hip 27321 parameters from Snellen+Brown 2018: https://arxiv.org/pdf/1808.06257.pdf
@@ -129,7 +132,69 @@ def test_Hip1_fit_to_hip27321():
 
 
 @pytest.mark.e2e
+def test_Hip1_fit_to_hip44801():
+    # Hip 27321 parameters from the intermediate data
+    cntr_ra, cntr_dec = Angle(136.94995265, 'degree'), Angle(-9.85368471, 'degree')
+    plx = 2.90  # mas
+    pmRA = -10.91  # mas/year
+    pmDec = 5.06  # mas/year
+    # generate fitter and parse intermediate data
+    astro = Astrometry('Hip1', '44801', 'htof/test/data_for_tests/Hip1', central_epoch_ra=1991.25,
+                       central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
+                       central_ra=cntr_ra, central_dec=cntr_dec, normed=False)
+    chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
+    # generate ra and dec for each observation.
+    year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
+                  Time(1991.25, format='decimalyear').jyear
+    ra_motion = astro.fitter.parallactic_pertubations['ra_plx']
+    dec_motion = astro.fitter.parallactic_pertubations['dec_plx']
+    ra = Angle(ra_motion * plx + pmRA * year_epochs, unit='mas')
+    dec = Angle(dec_motion * plx + pmDec * year_epochs, unit='mas')
+    # add residuals
+    ra += Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
+    dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
+    #
+    coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
+    assert np.isclose(chisq, chisq_found, atol=1E-3)
+    assert np.allclose([pmRA, pmDec], np.array([coeffs[3], coeffs[4]]).round(2))
+    assert np.isclose(plx, coeffs[0].round(2), atol=0.01)
+    assert np.allclose(errors.round(2), np.array([1.09, 0.88, 0.77, 1.05, 0.80]))
+
+
+@pytest.mark.e2e
+def test_Hip1_fit_to_hip70000():
+    # Hip 27321 parameters from the intermediate data
+    cntr_ra, cntr_dec = Angle(214.85975459, 'degree'), Angle(14.93570946, 'degree')
+    plx = 1.26  # mas
+    pmRA = 1.01  # mas/year
+    pmDec = 7.27  # mas/year
+    # generate fitter and parse intermediate data
+    astro = Astrometry('Hip1', '70000', 'htof/test/data_for_tests/Hip1', central_epoch_ra=1991.25,
+                       central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
+                       central_ra=cntr_ra, central_dec=cntr_dec, normed=False)
+    chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
+    # generate ra and dec for each observation.
+    year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
+                  Time(1991.25, format='decimalyear').jyear
+    ra_motion = astro.fitter.parallactic_pertubations['ra_plx']
+    dec_motion = astro.fitter.parallactic_pertubations['dec_plx']
+    ra = Angle(ra_motion * plx + pmRA * year_epochs, unit='mas')
+    dec = Angle(dec_motion * plx + pmDec * year_epochs, unit='mas')
+    # add residuals
+    ra += Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
+    dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
+    #
+    coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
+    assert np.isclose(chisq, chisq_found, atol=1E-3)
+    assert np.allclose([pmRA, pmDec], np.array([coeffs[3], coeffs[4]]).round(2))
+    assert np.isclose(plx, coeffs[0].round(2), atol=0.01)
+    print(errors)
+    assert np.allclose(errors.round(2), np.array([1.11, 0.79, 0.62, 0.82, 0.64]))
+
+
+@pytest.mark.e2e
 def test_Hip1_fit_to_hip27321_no_parallax():
+    # WARNING including the parallax component is important if you want to recover the catalog errors.
     # Hip 27321 parameters from the Hipparcos 1 catalogue via Vizier
     pmRA = 4.65  # mas/year
     pmDec = 81.96  # mas/year
