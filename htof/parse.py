@@ -162,6 +162,7 @@ class GaiaData(DataParser):
         # convert on board mission time (OBMT) to julian day
         for col, newcol in zip(['start', 'end'], ['start_tcb_jd', 'end_tcb_jd']):
             dead_time_table[newcol] = gaia_obmt_to_tcb_julian_year(dead_time_table[col])
+        dead_time_table['duration_jd'] = dead_time_table['end_tcb_jd'] - dead_time_table['start_tcb_jd']
         # select the epochs that do not fall within a dead time window
         valid =
         # reject the epochs which fall within a dead time window

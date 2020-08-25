@@ -200,6 +200,20 @@ class TestParseGaiaData:
     def test_parse_selects_valid_epochs(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
         data = GaiaDR2(max_epoch=2458426.7784441218, min_epoch=2457143.4935643710)
+        data.DEAD_TIME_TABLE_NAME = None  # Do not reject dead times for this test
+        data.parse(intermediate_data_directory=test_data_directory,
+                   star_id='049699')
+
+        assert len(data._epoch) == 68
+        assert np.isclose(data._epoch.iloc[0], 2457143.4935643715)
+        assert np.isclose(data.scan_angle.iloc[0], -0.3066803677989655)
+        assert np.isclose(data._epoch.iloc[67], 2458426.7784441216)
+        assert np.isclose(data.scan_angle.iloc[67], 2.821818345385301)
+
+    @pytest.mark.integration
+    def test_parse_removes_dead_times(self):
+        test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
+        data = GaiaDR2(max_epoch=2458426.7784441218, min_epoch=2457143.4935643710)
         data.parse(intermediate_data_directory=test_data_directory,
                    star_id='049699')
 
