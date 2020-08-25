@@ -1,4 +1,4 @@
-from htof.parse import HipparcosOriginalData, HipparcosRereductionCDBook
+from htof.parse import HipparcosOriginalData, HipparcosRereductionDVDBook
 from htof.fit import AstrometricFitter
 from htof.sky_path import parallactic_motion, earth_ephemeris
 from astropy import time

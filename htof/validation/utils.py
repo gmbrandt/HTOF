@@ -1,7 +1,7 @@
 """
 Utility functions for the validation scripts.
 """
-from htof.parse import DataParser, HipparcosOriginalData, HipparcosRereductionCDBook, HipparcosRereductionJavaTool
+from htof.parse import DataParser, HipparcosOriginalData, HipparcosRereductionDVDBook, HipparcosRereductionJavaTool
 from htof.fit import AstrometricFitter
 from htof.sky_path import parallactic_motion, earth_ephemeris
 from astropy import time
@@ -110,7 +110,7 @@ def refit_hip21_object(iad_dir, hip_id, use_parallax=False):
 
 
 def refit_hip2_object(iad_dir, hip_id, catalog: Table, seven_p_annex: Table = None, nine_p_annex: Table = None, use_parallax=False):
-    data = HipparcosRereductionCDBook()
+    data = HipparcosRereductionDVDBook()
     data.parse(star_id=hip_id, intermediate_data_directory=iad_dir)
 
     plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip2(hip_id, catalog)

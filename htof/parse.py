@@ -280,12 +280,12 @@ class HipparcosOriginalData(DecimalYearData):
         return data
 
 
-class HipparcosRereductionCDBook(DecimalYearData):
+class HipparcosRereductionDVDBook(DecimalYearData):
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  along_scan_errs=None):
-        super(HipparcosRereductionCDBook, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
-                                                         epoch=epoch, residuals=residuals,
-                                                         inverse_covariance_matrix=inverse_covariance_matrix)
+        super(HipparcosRereductionDVDBook, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
+                                                          epoch=epoch, residuals=residuals,
+                                                          inverse_covariance_matrix=inverse_covariance_matrix)
 
     def parse(self, star_id, intermediate_data_directory, error_inflate=True, header_rows=1, attempt_adhoc_rejection=True, **kwargs):
         """
@@ -343,7 +343,7 @@ class HipparcosRereductionCDBook(DecimalYearData):
         return u
 
 
-class HipparcosRereductionJavaTool(HipparcosRereductionCDBook):
+class HipparcosRereductionJavaTool(HipparcosRereductionDVDBook):
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  along_scan_errs=None):
         super(HipparcosRereductionJavaTool, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,

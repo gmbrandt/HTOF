@@ -7,7 +7,7 @@ import tempfile
 from ast import literal_eval
 
 from astropy.table import Table
-from htof.parse import HipparcosOriginalData, HipparcosRereductionCDBook,\
+from htof.parse import HipparcosOriginalData, HipparcosRereductionDVDBook,\
     GaiaData, DataParser, GaiaDR2, DecimalYearData, HipparcosRereductionJavaTool, digits_only, \
     match_filename, get_nparam
 from htof.parse import calculate_covariance_matrices
@@ -90,14 +90,14 @@ class TestHipparcosOriginalData:
                        data_choice='something')
 
 
-class TestHipparcosRereductionCDBook:
+class TestHipparcosRereductionDVDBook:
     def test_error_inflation_factor(self):
         u = 0.875291 # D. Michalik et al. 2014 Q factor for Hip 27321, calculated by hand
-        assert np.isclose(HipparcosRereductionCDBook.error_inflation_factor(111, 5, -1.81), u, rtol=1e-5)
+        assert np.isclose(HipparcosRereductionDVDBook.error_inflation_factor(111, 5, -1.81), u, rtol=1e-5)
 
     def test_parse(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
-        data = HipparcosRereductionCDBook()
+        data = HipparcosRereductionDVDBook()
         data.parse(star_id='027321', intermediate_data_directory=test_data_directory)
         nu = 111 - 5
         Q = nu * (np.sqrt(2/(9*nu))*-1.81 + 1 - 2/(9*nu))**3  # D. Michalik et al. 2014 Q factor for Hip 27321
@@ -112,7 +112,7 @@ class TestHipparcosRereductionCDBook:
 
     def test_reject_obs(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
-        data = HipparcosRereductionCDBook()
+        data = HipparcosRereductionDVDBook()
         data.parse(star_id='27321', intermediate_data_directory=test_data_directory)
         assert len(data) == 111 - 0
         assert data.rejected_epochs == []
@@ -161,14 +161,14 @@ class TestDataParser:
     def test_parse_raises_file_not_found_error(self):
         with pytest.raises(FileNotFoundError):
             test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
-            data = HipparcosRereductionCDBook()
+            data = HipparcosRereductionDVDBook()
             data.parse(star_id='12gjas2',
                        intermediate_data_directory=test_data_directory)
 
     @mock.patch('htof.parse.glob.glob', return_value=['path/027321.dat', 'path/027321.dat'])
     def test_parse_raises_error_on_many_files_found(self, fake_glob):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/Hip2')
-        data = HipparcosRereductionCDBook()
+        data = HipparcosRereductionDVDBook()
         with pytest.raises(FileNotFoundError):
             data.parse(star_id='027321',
                        intermediate_data_directory=test_data_directory)
