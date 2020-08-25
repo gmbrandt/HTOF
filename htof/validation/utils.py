@@ -48,9 +48,10 @@ def refit_hip_fromdata(data: DataParser, fit_degree, pmRA, pmDec, accRA=0, accDe
     fit_coeffs, errors, chisq = fitter.fit_line(ra_ref.mas, dec_ref.mas, return_all=True)
     if not use_parallax:
         fit_coeffs = np.hstack([[0], fit_coeffs])
+        errors = np.hstack([[0], errors])
     # pad so coeffs and errors are 9 long.
-    fit_coeffs = np.pad(fit_coeffs, (0, 9 - len(fit_coeffs)))
     errors = np.pad(errors, (0, 9 - len(fit_coeffs)))
+    fit_coeffs = np.pad(fit_coeffs, (0, 9 - len(fit_coeffs)))
     # calculate the chisquared partials
     sin_scan = np.sin(data.scan_angle.values)
     cos_scan = np.cos(data.scan_angle.values)

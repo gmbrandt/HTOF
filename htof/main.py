@@ -23,7 +23,7 @@ class Astrometry(object):
 
     def __init__(self, data_choice, star_id, intermediate_data_directory, fitter=None, data=None,
                  central_epoch_ra=0, central_epoch_dec=0, format='jd', fit_degree=1,
-                 use_parallax=False, central_ra=None, central_dec=None, normed=True):
+                 use_parallax=False, central_ra=None, central_dec=None, normed=False):
 
         if data is None:
             DataParser = self.parsers[data_choice.lower()]

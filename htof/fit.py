@@ -28,7 +28,7 @@ class AstrometricFitter(object):
     def __init__(self, inverse_covariance_matrices=None, epoch_times=None,
                  astrometric_chi_squared_matrices=None, astrometric_solution_vector_components=None,
                  parallactic_pertubations=None, fit_degree=1, use_parallax=False,
-                 central_epoch_ra=0, central_epoch_dec=0, normed=True):
+                 central_epoch_ra=0, central_epoch_dec=0, normed=False):
         if parallactic_pertubations is None:
             parallactic_pertubations = {'ra_plx': np.zeros_like(epoch_times),
                                         'dec_plx': np.zeros_like(epoch_times)}

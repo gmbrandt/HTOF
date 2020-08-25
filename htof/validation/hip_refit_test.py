@@ -93,6 +93,9 @@ if __name__ == "__main__":
         output_file = 'hip' + args.hip_reduction + '_refit' + (str)(os.getpid()) + '.csv'
     else:
         output_file = args.output_file
+    if args.ignore_parallax:
+        print('Warning: ignore_parallax flag is active. parallax will not be fit and so the standard errors will '
+              'be slightly different compared to the catalog values for every source')
 
     # find the intermediate data files
     kwargs = {}
