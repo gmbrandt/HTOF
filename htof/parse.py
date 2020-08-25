@@ -79,7 +79,7 @@ class DataParser(object):
     def epoch(self):
         return self._epoch.values.flatten()
 
-    def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=1E5):
+    def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=1E10):
         cov_matrices = calculate_covariance_matrices(self.scan_angle,
                                                      cross_scan_along_scan_var_ratio=cross_scan_along_scan_var_ratio,
                                                      along_scan_errs=self.along_scan_errs)
@@ -212,7 +212,7 @@ class DecimalYearData(DataParser):
         return Time(self._epoch.values.flatten(), format='decimalyear').jd
 
 
-def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1E5,
+def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1E10,
                                   along_scan_errs=None):
     """
     :param scan_angles: pandas.DataFrame.

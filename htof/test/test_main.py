@@ -25,7 +25,7 @@ def test_parse_and_fit_to_line():
         data = parser()
         data.parse(star_id=star,
                    intermediate_data_directory=test_data_directory)
-        data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
+        data.calculate_inverse_covariance_matrices()
         fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix,
                                    epoch_times=np.linspace(0, 10, num=11))
         solution_vector = fitter.fit_line(ra_vs_epoch=np.linspace(30, 40, num=11),
@@ -188,7 +188,6 @@ def test_Hip1_fit_to_hip70000():
     assert np.isclose(chisq, chisq_found, atol=1E-3)
     assert np.allclose([pmRA, pmDec], np.array([coeffs[3], coeffs[4]]).round(2))
     assert np.isclose(plx, coeffs[0].round(2), atol=0.01)
-    print(errors)
     assert np.allclose(errors.round(2), np.array([1.11, 0.79, 0.62, 0.82, 0.64]))
 
 

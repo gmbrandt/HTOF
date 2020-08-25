@@ -30,7 +30,7 @@ class Astrometry(object):
             data = DataParser()
             data.parse(star_id=star_id,
                        intermediate_data_directory=intermediate_data_directory)
-            data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
+            data.calculate_inverse_covariance_matrices()
 
         parallactic_pertubations = None
         if use_parallax and isinstance(central_ra, Angle) and isinstance(central_dec, Angle):
