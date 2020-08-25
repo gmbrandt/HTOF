@@ -193,10 +193,10 @@ with the following code.
 
 Flagged Sources
 ~~~~~~~~~~~~~~~
-There are a small number of sources in the original reduction of Hipparcos and the re-reductions (e.g. the CD version
+There are a small number of sources in the original reduction of Hipparcos and the re-reductions (e.g. the DVD version
 of the 2007 re-reduction) that HTOF cannot well refit. These sources should be used cautiously and are listed by HIP ID in
 the files in the htof/data directory, e.g. htof/data/hip1_flagged.txt for the 1997 reduction and
-htof/data/hip2_cd_flagged.txt for the 2007 re-reduction which came on the CD accompanying the book. Every source in
+htof/data/hip2_dvd_flagged.txt for the 2007 re-reduction which came on the DVD accompanying the book. Every source in
 these lists have a difference in the catalog best fit proper motions and the HTOF refit proper motions in excess
 of 0.02 mas/yr in either RA or DEC or both.
 
