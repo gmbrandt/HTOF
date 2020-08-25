@@ -163,8 +163,10 @@ class GaiaData(DataParser):
         for col, newcol in zip(['start', 'end'], ['start_tcb_jd', 'end_tcb_jd']):
             dead_time_table[newcol] = gaia_obmt_to_tcb_julian_year(dead_time_table[col])
         dead_time_table['duration_jd'] = dead_time_table['end_tcb_jd'] - dead_time_table['start_tcb_jd']
-        # select the epochs that do not fall within a dead time window
-        valid =
+        # make a mask of the epochs. Those that are within a dead time window have a value of 0 (masked)
+        valid = np.ones(len(data))
+        for entry in dead_time_table:
+            valid[np.logical_and(epochs >= entry['start_tcb_jd'], epochs <= entry['end_tcb_jd'])] = 0
         # reject the epochs which fall within a dead time window
         data = data[valid].dropna()
         return data
