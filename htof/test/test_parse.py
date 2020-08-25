@@ -213,15 +213,13 @@ class TestParseGaiaData:
     @pytest.mark.integration
     def test_parse_removes_dead_times(self):
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
-        data = GaiaDR2(max_epoch=2458426.7784441218, min_epoch=2457143.4935643710)
+        data = GaiaDR2(max_epoch=np.inf, min_epoch=-np.inf)
         data.parse(intermediate_data_directory=test_data_directory,
-                   star_id='049699')
+                   star_id='gaiatestsource01')
 
-        assert len(data._epoch) == 68
-        assert np.isclose(data._epoch.iloc[0], 2457143.4935643715)
-        assert np.isclose(data.scan_angle.iloc[0], -0.3066803677989655)
-        assert np.isclose(data._epoch.iloc[67], 2458426.7784441216)
-        assert np.isclose(data.scan_angle.iloc[67], 2.821818345385301)
+        assert len(data._epoch) == 1
+        assert np.isclose(data._epoch.iloc[0], 2456893.28785)
+        assert np.isclose(data.scan_angle.iloc[0], -1.7804696884345342)
 
 
 def test_write_with_missing_info():

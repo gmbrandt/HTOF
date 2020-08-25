@@ -13,11 +13,10 @@ import numpy as np
 import pandas as pd
 import os
 import glob
-from astropy.table import Table
 import pkg_resources
 
 from astropy.time import Time
-from astropy.table import QTable, Column
+from astropy.table import QTable, Column, Table
 
 from htof import settings as st
 from htof.utils.data_utils import merge_consortia, safe_concatenate
@@ -158,13 +157,13 @@ class GaiaData(DataParser):
         if self.DEAD_TIME_TABLE_NAME is None:
             # return the data if there is no dead time table specified.
             return data
-        dead_time_table = Table.read(pkg_resources.resource_filename(self.DEAD_TIME_TABLE_NAME))
+        dead_time_table = Table.read(pkg_resources.resource_filename('htof', self.DEAD_TIME_TABLE_NAME))
         # convert on board mission time (OBMT) to julian day
         for col, newcol in zip(['start', 'end'], ['start_tcb_jd', 'end_tcb_jd']):
-            dead_time_table[newcol] = gaia_obmt_to_tcb_julian_year(dead_time_table[col])
+            dead_time_table[newcol] = gaia_obmt_to_tcb_julian_year(dead_time_table[col]).jd
         dead_time_table['duration_jd'] = dead_time_table['end_tcb_jd'] - dead_time_table['start_tcb_jd']
         # make a mask of the epochs. Those that are within a dead time window have a value of 0 (masked)
-        valid = np.ones(len(data))
+        valid = np.ones(len(data), dtype=bool)
         for entry in dead_time_table:
             valid[np.logical_and(epochs >= entry['start_tcb_jd'], epochs <= entry['end_tcb_jd'])] = 0
         # reject the epochs which fall within a dead time window
@@ -306,7 +305,7 @@ class HipparcosRereductionData(DecimalYearData):
 
 
 class GaiaDR2(GaiaData):
-    DEAD_TIME_TABLE_NAME = 'astrometric_gaps_gaiadr2.csv'
+    DEAD_TIME_TABLE_NAME = 'data/astrometric_gaps_gaiadr2_08252020.csv'
 
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch, along_scan_errs=None):

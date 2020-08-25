@@ -1,4 +1,10 @@
-0.2.10 (2019-03-05)
+0.2.11 (2020-08-25)
+-------------------
+- Implemented dead time rejection for Gaia. GaiaData does not reject dead times by default, GaiaDR2 rejects
+dead times posted at https://www.cosmos.esa.int/web/gaia/dr2-data-gaps under Astrometric Gaps, 
+fetched on August 25th 2020. That dead time table is in htof/htof/data/astrometric_gaps_gaiadr2_08252020.csv
+
+0.2.10 (2020-03-05)
 ------------------
 - The standard errors on fit parameters for Hipparcos 1 and the re-reduction are now correct.  
 There was an erroneous factor of the square root of two in both cases. 
@@ -7,24 +13,24 @@ intermediate data along-scan errors, which brings the standard errors on the bes
 into agreement with the values on **the CD** (note the CD catalog values disagree slightly
 with those on Vizier)
 
-0.2.9 (2019-02-05)
+0.2.9 (2020-02-05)
 ------------------
 - Removed the half day correction when converting from decimal year to julian date.
 
-0.2.8 (2019-01-24)
+0.2.8 (2020-01-24)
 ------------------
 - Instances of IntermediateDataParser can now be added to each other with the 
 standard python addition operator. Each data attribute of the (new) class instance created by summing
 will be the concatenation of the data attributes from the input classes.
 
-0.2.7 (2019-01-24)
+0.2.7 (2020-01-24)
 ------------------
 - Any class which inherits from IntermediateDataParser now has the .write() method which
 converts the data stored in the attributes of IntermediateDataParser into an astropy.table.Table
 and writes it out to the specified path. One can call IntermediateDataParser.write() with any of
 the keyword arguments of astropy.table.Table.
 
-0.2.6 (2019-01-24)
+0.2.6 (2020-01-24)
 ------------------
 - The fit astrometric parameters mu_ra, mu_dec, acc_ra, acc_dec etc... now include n!
 so that the astrometric motion (e.g. for RA) is ra_0 + mu_ra x t + 1/2 x acc_ra x t + ...
