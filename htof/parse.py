@@ -21,6 +21,7 @@ from astropy.table import QTable, Column
 
 from htof import settings as st
 from htof.utils.data_utils import merge_consortia, safe_concatenate
+from htof.utils.parse_utils import gaia_obmt_to_tcb_julian_year
 
 import abc
 
@@ -158,6 +159,13 @@ class GaiaData(DataParser):
             # return the data if there is no dead time table specified.
             return data
         dead_time_table = Table.read(pkg_resources.resource_filename(self.DEAD_TIME_TABLE_NAME))
+        # convert on board mission time (OBMT) to julian day
+        for col, newcol in zip(['start', 'end'], ['start_tcb_jd', 'end_tcb_jd']):
+            dead_time_table[newcol] = gaia_obmt_to_tcb_julian_year(dead_time_table[col])
+        # select the epochs that do not fall within a dead time window
+        valid =
+        # reject the epochs which fall within a dead time window
+        data = data[valid].dropna()
         return data
 
 

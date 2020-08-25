@@ -10,3 +10,4 @@ def gaia_obmt_to_tcb_julian_year(obmt):
     :return: astropy.time.Time
     """
     tcbjy = 2015 + (obmt - 1717.6256)/(1461)
+    return Time(tcbjy, scale='tcb', format='jyear')
