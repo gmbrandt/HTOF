@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import os
 import glob
+from astropy.table import Table
+import pkg_resources
 
 from astropy.time import Time
 from astropy.table import QTable, Column
@@ -126,6 +128,8 @@ class DataParser(object):
 
 
 class GaiaData(DataParser):
+    DEAD_TIME_TABLE_NAME = None
+
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  min_epoch=-np.inf, max_epoch=np.inf, along_scan_errs=None):
         super(GaiaData, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
@@ -139,12 +143,22 @@ class GaiaData(DataParser):
                                                 skiprows=0, header='infer', sep='\s*,\s*')
         data = self.trim_data(data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]'],
                               data, self.min_epoch, self.max_epoch)
+        data = self.reject_dead_times(data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]'], data)
         self._epoch = data['ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]']
         self.scan_angle = data['scanAngle[rad]']
 
     def trim_data(self, epochs, data, min_mjd, max_mjd):
         valid = np.logical_and(epochs >= min_mjd, epochs <= max_mjd)
         return data[valid].dropna()
+
+    def reject_dead_times(self, epochs, data):
+        # there will be different astrometric gaps for gaia DR2 and DR3 because rejection criteria may change.
+        # hence we have the appropriate parsers have different values for DEAD_TIME_TABLE_NAME.
+        if self.DEAD_TIME_TABLE_NAME is None:
+            # return the data if there is no dead time table specified.
+            return data
+        dead_time_table = Table.read(pkg_resources.resource_filename(self.DEAD_TIME_TABLE_NAME))
+        return data
 
 
 class DecimalYearData(DataParser):
@@ -281,6 +295,8 @@ class HipparcosRereductionData(DecimalYearData):
 
 
 class GaiaDR2(GaiaData):
+    DEAD_TIME_TABLE_NAME = 'astrometric_gaps_gaiadr2.csv'
+
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch, along_scan_errs=None):
         super(GaiaDR2, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
