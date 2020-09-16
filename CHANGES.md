@@ -1,3 +1,10 @@
+0.2.12 (2020-08-26)
+-------------------
+- HipparcosRereductionCDBook has been renamed HipparcosRereductionDVDBook because the data come from a DVD.
+- Added various utilities and scripts for validating HTOF's fitting and parsing 
+routines over the entire Hipparcos catalog.
+- Added a list of flagged sources for which HTOF cannot reproduce their catalog solution. 
+
 0.2.11 (2020-08-25)
 -------------------
 - Implemented dead time rejection for Gaia. GaiaData does not reject dead times by default, GaiaDR2 rejects

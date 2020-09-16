@@ -13,39 +13,26 @@ import warnings
 import numpy as np
 
 
-def refit_hip_fromdata(data: DataParser, fit_degree, pmRA, pmDec, accRA=0, accDec=0, jerkRA=0, jerkDec=0,
-                       cntr_RA=Angle(0, unit='degree'), cntr_Dec=Angle(0, unit='degree'),
-                       plx=0., use_parallax=False):
+def refit_hip_fromdata(data: DataParser, fit_degree, cntr_RA=Angle(0, unit='degree'), cntr_Dec=Angle(0, unit='degree'),
+                       use_parallax=False):
     data.calculate_inverse_covariance_matrices()
-    mas_to_degree = 1. / 60 / 60 / 1000
     # generate parallax motion
     jyear_epoch = time.Time(data.julian_day_epoch(), format='jd', scale='tcb').jyear
     # note that ra_motion and dec_motion are in degrees here.
     # generate sky path
     year_epochs = jyear_epoch - time.Time(1991.25, format='decimalyear', scale='tcb').jyear
-    ra_ref = Angle(pmRA * mas_to_degree * year_epochs, unit='degree')
-    dec_ref = Angle(pmDec * mas_to_degree * year_epochs, unit='degree')
-    # acceleration terms. See Van Leewen: Hipparcos, The New Reduction of the Raw Data (2010) Equation 3.35
-    ra_ref += Angle(1 / 2 * accRA * mas_to_degree * (year_epochs ** 2 - 0.81), unit='degree')
-    dec_ref += Angle(1 / 2 * accDec * mas_to_degree * (year_epochs ** 2 - 0.81), unit='degree')
-    # jerk terms. See Van Leewen: Hipparcos, The New Reduction of the Raw Data (2010) Equation 3.35
-    ra_ref += Angle(1 / 6 * accRA * mas_to_degree * (year_epochs ** 2 - 1.69) * year_epochs, unit='degree')
-    dec_ref += Angle(1 / 6 * accDec * mas_to_degree * (year_epochs ** 2 - 1.69) * year_epochs, unit='degree')
-    # add parallax if necessary
     ra_motion, dec_motion = parallactic_motion(jyear_epoch, cntr_RA.degree, cntr_Dec.degree, 'degree',
                                                time.Time(1991.25, format='decimalyear', scale='tcb').jyear,
                                                ephemeris=earth_ephemeris)  # Hipparcos was in a geostationary orbit.
 
     ra_resid = Angle(data.residuals.values * np.sin(data.scan_angle.values), unit='mas')
     dec_resid = Angle(data.residuals.values * np.cos(data.scan_angle.values), unit='mas')
-    ra_ref += ra_resid
-    dec_ref += dec_resid
     # instantiate fitter
     fitter = AstrometricFitter(data.inverse_covariance_matrix, year_epochs, normed=False,
                                use_parallax=use_parallax, fit_degree=fit_degree,
                                parallactic_pertubations={'ra_plx': Angle(ra_motion, 'degree').mas,
                                                          'dec_plx': Angle(dec_motion, 'degree').mas})
-    fit_coeffs, errors, chisq = fitter.fit_line(ra_ref.mas, dec_ref.mas, return_all=True)
+    fit_coeffs, errors, chisq = fitter.fit_line(ra_resid.mas, dec_resid.mas, return_all=True)
     if not use_parallax:
         fit_coeffs = np.hstack([[0], fit_coeffs])
         errors = np.hstack([[0], errors])
@@ -80,11 +67,41 @@ def refit_hip1_object(iad_dir, hip_id, hip_dm_g=None, use_parallax=False):
     if fit_degree is not None:
         # abscissa residuals are always with respect to 5p solution for hip1. Do not feed accRA, etc..
         # when reconstructing the skypath
-        fit_coeffs, errors, chisq, chi2_partials = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
-                                    jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
-                                    plx=plx, use_parallax=use_parallax)
-        diffs = compute_diffs(fit_coeffs, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec)
+        diffs, errors, chisq, chi2_partials = refit_hip_fromdata(data, fit_degree, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
+                                                                 use_parallax=use_parallax)
+        if soltype == '7' or soltype == '9':
+            # to account for the 0.81 yr and 1.69 yr^2 basis offsets present in 7 and 9 parameter solutions:
+            diffs -= compute_basis_offsets(accRA, accDec, jerkRA, jerkDec)
+            # diffs[-4:] are not differences but actually the accRA, accDec, jerkRA, jerkDec parameters, so we need to subtract those off
+            diffs[-4:] -= np.array([accRA, accDec, jerkRA, jerkDec])
+
         return tuple((diffs, errors, chisq, chi2_partials, soltype))
+    else:
+        return [None] * 9, [None] * 9, None, [None] * 4, soltype
+
+
+def refit_hip2_object(iad_dir, hip_id, catalog: Table, seven_p_annex: Table = None, nine_p_annex: Table = None, use_parallax=False):
+    data = HipparcosRereductionDVDBook()
+    data.parse(star_id=hip_id, intermediate_data_directory=iad_dir)
+
+    cat_params, cat_errors, soltype = get_cat_values_hip2(hip_id, catalog)
+    cntr_RA, cntr_Dec = cat_params[1:3]
+    soltype = soltype.strip()
+    fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype[-1], None)
+    # do the fit for seven/nine parameter fits if we have the 7th and 9th parameters.
+    accRA_err, accDec_err, jerkRA_err, jerkDec_err = 0, 0, 0, 0
+    if seven_p_annex is not None and fit_degree >= 2:
+        idx = np.searchsorted(seven_p_annex['hip_id'].data, int(hip_id))  # int(hip_id) strips leading zeroes.
+        accRA_err, accDec_err = seven_p_annex[idx][['acc_ra_err', 'acc_dec_err']]
+    if nine_p_annex is not None and fit_degree == 3:
+        idx = np.searchsorted(nine_p_annex['hip_id'].data, int(hip_id))  # int(hip_id) strips leading zeroes.
+        jerkRA_err, jerkDec_err = nine_p_annex[idx][['jerk_ra_err', 'jerk_dec_err']]
+    # do the fit
+    cat_errors = np.hstack([cat_errors, [accRA_err, accDec_err, jerkRA_err, jerkDec_err]])
+    if fit_degree is not None:
+        diffs, errors, chisq, chi2_partials = refit_hip_fromdata(data, fit_degree, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
+                                                                 use_parallax=use_parallax)
+        return tuple((diffs, errors - cat_errors, chisq, chi2_partials, soltype))
     else:
         return [None] * 9, [None] * 9, None, [None] * 4, soltype
 
@@ -95,41 +112,12 @@ def refit_hip21_object(iad_dir, hip_id, use_parallax=False):
     fname = glob(os.path.join(iad_dir, '**/', "H" + hip_id.zfill(6) + ".csv"))[0]
 
     plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip21(fname)
-    accRA, accDec, jerkRA, jerkDec = 0, 0, 0, 0
     soltype = soltype.strip()
     fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype[-1], None)
     # For now, just do the 5 parameter sources of Hip2.
     if fit_degree == 1:
-        fit_coeffs, errors, chisq, chi2_partials = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=0, accDec=0,
-                                                       jerkRA=0, jerkDec=0, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
-                                                       plx=plx, use_parallax=use_parallax)
-        diffs = compute_diffs(fit_coeffs, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec)
-        return tuple((diffs, errors, chisq, chi2_partials, soltype))
-    else:
-        return [None] * 9, [None] * 9, None, [None] * 4, soltype
-
-
-def refit_hip2_object(iad_dir, hip_id, catalog: Table, seven_p_annex: Table = None, nine_p_annex: Table = None, use_parallax=False):
-    data = HipparcosRereductionDVDBook()
-    data.parse(star_id=hip_id, intermediate_data_directory=iad_dir)
-
-    plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = get_cat_values_hip2(hip_id, catalog)
-    accRA, accDec, jerkRA, jerkDec = 0, 0, 0, 0
-    soltype = soltype.strip()
-    fit_degree = {'5': 1, '7': 2, '9': 3}.get(soltype[-1], None)
-    # do the fit for seven/nine parameter fits if we have the 7th and 9th parameters.
-    if seven_p_annex is not None and fit_degree == 2:
-        idx = np.searchsorted(seven_p_annex['hip_id'].data, int(hip_id))  # int(hip_id) strips leading zeroes.
-        accRA, accDec = seven_p_annex[idx][['acc_ra', 'acc_dec']]
-    if seven_p_annex is not None and fit_degree == 3:
-        idx = np.searchsorted(nine_p_annex['hip_id'].data, int(hip_id))  # int(hip_id) strips leading zeroes.
-        jerkRA, jerkDec = nine_p_annex[idx][['jerk_ra', 'jerk_dec']]
-    # do the fit
-    if fit_degree is not None:
-        fit_coeffs, errors, chisq, chi2_partials = refit_hip_fromdata(data, fit_degree, pmRA, pmDec, accRA=accRA, accDec=accDec,
-                                                       jerkRA=jerkRA, jerkDec=jerkDec, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
-                                                       plx=plx, use_parallax=use_parallax)
-        diffs = compute_diffs(fit_coeffs, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec)
+        diffs, errors, chisq, chi2_partials = refit_hip_fromdata(data, fit_degree, cntr_RA=cntr_RA, cntr_Dec=cntr_Dec,
+                                                                 use_parallax=use_parallax)
         return tuple((diffs, errors, chisq, chi2_partials, soltype))
     else:
         return [None] * 9, [None] * 9, None, [None] * 4, soltype
@@ -168,17 +156,22 @@ def get_cat_values_hip21(fname):
 def get_cat_values_hip2(hip_id, catalog: Table):
     idx = np.searchsorted(catalog['hip_id'].data, int(hip_id))  # int(hip_id) strips leading zeroes.
     plx, cntr_RA, cntr_Dec, pmRA, pmDec, soltype = catalog[idx]['plx', 'ra', 'dec', 'pmRA', 'pmDec', 'soltype']
+    plx_e, cntr_RA_e, cntr_Dec_e, pmRA_e, pmDec_e = catalog[idx]['plx_err', 'ra_err', 'dec_err', 'pmRA_err', 'pmDec_err']
     cntr_RA, cntr_Dec = Angle(cntr_RA, unit=catalog['ra'].unit), Angle(cntr_Dec, unit=catalog['dec'].unit)
-    return plx, cntr_RA, cntr_Dec, pmRA, pmDec, str(int(soltype))
+    #
+    params = [plx, cntr_RA, cntr_Dec, pmRA, pmDec]
+    errors = [plx_e, cntr_RA_e, cntr_Dec_e, pmRA_e, pmDec_e]
+    return params, errors, str(int(soltype))
 
 
 def load_hip2_catalog(catalog_path):
     catalog = Table.read(catalog_path, format='ascii')
-    catalog = catalog['col1', 'col7', 'col5', 'col6', 'col8', 'col9', 'col2']
+    catalog = catalog['col1', 'col7', 'col5', 'col6', 'col8', 'col9', 'col12', 'col10', 'col11', 'col13', 'col14', 'col2']
     catalog['col5'] = Angle(Angle(catalog['col5'], unit='rad'), unit='degree')
     catalog['col6'] = Angle(Angle(catalog['col6'], unit='rad'), unit='degree')
-    for name, rename in zip(['col1', 'col7', 'col5', 'col6', 'col8', 'col9', 'col2'],
-                            ['hip_id', 'plx', 'ra', 'dec', 'pmRA', 'pmDec', 'soltype']):
+    # names from Table G.3 of Hipparcos: The new reduction of the raw data (2007)
+    for name, rename in zip(['col1', 'col7', 'col5', 'col6', 'col8', 'col9', 'col12', 'col10', 'col11', 'col13', 'col14', 'col2'],
+                            ['hip_id', 'plx', 'ra', 'dec', 'pmRA', 'pmDec', 'plx_err', 'ra_err', 'dec_err', 'pmRA_err', 'pmDec_err', 'soltype']):
         catalog.rename_column(name, rename)
     # sort for quick retrieval of data for any source.
     catalog.sort('hip_id')
@@ -187,9 +180,10 @@ def load_hip2_catalog(catalog_path):
 
 def load_hip2_seven_p_annex(path):
     catalog = Table.read(path, format='ascii')
-    catalog = catalog['col1', 'col3', 'col4']
-    for name, rename in zip(['col1', 'col3', 'col4'],
-                            ['hip_id', 'acc_ra', 'acc_dec']):
+    catalog = catalog['col1', 'col3', 'col4', 'col5', 'col6']
+    # names from Table G.5 of Hipparcos: The new reduction of the raw data (2007)
+    for name, rename in zip(['col1', 'col3', 'col4', 'col5', 'col6'],
+                            ['hip_id', 'acc_ra', 'acc_dec', 'acc_ra_err', 'acc_dec_err']):
         catalog.rename_column(name, rename)
     # sort for quick retrieval of data for any source.
     catalog.sort('hip_id')
@@ -198,9 +192,10 @@ def load_hip2_seven_p_annex(path):
 
 def load_hip2_nine_p_annex(path):
     catalog = Table.read(path, format='ascii')
-    catalog = catalog['col1', 'col3', 'col4', 'col5', 'col6']
-    for name, rename in zip(['col1', 'col3', 'col4', 'col5', 'col6'],
-                            ['hip_id', 'acc_ra', 'acc_dec', 'jerk_ra', 'jerk_dec']):
+    catalog = catalog['col1', 'col3', 'col4', 'col5', 'col6', 'col7', 'col8', 'col9', 'col10']
+    # names from Table G.6 of Hipparcos: The new reduction of the raw data (2007)
+    for name, rename in zip(['col1', 'col3', 'col4', 'col5', 'col6', 'col7', 'col8', 'col9', 'col10'],
+                            ['hip_id', 'acc_ra', 'acc_dec', 'jerk_ra', 'jerk_dec', 'acc_ra_err', 'acc_dec_err', 'jerk_ra_err', 'jerk_dec_err']):
         catalog.rename_column(name, rename)
     # sort for quick retrieval of data for any source.
     catalog.sort('hip_id')
@@ -211,25 +206,39 @@ def load_hip1_dm_annex(catalog_path):
     # load the hip1 doubles and multiples annex for the accelerating systems
     if not os.path.exists(catalog_path):
         warnings.warn('Doubles and multiples annex {0} file not found. Will only fit 5 parameter solutions.'
-                      'For 7,9 parameter validation, please download hip_dm_g.dat from Vizier. E.g. from '
-                      'https://cdsarc.unistra.fr/ftp/I/239/hip_dm_g.dat.gz . Unzip it, and place it inside the hip1'
+                      'For 7, 9 parameter validation, please download hip_dm_g.dat from '
+                      'https://cdsarc.unistra.fr/ftp/I/239/hip_dm_g.dat.gz (it is not on Vizier as of Sep 16 2020). '
+                      'Unzip it, and place it inside the hip1'
                       'intermediate data directory.'.format(catalog_path), UserWarning)
         return None
     catalog = Table.read(catalog_path, format='ascii')
-    catalog = catalog['col1', 'col2', 'col3', 'col7', 'col8']
-    for name, rename in zip(['col1', 'col2', 'col3', 'col7', 'col8'],
-                            ['hip_id', 'accRA', 'accDec', 'jerkRA', 'jerkDec']):
+    # column designations are from the Hipparcos and Tycho catalogs, Vol1, Table 2.3.3.
+    catalog = catalog['col1', 'col2', 'col3', 'col4', 'col5', 'col7', 'col8', 'col9', 'col10']
+    for name, rename in zip(['col1', 'col2', 'col3', 'col4', 'col5', 'col7', 'col8', 'col9', 'col10'],
+                            ['hip_id', 'accRA', 'accDec', 'accRA_err', 'accDec_err', 'jerkRA', 'jerkDec', 'jerkRA_err', 'jerkDec_err']):
         catalog.rename_column(name, rename)
     # sort for quick retrieval of data for any source.
     catalog.sort('hip_id')
     return catalog.filled(0)  # this sets missing acc/jerks to 0 and returns a Table instead of a Masked Table
 
 
-def compute_diffs(fit_coeffs, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec):
-    catalog_parameters = np.array([0, 0, 0, pmRA, pmDec, accRA, accDec, jerkRA, jerkDec])
+def load_hip1_catalog(catalog_path):
+    catalog = Table.read(catalog_path, format='ascii')
+    # catalog should be fetched from https://cdsarc.unistra.fr/ftp/I/239/hip_main.dat.gz
+    # column designations are from https://cdsarc.unistra.fr/ftp/I/239/ReadMe
+    catalog = catalog['col2', 'col12', 'col9', 'col10', 'col13', 'col14', 'col17', 'col15', 'col16', 'col18', 'col19']
+    for name, rename in zip(['col2', 'col12', 'col9', 'col10', 'col13', 'col14', 'col17', 'col15', 'col16', 'col18', 'col19'],
+                            ['hip_id', 'plx', 'ra', 'dec', 'pmRA', 'pmDec', 'plx_err', 'ra_err', 'dec_err', 'pmRA_err', 'pmDec_err']):
+        catalog.rename_column(name, rename)
+    # sort for quick retrieval of data for any source.
+    catalog.sort('hip_id')
+    return catalog.filled(0)  # this sets missing entries to 0 and returns a Table instead of a Masked Table
+
+
+def compute_basis_offsets(accRA, accDec, jerkRA, jerkDec):
     # account for the 0.81 yr and 1.69 yr^2 basis offsets:
     # See THE HIPPARCOS CATALOGUE DOUBLE AND MULTIPLE SYSTEMS ANNEX by Lennart Lindegren (1997)
     a, b = 0.81, 1.69  # yr^2
     offsets = np.array([0, -a / 2 * accRA, -a / 2 * accDec, -b / 6 * jerkRA, -b / 6 * jerkDec, 0, 0, 0, 0])
     # compute differences between reference parameters and our best fit parameters
-    return fit_coeffs - (catalog_parameters + offsets)
+    return offsets

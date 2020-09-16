@@ -257,7 +257,8 @@ class HipparcosOriginalData(DecimalYearData):
                                                 skiprows=10, header='infer', sep='\s*\|\s*')
         data = self._fix_unnamed_column(data)
         data = self._select_data(data, data_choice)
-        # compute scan angles and observations epochs according to van Leeuwen & Evans 1997, eq. 11 & 12.
+        # compute scan angles and observations epochs according to van Leeuwen & Evans 1998
+        #  10.1051/aas:1998218, eq. 11 & 12.
         self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians, arctan2(sin, cos)
         # Use the larger denominator when computing the epoch offset. 
         # This increases numerical precision and avoids NaNs if one of the two fields (IA3, IA4) is exactly zero.
