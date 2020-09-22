@@ -55,7 +55,7 @@ class TestHipReReductionCDFits:
 
     @pytest.mark.e2e
     @pytest.mark.parametrize("hip_id", ['9631', '16468', '25838'])
-    def test_Hip2_fit_7p9p_source(self, hip_id):
+    def donottest_Hip2_fit_7p9p_source(self, hip_id):
         diffs, error_diffs, chisq, chi2_partials, soltype = refit_hip2_object('/home/gmbrandt/Documents/Hip2_CD_Book/IntermediateData/resrec', hip_id,
                                                                               nine_p_annex=self.NINEP, seven_p_annex=self.SEVENP,
                                                                               catalog=self.CATALOG, use_parallax=True)
