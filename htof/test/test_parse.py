@@ -10,7 +10,7 @@ from astropy.table import Table
 from htof.parse import HipparcosOriginalData, HipparcosRereductionDVDBook,\
     GaiaData, DataParser, GaiaDR2, DecimalYearData, HipparcosRereductionJavaTool, digits_only, \
     match_filename, get_nparam
-from htof.parse import calculate_covariance_matrices
+from htof.parse import calc_inverse_covariance_matrices
 
 
 class TestHipparcosOriginalData:
@@ -242,11 +242,11 @@ def test_trim_gaia_data():
     assert np.allclose(data.values.flatten(), [datemin, datemax])
 
 
-@mock.patch('htof.parse.calculate_covariance_matrices', return_value=np.array([np.ones((2, 2))]))
+@mock.patch('htof.parse.calc_inverse_covariance_matrices', return_value=np.array([np.ones((2, 2))]))
 def test_calculate_inverse_covariances(mock_cov_matrix):
     parser = DataParser()
     parser.calculate_inverse_covariance_matrices()
-    assert np.allclose(parser.inverse_covariance_matrix[0], 1/4 * np.ones((2, 2)))
+    assert np.allclose(parser.inverse_covariance_matrix[0], np.ones((2, 2)))
 
 
 class TestParseGaiaData:
@@ -321,8 +321,12 @@ def test_write():
 
 def test_calculating_covariance_matrices():
     scan_angles = pd.DataFrame(data=np.linspace(0, 2 * np.pi, 5))
-    covariances = calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=10)
-    assert len(covariances) == len(scan_angles)
+    icovariances = calc_inverse_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=10)
+    assert len(icovariances) == len(scan_angles)
+    # calculate the covariance matrices so that we can compute the scan angle from the matrix.
+    covariances = np.zeros_like(icovariances)
+    for i in range(len(icovariances)):
+        covariances[i] = np.linalg.pinv(icovariances[i])
     assert np.allclose(covariances[-1], covariances[0])  # check 2pi is equivalent to 0.
     assert np.allclose(covariances[0], np.array([[10, 0], [0, 1]]))  # angle of 0 has AL parallel with DEC.
     for cov_matrix, scan_angle in zip(covariances, scan_angles.values.flatten()):

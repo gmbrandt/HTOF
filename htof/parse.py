@@ -79,14 +79,10 @@ class DataParser(object):
     def epoch(self):
         return self._epoch.values.flatten()
 
-    def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=1E10):
-        cov_matrices = calculate_covariance_matrices(self.scan_angle,
-                                                     cross_scan_along_scan_var_ratio=cross_scan_along_scan_var_ratio,
-                                                     along_scan_errs=self.along_scan_errs)
-        icov_matrices = np.zeros_like(cov_matrices)
-        for i in range(len(cov_matrices)):
-            icov_matrices[i] = np.linalg.pinv(cov_matrices[i])
-        self.inverse_covariance_matrix = icov_matrices
+    def calculate_inverse_covariance_matrices(self, cross_scan_along_scan_var_ratio=np.inf):
+        self.inverse_covariance_matrix = calc_inverse_covariance_matrices(self.scan_angle,
+                                                                          cross_scan_along_scan_var_ratio=cross_scan_along_scan_var_ratio,
+                                                                          along_scan_errs=self.along_scan_errs)
 
     def write(self, path: str, *args, **kwargs):
         """
@@ -101,7 +97,7 @@ class DataParser(object):
         where i is the index. ast.literal_eval(t['icov'][i]) will return a 2x2 list.
         """
         t = self.as_table()
-        # fix icov matrices as writable strings.
+        # transform icov matrices as writable strings.
         t['icov'] = [str(icov.tolist()) for icov in t['icov']]
         t.write(path, fast_writer=False, *args, **kwargs)
 
@@ -212,27 +208,30 @@ class DecimalYearData(DataParser):
         return Time(self._epoch.values.flatten(), format='decimalyear').jd
 
 
-def calculate_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=1E10,
-                                  along_scan_errs=None):
+def calc_inverse_covariance_matrices(scan_angles, cross_scan_along_scan_var_ratio=np.inf,
+                                     along_scan_errs=None):
     """
     :param scan_angles: pandas.DataFrame.
             data frame with scan angles, e.g. as-is from IntermediateDataParser.read_intermediate_data_file.
             scan_angles.values is a numpy array with the scan angles
     :param cross_scan_along_scan_var_ratio: var_cross_scan / var_along_scan
+    :param along_scan_errs: array. array of len(scan_angles), the errors in the along scan direction, one for each
+    scan in scan_angles.
     :return An ndarray with shape (len(scan_angles), 2, 2), e.g. an array of covariance matrices in the same order
     as the scan angles
     """
     if along_scan_errs is None or len(along_scan_errs) == 0:
         along_scan_errs = np.ones_like(scan_angles.values.flatten())
-    covariance_matrices = []
-    cov_matrix_in_scan_basis = np.array([[1, 0],
-                                         [0, cross_scan_along_scan_var_ratio]])
+    icovariance_matrices = []
+    icov_matrix_in_scan_basis = np.array([[1, 0],
+                                         [0, 1/cross_scan_along_scan_var_ratio]])
     for theta, err in zip(scan_angles.values.flatten(), along_scan_errs):
         c, s = np.cos(theta), np.sin(theta)
         Rot = np.array([[s, -c], [c, s]])
-        cov_matrix_in_ra_dec_basis = np.matmul(np.matmul(Rot, (err ** 2) * cov_matrix_in_scan_basis), Rot.T)
-        covariance_matrices.append(cov_matrix_in_ra_dec_basis)
-    return np.array(covariance_matrices)
+        # note to self: I thought this should be np.matmul(np.matmul(1/(err ** 2) * Rot.T, icov_matrix_in_scan_basis), Rot)
+        icov_matrix_in_ra_dec_basis = np.matmul(np.matmul(1/(err ** 2) * Rot, icov_matrix_in_scan_basis), Rot.T)
+        icovariance_matrices.append(icov_matrix_in_ra_dec_basis)
+    return np.array(icovariance_matrices)
 
 
 class HipparcosOriginalData(DecimalYearData):
