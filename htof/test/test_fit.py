@@ -2,6 +2,7 @@ import numpy as np
 import mock
 from astropy.time import Time
 import pytest
+import timeit
 from astropy.coordinates import Angle
 
 from htof.fit import unpack_elements_of_matrix, AstrometricFitter, normalize, AstrometricFastFitter
@@ -101,7 +102,7 @@ class TestAstrometricFitter:
         assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']), expected_vec)
 
     @pytest.mark.parametrize('fitter_class', [AstrometricFitter, AstrometricFastFitter])
-    def test_fitting_without_normalization(self, fitter_class):
+    def test_fitting_with_normalization(self, fitter_class):
         ra_cnt = np.random.randint(1, 100)
         dec_cnt = np.random.randint(1, 100)
         astrometric_data = generate_astrometric_data()
@@ -181,6 +182,19 @@ class TestAstrometricFitter:
         assert fitter._chi2_matrix.shape == (8, 8)
         assert fitter.astrometric_solution_vector_components['ra'][0].shape == (8,)
         assert fitter.astrometric_solution_vector_components['dec'][0].shape == (8,)
+
+
+def test_timing_of_fast_fitter():
+    astrometric_data = generate_astrometric_data(acc=True, jerk=True)
+    fitter = AstrometricFastFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+                                   epoch_times=astrometric_data['epoch_delta_t'], use_parallax=False, fit_degree=3,
+                                   normed=False)
+    assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
+                       astrometric_data['nonlinear_solution'], atol=0, rtol=1E-4)
+    t = timeit.Timer(lambda: fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']))
+    num = int(1E4)
+    runtime = t.timeit(number=num) / num * 1E6
+    assert runtime < 4  # assert that the fast fitter fit_line time is less than 4 microseconds.
 
 
 def test_unpack_elements_of_matrix():
