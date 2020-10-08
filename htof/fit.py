@@ -126,11 +126,6 @@ class AstrometricFitter(object):
             return 1.*normed_epochs, 1.*normed_epochs
 
 
-@jit(nopython=True)
-def fast_fit_line(chi2mat, ra_solution_vecs, dec_solution_vecs, ra_vs_epoch, dec_vs_epoch):
-    return np.linalg.solve(chi2mat, np.dot(ra_vs_epoch, ra_solution_vecs) + np.dot(dec_vs_epoch, dec_solution_vecs))
-
-
 class AstrometricFastFitter(AstrometricFitter):
     """
     A faster version of AstrometricFitter. Can not return errors or the chisquared. Roughly 30 times faster
@@ -146,6 +141,11 @@ class AstrometricFastFitter(AstrometricFitter):
         """
         return fast_fit_line(self._chi2_matrix, self.astrometric_solution_vector_components['ra'],
                              self.astrometric_solution_vector_components['dec'], ra_vs_epoch, dec_vs_epoch)
+
+
+@jit(nopython=True)
+def fast_fit_line(chi2mat, ra_solution_vecs, dec_solution_vecs, ra_vs_epoch, dec_vs_epoch):
+    return np.linalg.solve(chi2mat, np.dot(ra_vs_epoch, ra_solution_vecs) + np.dot(dec_vs_epoch, dec_solution_vecs))
 
 
 def unpack_elements_of_matrix(matrix):
