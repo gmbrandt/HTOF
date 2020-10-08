@@ -127,13 +127,8 @@ class AstrometricFitter(object):
 
 
 @jit(nopython=True)
-def fast_fit_line(chi2mat, chi2vec):
-    return np.linalg.solve(chi2mat, chi2vec)
-
-
-@jit(nopython=True)
-def fast_chi2_evaluation(ra_solution_vecs, dec_solution_vecs, ra_vs_epoch, dec_vs_epoch):
-    return np.dot(ra_vs_epoch, ra_solution_vecs) + np.dot(dec_vs_epoch, dec_solution_vecs)
+def fast_fit_line(chi2mat, ra_solution_vecs, dec_solution_vecs, ra_vs_epoch, dec_vs_epoch):
+    return np.linalg.solve(chi2mat, np.dot(ra_vs_epoch, ra_solution_vecs) + np.dot(dec_vs_epoch, dec_solution_vecs))
 
 
 class AstrometricFastFitter(AstrometricFitter):
@@ -149,9 +144,8 @@ class AstrometricFastFitter(AstrometricFitter):
                  E.g. [ra0, dec0, mu_ra, mu_dec] if use_parallax=False
                  or, [parallax_angle, ra0, dec0, mu_ra, mu_dec] if use_parallax=True
         """
-        return fast_fit_line(self._chi2_matrix, fast_chi2_evaluation(self.astrometric_solution_vector_components['ra'],
-                                                                     self.astrometric_solution_vector_components['dec'],
-                                                                     ra_vs_epoch, dec_vs_epoch))
+        return fast_fit_line(self._chi2_matrix, self.astrometric_solution_vector_components['ra'],
+                             self.astrometric_solution_vector_components['dec'], ra_vs_epoch, dec_vs_epoch)
 
 
 def unpack_elements_of_matrix(matrix):

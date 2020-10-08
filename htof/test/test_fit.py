@@ -107,6 +107,7 @@ class TestAstrometricFitter:
         dec_cnt = np.random.randint(1, 100)
         astrometric_data = generate_astrometric_data()
         expected_vec = astrometric_data['linear_solution']
+        # TODO doesn't work for the second call because generate_astrometric_data is not renewed.
         expected_vec[0] += ra_cnt * expected_vec[2]  # r0 = ra_central_time * mu_ra
         expected_vec[1] += dec_cnt * expected_vec[3]  # dec0 = dec_central_time * mu_dec
         fitter = fitter_class(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
@@ -194,6 +195,7 @@ def test_timing_of_fast_fitter():
     t = timeit.Timer(lambda: fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']))
     num = int(1E4)
     runtime = t.timeit(number=num) / num * 1E6
+    print(runtime)
     assert runtime < 4  # assert that the fast fitter fit_line time is less than 4 microseconds.
 
 
