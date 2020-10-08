@@ -228,7 +228,6 @@ def calc_inverse_covariance_matrices(scan_angles, cross_scan_along_scan_var_rati
     for theta, err in zip(scan_angles.values.flatten(), along_scan_errs):
         c, s = np.cos(theta), np.sin(theta)
         Rot = np.array([[s, -c], [c, s]])
-        # note to self: I thought this should be np.matmul(np.matmul(1/(err ** 2) * Rot.T, icov_matrix_in_scan_basis), Rot)
         icov_matrix_in_ra_dec_basis = np.matmul(np.matmul(1/(err ** 2) * Rot, icov_matrix_in_scan_basis), Rot.T)
         icovariance_matrices.append(icov_matrix_in_ra_dec_basis)
     return np.array(icovariance_matrices)
@@ -321,6 +320,7 @@ class HipparcosRereductionDVDBook(DecimalYearData):
             self.rejected_epochs = epochs_to_reject  # setting rejected_epochs also rejects the epochs (see the @setter)
         if error_inflate:
             # adjust the along scan errors so that the errors on the best fit parameters match the catalog.
+            # TODO check that oyu sohuld incorporate n_reject as well.
             self.along_scan_errs *= self.error_inflation_factor(n_transits, nparam, catalog_f2)
 
     @staticmethod

@@ -3,7 +3,7 @@ Module for fitting astrometric data.
 
 Author: G. Mirek Brandt
 """
-
+from numba import jit
 import numpy as np
 from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix, transform_coefficients_to_unnormalized_domain
 from htof.utils.fit_utils import chisq_of_fit
@@ -124,6 +124,34 @@ class AstrometricFitter(object):
         if self.normed:
             normed_epochs = normalize(self.epoch_times, [np.max(self.epoch_times), np.min(self.epoch_times)])
             return 1.*normed_epochs, 1.*normed_epochs
+
+
+@jit(nopython=True)
+def fast_fit_line(chi2mat, chi2vec):
+    return np.linalg.solve(chi2mat, chi2vec)
+
+
+@jit(nopython=True)
+def fast_chi2_evaluation(ra_solution_vecs, dec_solution_vecs, ra_vs_epoch, dec_vs_epoch):
+    return np.dot(ra_vs_epoch, ra_solution_vecs) + np.dot(dec_vs_epoch, dec_solution_vecs)
+
+
+class AstrometricFastFitter(AstrometricFitter):
+    """
+    A faster version of AstrometricFitter. Can not return errors or the chisquared. Roughly 30 times faster
+    per call of fit_line than AstrometricFitter.
+    """
+    def fit_line(self, ra_vs_epoch, dec_vs_epoch):
+        """
+        :param ra_vs_epoch: 1d array of right ascension, ordered the same as the covariance matrices and epochs.
+        :param dec_vs_epoch: 1d array of declination, ordered the same as the covariance matrices and epochs.
+        :return: ndarray: best fit astrometric parameters.
+                 E.g. [ra0, dec0, mu_ra, mu_dec] if use_parallax=False
+                 or, [parallax_angle, ra0, dec0, mu_ra, mu_dec] if use_parallax=True
+        """
+        return fast_fit_line(self._chi2_matrix, fast_chi2_evaluation(self.astrometric_solution_vector_components['ra'],
+                                                                     self.astrometric_solution_vector_components['dec'],
+                                                                     ra_vs_epoch, dec_vs_epoch))
 
 
 def unpack_elements_of_matrix(matrix):
