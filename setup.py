@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(name='htof',
       author='G. Mirek Brandt, Daniel Michalik',
       version='0.3.0',
-      python_requires='>=3.5',
+      python_requires='>=3.6',
       packages=find_packages(),
       package_dir={'htof': 'htof'},
       package_data={'banzai_nres': ['data/hip1_flagged.txt', 'data/*.csv', 'data/hip2_dvd_flagged.fits']},
