@@ -41,9 +41,9 @@ def test_parse_and_fit_to_line():
 
 
 class TestHipReReductionCDFits:
-    CATALOG = load_hip2_catalog('/home/gmbrandt/Documents/Hip2_CD_Book/Catalogues/Main_Cat.d')
-    NINEP = load_hip2_nine_p_annex('/home/gmbrandt/Documents/Hip2_CD_Book/Catalogues/NineP_Cat.d')
-    SEVENP = load_hip2_seven_p_annex('/home/gmbrandt/Documents/Hip2_CD_Book/Catalogues/SevenP_Cat.d')
+    CATALOG = load_hip2_catalog('htof/test/data_for_tests/Hip2/truncated_hip2dvd_Main_Cat.d')
+    NINEP = load_hip2_nine_p_annex('htof/test/data_for_tests/Hip2/NineP_Cat.d')
+    SEVENP = load_hip2_seven_p_annex('htof/test/data_for_tests/Hip2/SevenP_Cat.d')
 
     @pytest.mark.e2e
     @pytest.mark.parametrize("hip_id", ['70', '78999', '27321'])
@@ -56,7 +56,7 @@ class TestHipReReductionCDFits:
     @pytest.mark.e2e
     @pytest.mark.parametrize("hip_id", ['9631', '16468', '25838'])
     def donottest_Hip2_fit_7p9p_source(self, hip_id):
-        diffs, error_diffs, chisq, chi2_partials, soltype = refit_hip2_object('/home/gmbrandt/Documents/Hip2_CD_Book/IntermediateData/resrec', hip_id,
+        diffs, error_diffs, chisq, chi2_partials, soltype = refit_hip2_object('htof/test/data_for_tests/Hip2/IntermediateData', hip_id,
                                                                               nine_p_annex=self.NINEP, seven_p_annex=self.SEVENP,
                                                                               catalog=self.CATALOG, use_parallax=True)
         assert np.allclose(diffs, 0, atol=0.02)
@@ -64,12 +64,12 @@ class TestHipReReductionCDFits:
 
 
 class TestHip1Fits:
-    SEVEN_NINEP_ANNEX = load_hip1_dm_annex('/home/gmbrandt/Documents/HTOF/htof/test/data_for_tests/Hip1/hip_dm_g.dat')
+    SEVEN_NINEP_ANNEX = load_hip1_dm_annex('htof/test/data_for_tests/Hip1/hip_dm_g.dat')
 
     @pytest.mark.e2e
     @pytest.mark.parametrize("hip_id", ['5310', '5313', '46871', '50103', '46979'])
     def test_Hip1_fit_to_hip7p9p_source(self, hip_id):
-        diffs, errors, chisq, chi2_partials, soltype = refit_hip1_object('/home/gmbrandt/Documents/hipparcosOriginalIntermediateData', hip_id,
+        diffs, errors, chisq, chi2_partials, soltype = refit_hip1_object('htof/test/data_for_tests/Hip1/IntermediateData', hip_id,
                                                                          hip_dm_g=self.SEVEN_NINEP_ANNEX,
                                                                          use_parallax=True)
         assert np.allclose(diffs, 0, atol=0.07)

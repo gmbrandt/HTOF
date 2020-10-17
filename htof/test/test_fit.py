@@ -199,7 +199,7 @@ def test_timing_of_fast_fitter():
     t = timeit.Timer(lambda: fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']))
     num = int(1E4)
     runtime = t.timeit(number=num) / num * 1E6
-    assert runtime < 4  # assert that the fast fitter fit_line time is less than 4 microseconds.
+    assert runtime < 5  # assert that the fast fitter fit_line time is less than 5 microseconds.
 
 
 def test_unpack_elements_of_matrix():
