@@ -109,15 +109,16 @@ If you want the standard (1-sigma) errors on the parameters, set :code:`return_a
     coeffs, errors, chisq = astro.fit(ra_vs_epoch, dec_vs_epoch, return_all=True)
 
 
-chisq is the chi-squared of the fit (the sum of `(data - model)^2`). For Hip2, this chi-squared
-should equal the chi-squared calculated from the intermediate data via
-
 `errors` is an array the same shape as coeffs, where each entry is the 1-sigma error for the
 parameter at the same location in the coeffs array. For Hip1 and Hip2, HTOF loads in the real
-catalog errors and so these parameter error estimates should match those given in the catalog. However,
-for Gaia we do not have the error estimates from the GOST tool and so the best-fit parameter errors to
-Gaia will not match those reported by the Gaia members.
+catalog errors and so these parameter error estimates should match those given in the catalog. For Hip2, the
+along scan errors are automatically inflated or deflated in accordance with D. Michalik et al. 2014.
+For Gaia we do not have the error estimates from the GOST tool and so the best-fit parameter errors to
+Gaia may not match those reported by the catalog.
 
+
+`chisq` is the chi-squared of the fit (the sum of `(data - model)^2/error^2`). The `chisq` from `astro.fit`
+should equal (for Hip1 and Hip2) the chi-squared calculated from the intermediate data:
 
 .. code-block:: python
 
@@ -133,8 +134,22 @@ with any of the kwargs or args of ``astropy.table.Table.write()``.
 
 Usage: Fits with Parallax
 -------------------------
-TODO: Discuss how to get parallax, how to generate the plx pertubations. Why you have to specify
-a central ra and dec, and that those must be instances of astropy.coordinates.Angle.
+To fit an object with parallax, we need to provide a `central_ra` and `central_dec` to the `Astrometry` class. These positions
+will be used to calculate the parallax components of the fit. Using beta pic as an example, we would do:
+
+
+.. code-block:: python
+
+    from htof.main import Astrometry
+    # central ra and dec from the Hip1 catalog
+    cntr_ra, cntr_dec = Angle(86.82118054, 'degree'), Angle(-51.06671341, 'degree')
+    # generate fitter and parse intermediate data
+    astro = Astrometry('Hip1', '27321', 'path/to/intermediate_data/', central_epoch_ra=1991.25,
+                       central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
+                       central_ra=cntr_ra, central_dec=cntr_dec)
+    coeffs, errors, chisq = astro.fit(ra_vs_epoch, dec_vs_epoch, return_all=True)
+    parallax, ra0, dec0, mu_ra, mu_dec = coeffs
+
 
 Appendix
 --------
@@ -190,6 +205,32 @@ where :code:`ra(mjd) = ra0 + mu_ra * mjd`, and same for declination.
 
 To fit a line with parallax, we first have to generate the parallactic motion about the central ra and dec. We do this
 with the following code.
+
+.. code-block:: python
+
+    from htof.sky_path import earth_ephemeris
+    ra_motion, dec_motion = parallactic_motion(Time(hip.julian_day_epoch(), format='jd').jyear,
+                                           central_ra.mas, central_dec.mas, 'mas',
+                                           1991.25,
+                                           ephemeris=self.ephemeri[data_choice.lower()])
+    parallactic_pertubations = {'ra_plx': ra_motion, 'dec_plx': dec_motion}
+
+
+Now that we have the parallax components of the fit, we can provide these to the `AstrometricFitter` object to
+produce a fit which includes parallax. We now do:
+
+.. code-block:: python
+
+    fitter = AstrometricFitter(inverse_covariance_matrices=hip.inverse_covariance_matrix,
+                               epoch_times=Time(hip.julian_day_epoch(), format='jd').jyear,
+                               use_parallax=True,
+                               parallactic_pertubations=parallactic_pertubations,
+                               central_epoch_ra=1991.25, central_epoch_dec=1991.25)
+    solution_vector = fitter.fit_line(ra_vs_epoch, dec_vs_epoch)
+    parallax, ra0, dec0, mu_ra, mu_dec = solution_vector
+
+
+For more examples, refer to the `examples.ipynb` Jupyter notebook. There we will reproduce a figure from the HTOF paper.
 
 Flagged Sources
 ~~~~~~~~~~~~~~~

@@ -1,9 +1,11 @@
-0.2.12 (2020-08-26)
+0.3.0 (2020-10-17)
 -------------------
 - HipparcosRereductionCDBook has been renamed HipparcosRereductionDVDBook because the data come from a DVD.
 - Added various utilities and scripts for validating HTOF's fitting and parsing 
 routines over the entire Hipparcos catalog.
-- Added a list of flagged sources for which HTOF cannot reproduce their catalog solution. 
+- Added a list of flagged sources for which HTOF cannot reproduce their catalog solution.
+- Added an AstrometricFastFitter that fits lines much faster than AstrometricFitter.
+- Added an examples.ipynb jupyter notebook. 
 
 0.2.11 (2020-08-25)
 -------------------

@@ -115,7 +115,7 @@ def test_Hip1_fit_to_hip27321():
 
 @pytest.mark.e2e
 def test_Hip1_fit_to_hip44801():
-    # Hip 27321 parameters from the intermediate data
+    # Hip 44801 parameters from the intermediate data
     cntr_ra, cntr_dec = Angle(136.94995265, 'degree'), Angle(-9.85368471, 'degree')
     plx = 2.90  # mas
     pmRA = -10.91  # mas/year
@@ -145,7 +145,7 @@ def test_Hip1_fit_to_hip44801():
 
 @pytest.mark.e2e
 def test_Hip1_fit_to_hip70000():
-    # Hip 27321 parameters from the intermediate data
+    # Hip 70000 parameters from the intermediate data
     cntr_ra, cntr_dec = Angle(214.85975459, 'degree'), Angle(14.93570946, 'degree')
     plx = 1.26  # mas
     pmRA = 1.01  # mas/year

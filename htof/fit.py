@@ -5,6 +5,7 @@ Author: G. Mirek Brandt
 """
 from numba import jit
 import numpy as np
+import warnings
 from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix, transform_coefficients_to_unnormalized_domain
 from htof.utils.fit_utils import chisq_of_fit
 
@@ -29,6 +30,8 @@ class AstrometricFitter(object):
                  astrometric_chi_squared_matrices=None, astrometric_solution_vector_components=None,
                  parallactic_pertubations=None, fit_degree=1, use_parallax=False,
                  central_epoch_ra=0, central_epoch_dec=0, normed=False):
+        if normed:
+            self._on_normed()
         if parallactic_pertubations is None:
             parallactic_pertubations = {'ra_plx': np.zeros_like(epoch_times),
                                         'dec_plx': np.zeros_like(epoch_times)}
@@ -47,6 +50,11 @@ class AstrometricFitter(object):
         if astrometric_chi_squared_matrices is None:
             self._chi2_matrix, astrometric_chi_squared_matrices = self._init_astrometric_chi_squared_matrix(fit_degree)
         self.astrometric_chi_squared_matrices = astrometric_chi_squared_matrices
+
+    def _on_normed(self):
+        warnings.warn('the normed fitting option (normed=True) will be removed in a future release.'
+                      ' Do not use normed=True because it will cause the returned fit errors to be incorrect.',
+                      PendingDeprecationWarning)
 
     def fit_line(self, ra_vs_epoch, dec_vs_epoch, return_all=False):
         """
@@ -141,6 +149,9 @@ class AstrometricFastFitter(AstrometricFitter):
         """
         return fast_fit_line(self._chi2_matrix, self.astrometric_solution_vector_components['ra'],
                              self.astrometric_solution_vector_components['dec'], ra_vs_epoch, dec_vs_epoch)
+
+    def _on_normed(self):
+        raise NotImplementedError('AstrometricFastFitter cannot implement the normed=True fit feature')
 
 
 @jit(nopython=True)
