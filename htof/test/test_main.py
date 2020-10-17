@@ -4,8 +4,10 @@ import numpy as np
 from astropy.coordinates import Angle
 from astropy.time import Time
 
-from htof.parse import GaiaData, HipparcosRereductionData, HipparcosOriginalData
+from htof.parse import GaiaData, HipparcosRereductionDVDBook, HipparcosOriginalData
 from htof.fit import AstrometricFitter
+from htof.validation.utils import refit_hip2_object, refit_hip1_object, load_hip2_catalog, load_hip2_seven_p_annex, load_hip2_nine_p_annex
+from htof.validation.utils import load_hip1_dm_annex
 
 from htof.main import Astrometry
 
@@ -17,7 +19,7 @@ def test_parse_and_fit_to_line():
     from Hip1, Hip2, and GaiaDR2. This only fits a line to the first 11 points.
     """
     stars = ['049699', '027321', '027321']
-    parsers = [GaiaData, HipparcosOriginalData, HipparcosRereductionData]
+    parsers = [GaiaData, HipparcosOriginalData, HipparcosRereductionDVDBook]
     subdirectories = ['GaiaDR2', 'Hip1', 'Hip2']
     base_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests')
     for star, parser, subdirectory in zip(stars, parsers, subdirectories):
@@ -25,7 +27,7 @@ def test_parse_and_fit_to_line():
         data = parser()
         data.parse(star_id=star,
                    intermediate_data_directory=test_data_directory)
-        data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
+        data.calculate_inverse_covariance_matrices()
         fitter = AstrometricFitter(inverse_covariance_matrices=data.inverse_covariance_matrix,
                                    epoch_times=np.linspace(0, 10, num=11))
         solution_vector = fitter.fit_line(ra_vs_epoch=np.linspace(30, 40, num=11),
@@ -38,64 +40,48 @@ def test_parse_and_fit_to_line():
         assert np.isclose(mu_dec, 1)
 
 
-@pytest.mark.e2e
-def test_Hip2_fit_to_hip27321():
-    # Hip 27321 parameters from Snellen+Brown 2018: https://arxiv.org/pdf/1808.06257.pdf
-    cntr_ra, cntr_dec = Angle(86.82118054, 'degree'), Angle(-51.06671341, 'degree')
-    plx = 51.44  # mas
-    pmRA = 4.65  # mas/year
-    pmDec = 83.10  # mas/year
-    # generate fitter and parse intermediate data
-    astro = Astrometry('Hip2', '27321', 'htof/test/data_for_tests/Hip2', central_epoch_ra=1991.25,
-                       central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
-                       central_ra=cntr_ra, central_dec=cntr_dec, normed=False)
-    chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
-    # generate ra and dec for each observation.
-    year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
-                  Time(1991.25, format='decimalyear').jyear
-    ra_motion = astro.fitter.parallactic_pertubations['ra_plx']
-    dec_motion = astro.fitter.parallactic_pertubations['dec_plx']
-    ra = Angle(ra_motion * plx + pmRA * year_epochs, unit='mas')
-    dec = Angle(dec_motion * plx + pmDec * year_epochs, unit='mas')
-    # add residuals
-    ra += Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
-    dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
-    #
-    coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
-    assert np.isclose(chisq, chisq_found, atol=1E-3)
-    assert np.allclose([pmRA, pmDec], np.array([coeffs[3], coeffs[4]]).round(2))
-    assert np.isclose(plx, coeffs[0].round(2), atol=0.01)
-    assert np.allclose(errors.round(2), np.array([0.11, 0.10, 0.11, 0.11, 0.15]))
+class TestHipReReductionCDFits:
+    CATALOG = load_hip2_catalog('htof/test/data_for_tests/Hip2/truncated_hip2dvd_Main_Cat.d')
+    NINEP = load_hip2_nine_p_annex('htof/test/data_for_tests/Hip2/NineP_Cat.d')
+    SEVENP = load_hip2_seven_p_annex('htof/test/data_for_tests/Hip2/SevenP_Cat.d')
+
+    @pytest.mark.e2e
+    @pytest.mark.parametrize("hip_id", ['70', '78999', '27321'])
+    def test_Hip2_fit_5p_source(self, hip_id):
+        diffs, error_diffs, chisq, chi2_partials, soltype = refit_hip2_object('htof/test/data_for_tests/Hip2',
+                                                                         hip_id, catalog=self.CATALOG, use_parallax=True)
+        assert np.allclose(diffs, 0, atol=0.02)
+        assert np.allclose(error_diffs, 0, atol=0.1)
+
+    @pytest.mark.e2e
+    @pytest.mark.parametrize("hip_id", ['9631', '16468', '25838'])
+    def test_Hip2_fit_7p9p_source(self, hip_id):
+        diffs, error_diffs, chisq, chi2_partials, soltype = refit_hip2_object('htof/test/data_for_tests/Hip2/IntermediateData', hip_id,
+                                                                              nine_p_annex=self.NINEP, seven_p_annex=self.SEVENP,
+                                                                              catalog=self.CATALOG, use_parallax=True)
+        assert np.allclose(diffs, 0, atol=0.02)
+        # TODO test the error differences!
+        #assert np.allclose(error_diffs, 0, atol=0.1)
 
 
-@pytest.mark.e2e
-def test_hip2_fit_to_hip78999():
-    cntr_ra, cntr_dec = Angle(241.89259265, 'degree'), Angle(-5.70677966, 'degree')
-    plx = 28.11  # mas
-    pmRA = 156.38  # mas/year
-    pmDec = -177.64  # mas/year
-    # generate fitter and parse intermediate data
-    astro = Astrometry('Hip2', '78999', 'htof/test/data_for_tests/Hip2', central_epoch_ra=1991.25,
-                       central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
-                       central_ra=cntr_ra, central_dec=cntr_dec, normed=False)
-    chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
-    # generate ra and dec for each observation.
-    year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
-                  Time(1991.25, format='decimalyear').jyear
-    ra_motion = astro.fitter.parallactic_pertubations['ra_plx']
-    dec_motion = astro.fitter.parallactic_pertubations['dec_plx']
-    ra = Angle(ra_motion * plx + pmRA * year_epochs, unit='mas')
-    dec = Angle(dec_motion * plx + pmDec * year_epochs, unit='mas')
-    # add residuals
-    ra += Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
-    dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
-    #
-    coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
-    assert np.isclose(chisq, chisq_found, atol=1E-3)
-    assert np.allclose([pmRA, pmDec], np.array([coeffs[3], coeffs[4]]).round(2), atol=0.01)
-    assert np.isclose(plx, coeffs[0].round(2), atol=0.01)
-    # testing the errors. Note these values must come from the CD if we are testing IAD from the CD.
-    assert np.allclose(errors.round(2), np.array([2.4, 1.79, 0.94, 4.05, 2.2]))
+class TestHip1Fits:
+    SEVEN_NINEP_ANNEX = load_hip1_dm_annex('htof/test/data_for_tests/Hip1/hip_dm_g.dat')
+
+    @pytest.mark.e2e
+    @pytest.mark.parametrize("hip_id", ['5310', '5313', '46871', '50103', '46979'])
+    def test_Hip1_fit_to_hip7p9p_source(self, hip_id):
+        diffs, errors, chisq, chi2_partials, soltype = refit_hip1_object('htof/test/data_for_tests/Hip1/IntermediateData', hip_id,
+                                                                         hip_dm_g=self.SEVEN_NINEP_ANNEX,
+                                                                         use_parallax=True)
+        assert np.allclose(diffs, 0, atol=0.07)
+
+    @pytest.mark.e2e
+    @pytest.mark.parametrize("hip_id", ['027321', '004391', '044801', '70000'])
+    def test_Hip1_fit(self, hip_id):
+        diffs, errors, chisq, chi2_partials, soltype = refit_hip1_object('htof/test/data_for_tests/Hip1/IntermediateData', hip_id,
+                                                                         hip_dm_g=self.SEVEN_NINEP_ANNEX,
+                                                                         use_parallax=True)
+        assert np.allclose(diffs, 0, atol=0.02)
 
 
 @pytest.mark.e2e
@@ -129,7 +115,68 @@ def test_Hip1_fit_to_hip27321():
 
 
 @pytest.mark.e2e
+def test_Hip1_fit_to_hip44801():
+    # Hip 44801 parameters from the intermediate data
+    cntr_ra, cntr_dec = Angle(136.94995265, 'degree'), Angle(-9.85368471, 'degree')
+    plx = 2.90  # mas
+    pmRA = -10.91  # mas/year
+    pmDec = 5.06  # mas/year
+    # generate fitter and parse intermediate data
+    astro = Astrometry('Hip1', '44801', 'htof/test/data_for_tests/Hip1', central_epoch_ra=1991.25,
+                       central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
+                       central_ra=cntr_ra, central_dec=cntr_dec, normed=False)
+    chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
+    # generate ra and dec for each observation.
+    year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
+                  Time(1991.25, format='decimalyear').jyear
+    ra_motion = astro.fitter.parallactic_pertubations['ra_plx']
+    dec_motion = astro.fitter.parallactic_pertubations['dec_plx']
+    ra = Angle(ra_motion * plx + pmRA * year_epochs, unit='mas')
+    dec = Angle(dec_motion * plx + pmDec * year_epochs, unit='mas')
+    # add residuals
+    ra += Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
+    dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
+    #
+    coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
+    assert np.isclose(chisq, chisq_found, atol=1E-3)
+    assert np.allclose([pmRA, pmDec], np.array([coeffs[3], coeffs[4]]).round(2))
+    assert np.isclose(plx, coeffs[0].round(2), atol=0.01)
+    assert np.allclose(errors.round(2), np.array([1.09, 0.88, 0.77, 1.05, 0.80]))
+
+
+@pytest.mark.e2e
+def test_Hip1_fit_to_hip70000():
+    # Hip 70000 parameters from the intermediate data
+    cntr_ra, cntr_dec = Angle(214.85975459, 'degree'), Angle(14.93570946, 'degree')
+    plx = 1.26  # mas
+    pmRA = 1.01  # mas/year
+    pmDec = 7.27  # mas/year
+    # generate fitter and parse intermediate data
+    astro = Astrometry('Hip1', '70000', 'htof/test/data_for_tests/Hip1', central_epoch_ra=1991.25,
+                       central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
+                       central_ra=cntr_ra, central_dec=cntr_dec, normed=False)
+    chisq = np.sum(astro.data.residuals ** 2 / astro.data.along_scan_errs ** 2)
+    # generate ra and dec for each observation.
+    year_epochs = Time(astro.data.julian_day_epoch(), format='jd', scale='tcb').jyear - \
+                  Time(1991.25, format='decimalyear').jyear
+    ra_motion = astro.fitter.parallactic_pertubations['ra_plx']
+    dec_motion = astro.fitter.parallactic_pertubations['dec_plx']
+    ra = Angle(ra_motion * plx + pmRA * year_epochs, unit='mas')
+    dec = Angle(dec_motion * plx + pmDec * year_epochs, unit='mas')
+    # add residuals
+    ra += Angle(astro.data.residuals.values * np.sin(astro.data.scan_angle.values), unit='mas')
+    dec += Angle(astro.data.residuals.values * np.cos(astro.data.scan_angle.values), unit='mas')
+    #
+    coeffs, errors, chisq_found = astro.fit(ra.mas, dec.mas, return_all=True)
+    assert np.isclose(chisq, chisq_found, atol=1E-3)
+    assert np.allclose([pmRA, pmDec], np.array([coeffs[3], coeffs[4]]).round(2))
+    assert np.isclose(plx, coeffs[0].round(2), atol=0.01)
+    assert np.allclose(errors.round(2), np.array([1.11, 0.79, 0.62, 0.82, 0.64]))
+
+
+@pytest.mark.e2e
 def test_Hip1_fit_to_hip27321_no_parallax():
+    # WARNING including the parallax component is important if you want to recover the catalog errors.
     # Hip 27321 parameters from the Hipparcos 1 catalogue via Vizier
     pmRA = 4.65  # mas/year
     pmDec = 81.96  # mas/year

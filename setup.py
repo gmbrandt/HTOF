@@ -1,15 +1,12 @@
 from setuptools import setup, find_packages
 
-with open('requirements.txt') as f:
-    requirements = f.read().splitlines()
-
 setup(name='htof',
       author='G. Mirek Brandt, Daniel Michalik',
-      version='0.2.11',
-      python_requires='>=3.5',
+      version='0.3.0',
+      python_requires='>=3.6',
       packages=find_packages(),
       package_dir={'htof': 'htof'},
-      package_data={'htof': ['data/*.csv']},
+      package_data={'banzai_nres': ['data/hip1_flagged.txt', 'data/*.csv', 'data/hip2_dvd_flagged.fits']},
       setup_requires=['pytest-runner'],
-      install_requires=requirements,
+      install_requires=['astropy>=2.0', 'pandas>=0.24.0', 'scipy>=1.0.0', 'numpy>=1.16'],
       tests_require=['pytest>=3.5'])

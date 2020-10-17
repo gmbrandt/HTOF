@@ -10,26 +10,27 @@ from astropy.coordinates import Angle
 import warnings
 
 from htof.fit import AstrometricFitter
-from htof.parse import HipparcosRereductionData, GaiaDR2, GaiaData, HipparcosOriginalData
+from htof.parse import GaiaDR2, GaiaData
+from htof.parse import HipparcosOriginalData, HipparcosRereductionJavaTool, HipparcosRereductionDVDBook
 from htof.sky_path import parallactic_motion, earth_ephemeris, earth_sun_l2_ephemeris
 
 
 class Astrometry(object):
-    parsers = {'gaiadr2': GaiaDR2, 'gaia': GaiaData,
-               'hip1': HipparcosOriginalData, 'hip2': HipparcosRereductionData}
+    parsers = {'gaiadr2': GaiaDR2, 'gaia': GaiaData, 'hip21': HipparcosRereductionJavaTool,
+               'hip1': HipparcosOriginalData, 'hip2': HipparcosRereductionDVDBook}
     ephemeri = {'gaiadr2': earth_sun_l2_ephemeris, 'gaia': earth_sun_l2_ephemeris,
-                'hip1': earth_ephemeris, 'hip2': earth_ephemeris}
+                'hip1': earth_ephemeris, 'hip2': earth_ephemeris, 'hip21': earth_ephemeris}
 
     def __init__(self, data_choice, star_id, intermediate_data_directory, fitter=None, data=None,
                  central_epoch_ra=0, central_epoch_dec=0, format='jd', fit_degree=1,
-                 use_parallax=False, central_ra=None, central_dec=None, normed=True):
+                 use_parallax=False, central_ra=None, central_dec=None, normed=False):
 
         if data is None:
             DataParser = self.parsers[data_choice.lower()]
             data = DataParser()
             data.parse(star_id=star_id,
                        intermediate_data_directory=intermediate_data_directory)
-            data.calculate_inverse_covariance_matrices(cross_scan_along_scan_var_ratio=1E5)
+            data.calculate_inverse_covariance_matrices()
 
         parallactic_pertubations = None
         if use_parallax and isinstance(central_ra, Angle) and isinstance(central_dec, Angle):

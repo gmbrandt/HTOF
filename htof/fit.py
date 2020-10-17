@@ -3,9 +3,9 @@ Module for fitting astrometric data.
 
 Author: G. Mirek Brandt
 """
-
+from numba import jit
 import numpy as np
-from scipy.special import factorial
+import warnings
 from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix, transform_coefficients_to_unnormalized_domain
 from htof.utils.fit_utils import chisq_of_fit
 
@@ -29,7 +29,9 @@ class AstrometricFitter(object):
     def __init__(self, inverse_covariance_matrices=None, epoch_times=None,
                  astrometric_chi_squared_matrices=None, astrometric_solution_vector_components=None,
                  parallactic_pertubations=None, fit_degree=1, use_parallax=False,
-                 central_epoch_ra=0, central_epoch_dec=0, normed=True):
+                 central_epoch_ra=0, central_epoch_dec=0, normed=False):
+        if normed:
+            self._on_normed()
         if parallactic_pertubations is None:
             parallactic_pertubations = {'ra_plx': np.zeros_like(epoch_times),
                                         'dec_plx': np.zeros_like(epoch_times)}
@@ -46,7 +48,13 @@ class AstrometricFitter(object):
         if astrometric_solution_vector_components is None:
             self.astrometric_solution_vector_components = self._init_astrometric_solution_vectors(fit_degree)
         if astrometric_chi_squared_matrices is None:
-            self._chi2_matrix = self._init_astrometric_chi_squared_matrix(fit_degree)
+            self._chi2_matrix, astrometric_chi_squared_matrices = self._init_astrometric_chi_squared_matrix(fit_degree)
+        self.astrometric_chi_squared_matrices = astrometric_chi_squared_matrices
+
+    def _on_normed(self):
+        warnings.warn('the normed fitting option (normed=True) will be removed in a future release.'
+                      ' Do not use normed=True because it will cause the returned fit errors to be incorrect.',
+                      PendingDeprecationWarning)
 
     def fit_line(self, ra_vs_epoch, dec_vs_epoch, return_all=False):
         """
@@ -81,6 +89,7 @@ class AstrometricFitter(object):
         return solution if not return_all else (solution, errors, chisq)
 
     def _chi2_vector(self, ra_vs_epoch, dec_vs_epoch):
+        # this is the vector of partial derivatives of chisquared with respect to each astrometric parameter
         ra_solution_vecs = self.astrometric_solution_vector_components['ra']
         dec_solution_vecs = self.astrometric_solution_vector_components['dec']
         # sum together the individual solution vectors for each epoch
@@ -114,15 +123,40 @@ class AstrometricFitter(object):
             astrometric_chi_squared_matrices[obs] = chi2_matrix(a, b, c, d,
                                                                 self.ra_epochs[obs], self.dec_epochs[obs],
                                                                 w_ra, w_dec, deg=fit_degree)[clip_i:, clip_i:]
-        return np.sum(astrometric_chi_squared_matrices, axis=0)
+        return np.sum(astrometric_chi_squared_matrices, axis=0), astrometric_chi_squared_matrices
 
     def _init_epochs(self):
         if not self.normed:
             # comment so that unit test registers.
-            return self.epoch_times - self.central_epoch_ra, self.epoch_times - self.central_epoch_dec
+            return np.array(self.epoch_times) - self.central_epoch_ra, np.array(self.epoch_times) - self.central_epoch_dec
         if self.normed:
             normed_epochs = normalize(self.epoch_times, [np.max(self.epoch_times), np.min(self.epoch_times)])
             return 1.*normed_epochs, 1.*normed_epochs
+
+
+class AstrometricFastFitter(AstrometricFitter):
+    """
+    A faster version of AstrometricFitter. Can not return errors or the chisquared. Roughly 30 times faster
+    per call of fit_line than AstrometricFitter.
+    """
+    def fit_line(self, ra_vs_epoch, dec_vs_epoch):
+        """
+        :param ra_vs_epoch: 1d array of right ascension, ordered the same as the covariance matrices and epochs.
+        :param dec_vs_epoch: 1d array of declination, ordered the same as the covariance matrices and epochs.
+        :return: ndarray: best fit astrometric parameters.
+                 E.g. [ra0, dec0, mu_ra, mu_dec] if use_parallax=False
+                 or, [parallax_angle, ra0, dec0, mu_ra, mu_dec] if use_parallax=True
+        """
+        return fast_fit_line(self._chi2_matrix, self.astrometric_solution_vector_components['ra'],
+                             self.astrometric_solution_vector_components['dec'], ra_vs_epoch, dec_vs_epoch)
+
+    def _on_normed(self):
+        raise NotImplementedError('AstrometricFastFitter cannot implement the normed=True fit feature')
+
+
+@jit(nopython=True)
+def fast_fit_line(chi2mat, ra_solution_vecs, dec_solution_vecs, ra_vs_epoch, dec_vs_epoch):
+    return np.linalg.solve(chi2mat, np.dot(ra_vs_epoch, ra_solution_vecs) + np.dot(dec_vs_epoch, dec_solution_vecs))
 
 
 def unpack_elements_of_matrix(matrix):

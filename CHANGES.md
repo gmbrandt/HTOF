@@ -1,3 +1,12 @@
+0.3.0 (2020-10-17)
+-------------------
+- HipparcosRereductionCDBook has been renamed HipparcosRereductionDVDBook because the data come from a DVD.
+- Added various utilities and scripts for validating HTOF's fitting and parsing 
+routines over the entire Hipparcos catalog.
+- Added a list of flagged sources for which HTOF cannot reproduce their catalog solution.
+- Added an AstrometricFastFitter that fits lines much faster than AstrometricFitter.
+- Added an examples.ipynb jupyter notebook. 
+
 0.2.11 (2020-08-25)
 -------------------
 - Implemented dead time rejection for Gaia. GaiaData does not reject dead times by default, GaiaDR2 rejects
@@ -10,7 +19,7 @@ fetched on August 25th 2020. That dead time table is in htof/htof/data/astrometr
 There was an erroneous factor of the square root of two in both cases. 
 - The D. Michalik et al. 2014 error inflation factor (appendix B) is now applied to the Hipparcos 2
 intermediate data along-scan errors, which brings the standard errors on the best-fit parameters
-into agreement with the values on **the CD** (note the CD catalog values disagree slightly
+into agreement with the values on **the DVD** (note the DVD catalog values disagree slightly
 with those on Vizier)
 
 0.2.9 (2020-02-05)
