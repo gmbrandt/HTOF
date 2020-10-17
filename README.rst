@@ -230,7 +230,7 @@ produce a fit which includes parallax. We now do:
     parallax, ra0, dec0, mu_ra, mu_dec = solution_vector
 
 
-For more examples, refer to the `examples.ipynb` Jupyter notebook. There we will reproduce a figure from the HTOF paper.
+For more examples, refer to the `examples.ipynb` Jupyter notebook. There we will make a figure like Figure 5 from the HTOF paper.
 
 Flagged Sources
 ~~~~~~~~~~~~~~~
