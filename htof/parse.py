@@ -181,7 +181,7 @@ class GaiaData(DataParser):
         if self.DEAD_TIME_TABLE_NAME is None:
             # return the data if there is no dead time table specified.
             return data
-        dead_time_table = Table.read(pkg_resources.resource_filename('htof', self.DEAD_TIME_TABLE_NAME))
+        dead_time_table = Table.read(self.DEAD_TIME_TABLE_NAME)
         # convert on board mission time (OBMT) to julian day
         for col, newcol in zip(['start', 'end'], ['start_tcb_jd', 'end_tcb_jd']):
             dead_time_table[newcol] = gaia_obmt_to_tcb_julian_year(dead_time_table[col]).jd
@@ -359,7 +359,7 @@ class HipparcosRereductionJavaTool(HipparcosRereductionDVDBook):
 
 
 class GaiaDR2(GaiaData):
-    DEAD_TIME_TABLE_NAME = 'data/astrometric_gaps_gaiadr2_08252020.csv'
+    DEAD_TIME_TABLE_NAME = pkg_resources.resource_filename('htof', 'data/astrometric_gaps_gaiadr2_08252020.csv')
 
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch, along_scan_errs=None):

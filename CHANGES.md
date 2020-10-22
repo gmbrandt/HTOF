@@ -1,3 +1,7 @@
+0.3.1 (2020-10-22)
+-------------------
+- Fixed a typo in the path to the package data for the dead time table.
+
 0.3.0 (2020-10-17)
 -------------------
 - HipparcosRereductionCDBook has been renamed HipparcosRereductionDVDBook because the data come from a DVD.
