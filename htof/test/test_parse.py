@@ -44,6 +44,10 @@ class TestHipparcosOriginalData:
         assert np.isclose(np.sin(data.scan_angle[5]), 0.7364, atol=.001)
         assert np.isclose(data.along_scan_errs[5], 2.0814, atol=.0001)
         assert np.isclose(data.residuals[5], 1.1021, atol=.0001)
+        data.parse(star_id=hip_id,
+                   intermediate_data_directory=test_data_directory,
+                   data_choice='BOTH')
+        assert len(data) == 66
 
     @pytest.mark.integration
     def test_concatenation(self, hip_id='027321'):
