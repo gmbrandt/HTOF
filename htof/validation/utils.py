@@ -227,9 +227,9 @@ def load_hip1_catalog(catalog_path):
     catalog = Table.read(catalog_path, format='ascii')
     # catalog should be fetched from https://cdsarc.unistra.fr/ftp/I/239/hip_main.dat.gz
     # column designations are from https://cdsarc.unistra.fr/ftp/I/239/ReadMe
-    catalog = catalog['col2', 'col12', 'col9', 'col10', 'col13', 'col14', 'col17', 'col15', 'col16', 'col18', 'col19']
-    for name, rename in zip(['col2', 'col12', 'col9', 'col10', 'col13', 'col14', 'col17', 'col15', 'col16', 'col18', 'col19'],
-                            ['hip_id', 'plx', 'ra', 'dec', 'pmRA', 'pmDec', 'plx_err', 'ra_err', 'dec_err', 'pmRA_err', 'pmDec_err']):
+    catalog = catalog['col2', 'col12', 'col9', 'col10', 'col13', 'col14', 'col17', 'col15', 'col16', 'col18', 'col19', 'col60']
+    for name, rename in zip(['col2', 'col12', 'col9', 'col10', 'col13', 'col14', 'col17', 'col15', 'col16', 'col18', 'col19', 'col60'],
+                            ['hip_id', 'plx', 'ra', 'dec', 'pmRA', 'pmDec', 'plx_err', 'ra_err', 'dec_err', 'pmRA_err', 'pmDec_err', 'MultFlag']):
         catalog.rename_column(name, rename)
     # sort for quick retrieval of data for any source.
     catalog.sort('hip_id')
