@@ -246,11 +246,14 @@ class HipparcosOriginalData(DecimalYearData):
         :param intermediate_data_directory: the path (string) to the place where the intermediate data is stored, e.g.
                 Hip2/IntermediateData/resrec
                 note you have to specify the file resrec or absrec. We use the residual records, so specify resrec.
-        :param data_choice: 'FAST' or 'NDAC'. This slightly affects the scan angles. This mostly affects
-        the residuals which are not used.
+        :param data_choice: 'FAST' or 'NDAC', 'BOTH', or 'MERGED. The standard is 'MERGED' which does a merger
+        of the 'NDAC' and 'FAST' data reductions in the same way as the hipparcos 1991.25 catalog. 'BOTH' keeps
+        both consortia's data in the IAD, which would be unphysical and is just for debugging. 'FAST' would keep
+        only the FAST consortia data, likewise only NDAC would be kept if you selected 'NDAC'.
         """
-        if (data_choice is not 'NDAC') and (data_choice is not 'FAST') and (data_choice is not 'MERGED'):
-            raise ValueError('data choice has to be either NDAC or FAST or MERGED.')
+        if (data_choice is not 'NDAC') and (data_choice is not 'FAST') and (data_choice is not 'MERGED')\
+                and (data_choice is not 'BOTH'):
+            raise ValueError('data choice has to be either NDAC or FAST or MERGED or BOTH.')
         data = self.read_intermediate_data_file(star_id, intermediate_data_directory,
                                                 skiprows=10, header='infer', sep='\s*\|\s*')
         data = self._fix_unnamed_column(data)
@@ -269,7 +272,7 @@ class HipparcosOriginalData(DecimalYearData):
         # restrict intermediate data to either NDAC, FAST, or merge the NDAC and FAST results.
         if data_choice is 'MERGED':
             data = merge_consortia(data)
-        else:
+        elif data_choice is not 'BOTH':
             data = data[data['IA2'].str.upper() == {'NDAC': 'N', 'FAST': 'F'}[data_choice]]
         return data
 

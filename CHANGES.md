@@ -1,3 +1,8 @@
+0.3.2 (2020-10-22)
+-------------------
+- Added a 'BOTH' data_choice option to the HipparcosOriginalData DataParser class. Selecting
+'BOTH' will keep both NDAC and FAST data, i.e. it will leave the iad unmerged.
+
 0.3.1 (2020-10-22)
 -------------------
 - Fixed a typo in the path to the package data for the dead time table.
