@@ -4,7 +4,7 @@ import numpy as np
 from astropy.coordinates import Angle
 from astropy.time import Time
 
-from htof.parse import GaiaData, HipparcosRereductionDVDBook, HipparcosOriginalData
+from htof.parse import GaiaeDR3, GaiaData, HipparcosRereductionDVDBook, HipparcosOriginalData
 from htof.fit import AstrometricFitter
 from htof.validation.utils import refit_hip2_object, refit_hip1_object, load_hip2_catalog, load_hip2_seven_p_annex, load_hip2_nine_p_annex
 from htof.validation.utils import load_hip1_dm_annex
@@ -19,8 +19,8 @@ def test_parse_and_fit_to_line():
     from Hip1, Hip2, and GaiaDR2. This only fits a line to the first 11 points.
     """
     stars = ['049699', '027321', '027321']
-    parsers = [GaiaData, HipparcosOriginalData, HipparcosRereductionDVDBook]
-    subdirectories = ['GaiaDR2', 'Hip1', 'Hip2']
+    parsers = [GaiaeDR3, GaiaData, HipparcosOriginalData, HipparcosRereductionDVDBook]
+    subdirectories = ['GaiaeDR3', 'GaiaDR2', 'Hip1', 'Hip2']
     base_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests')
     for star, parser, subdirectory in zip(stars, parsers, subdirectories):
         test_data_directory = os.path.join(base_directory, subdirectory)

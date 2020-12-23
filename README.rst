@@ -15,13 +15,20 @@ as a part of his astrometric-sky-path package: https://github.com/agabrown/astro
 
 Installation
 ------------
-htof can be installed in the usual way, by running
+htof can be installed with PyPi and pip, by running
+
+.. code-block:: bash
+
+    pip install htof
+
+or by running
 
 .. code-block:: bash
 
     pip install .
 
-While in the root directory of this repo. It can also be installed with
+
+while in the root directory of this repo. It can also be installed directly from github using
 
 .. code-block:: bash
 
@@ -30,11 +37,13 @@ While in the root directory of this repo. It can also be installed with
 Usage: Fits without Parallax
 ----------------------------
 The following examples show how one would both load in and fit a line to the astrometric intermediate data
-from either Hipparcos data reduction or Gaia (Currently only data release 2, GaiaDR2).
+from either Hipparcos data reduction or Gaia. Gaia requires you to first download a .csv of the
+predicted scans and scan epochs from GOST (https://gaia.esac.esa.int/gost/).
 
 Let ra_vs_epoch, dec_vs_epoch be 1d arrays of ra and dec positions.
 Assume we want to fit to data from GaiaDR2 on the star with hip id 027321. The choices of data
-are :code:`GaiaDR2`, :code:`Hip1` and :code:`Hip2`. The following lines parse the intermediate data and fit a line.
+are :code:`GaiaeDR3`, :code:`GaiaDR2`, :code:`Gaia`, :code:`Hip1` and :code:`Hip2`.
+The following lines parse the intermediate data and fit a line.
 
 .. code-block:: python
 
@@ -50,6 +59,13 @@ are the same as the choices for format in astropy.time.Time(val, format=format).
 E.g. :code:`'decimalyear'`, :code:`'jd'` . If :code:`format='decimalyear'`, then the output :code:`mu_ra`
 would have units of mas/year. If :code:`jd` then the output is mas/day. Both Hipparcos and Gaia catalogs list parallaxes
 in milli-arcseconds (mas), and so positional units are always in mas for HTOF.
+
+When using Gaia, one should download the largest stretch of GOST times possible (covering at least the eDR3
+timespan, e.g. covering at least the dates BJD 2456892 to BJD 2457902).
+:code:`GaiaeDR3` will select all data corresponding to the eDR3 data interval and exclude
+eDR3 deadtimes. :code:`GaiaDR2` will select all data corresponding to the DR2 data interval (excluding dead times).
+Finally, :code:`Gaia` will select all the data present in the GOST predicted observation file that you have
+downloaded.
 
 For Hipparcos 2, the path to the intermediate data would point to :code:`IntermediateData/resrec/`.
 Note that the intermediate data files must be in the same format as the test intermediate data files found in this
@@ -240,6 +256,25 @@ the files in the htof/data directory, e.g. htof/data/hip1_flagged.txt for the 19
 htof/data/hip2_dvd_flagged.txt for the 2007 re-reduction which came on the DVD accompanying the book. Every source in
 these lists have a difference in the catalog best fit proper motions and the HTOF refit proper motions in excess
 of 0.02 mas/yr in either RA or DEC or both.
+
+
+Astrometric Gaps
+~~~~~~~~~~~~~~~~
+Not all of the planned observations will be used in the astrometric solution.
+Some predicted scans will represent missed observations (satellite dead times),
+executed but unusable observations (e.g.~from cool-down after decontamination),
+or observations rejected as astrometric outliers.  Rejected observations could
+be corrupted due to, e.g.~micro-clanks, scattered light from a nearby bright
+source, crowded fields, micro-meteoroid hits,
+etc.~(See https://www.cosmos.esa.int/web/gaia/dr2-data-gaps).
+Such problematic observations do not constrain the DR2 astrometric solution.
+The largest stretches of dead times and rejected observations are
+published as astrometric gaps; 239 are listed at the time of this
+publication for DR2 (available here https://www.cosmos.esa.int/web/gaia/dr2-data-gaps).
+We fetched the DR2 dead times on 2020/08/25. htof accounts for these astrometric gaps in DR2.
+
+The eDR3 dead times were fetched from https://www.aanda.org/articles/aa/pdf/forth/aa39709-20.pdf on
+2020/12/23. htof accounts for these astrometric gaps in eDR3.
 
 
 License

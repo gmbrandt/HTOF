@@ -1,7 +1,13 @@
+0.3.3 (2020-12-23)
+------------------
+- Added Gaia eDR3 deadtimes and a GaiaeDR3 class for Gaia early data release3.
+- Added a 'gaiaedr3' data choice to the main.Astrometry class.
+
 0.3.2 (2020-10-22)
 -------------------
 - Added a 'BOTH' data_choice option to the HipparcosOriginalData DataParser class. Selecting
 'BOTH' will keep both NDAC and FAST data, i.e. it will leave the iad unmerged.
+- Fixed typo in the flagged hip2 source list filename.
 
 0.3.1 (2020-10-22)
 -------------------

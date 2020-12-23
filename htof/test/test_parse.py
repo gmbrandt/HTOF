@@ -8,7 +8,7 @@ from ast import literal_eval
 
 from astropy.table import Table
 from htof.parse import HipparcosOriginalData, HipparcosRereductionDVDBook,\
-    GaiaData, DataParser, GaiaDR2, DecimalYearData, HipparcosRereductionJavaTool, digits_only, \
+    GaiaData, DataParser, GaiaDR2, GaiaeDR3, DecimalYearData, HipparcosRereductionJavaTool, digits_only, \
     match_filename, get_nparam
 from htof.parse import calc_inverse_covariance_matrices
 
@@ -281,9 +281,24 @@ class TestParseGaiaData:
         assert np.isclose(data.scan_angle.iloc[67], 2.821818345385301)
 
     @pytest.mark.integration
-    def test_parse_removes_dead_times(self):
+    def test_DR2parse_removes_dead_times(self):
+        # tests the dead time table against a fake source which has the first observation fall in a data gap
+        # and has the second observation not fall into any data gap.
         test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaDR2/IntermediateData')
         data = GaiaDR2(max_epoch=np.inf, min_epoch=-np.inf)
+        data.parse(intermediate_data_directory=test_data_directory,
+                   star_id='gaiatestsource01')
+
+        assert len(data._epoch) == 1
+        assert np.isclose(data._epoch.iloc[0], 2456893.28785)
+        assert np.isclose(data.scan_angle.iloc[0], -1.7804696884345342)
+
+    @pytest.mark.integration
+    def test_eDR3parse_removes_dead_times(self):
+        # tests the dead time table against a fake source which has the first observation fall in a data gap
+        # and has the second observation not fall into any data gap.
+        test_data_directory = os.path.join(os.getcwd(), 'htof/test/data_for_tests/GaiaeDR3/IntermediateData')
+        data = GaiaeDR3(max_epoch=np.inf, min_epoch=-np.inf)
         data.parse(intermediate_data_directory=test_data_directory,
                    star_id='gaiatestsource01')
 

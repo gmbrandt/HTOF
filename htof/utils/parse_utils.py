@@ -8,6 +8,8 @@ def gaia_obmt_to_tcb_julian_year(obmt):
     Equation 1.1
     :param obmt: on-board mission timeline in units of six-hour revolutions since launch. OBMT (in revolutions)
     :return: astropy.time.Time
+
+    Note that this is the same for DR2 as it is for eDR3, as of 12 23 2020.
     """
     tcbjy = 2015 + (obmt - 1717.6256)/(1461)
     return Time(tcbjy, scale='tcb', format='jyear')
