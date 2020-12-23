@@ -2,6 +2,13 @@
 ------------------
 - Added Gaia eDR3 deadtimes and a GaiaeDR3 class for Gaia early data release3.
 - Added a 'gaiaedr3' data choice to the main.Astrometry class.
+- Added the method AstrometricFitter.find_optimal_central_epoch() which will find
+the central epoch that minimizes the covariance between position and proper motion
+for either right-ascension (if calling find_optimal_central_epoch('ra')) or declination 
+(if calling find_optimal_central_epoch('dec')).
+- Added a convienience function to Astrometry: Astrometry.optimal_central_epochs() that
+returns a dictionary with the epochs in ra and dec that give minimum (close to 0, like 1e-10)
+covariance between ra and mu_ra, and dec and mu_dec respectively.
 
 0.3.2 (2020-10-22)
 -------------------

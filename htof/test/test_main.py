@@ -198,3 +198,54 @@ def test_Hip1_fit_to_hip27321_no_parallax():
     assert np.isclose(chisq, chisq_found, atol=1E-3)
     assert np.allclose([pmRA, pmDec], np.array([coeffs[2], coeffs[3]]).round(2))
     assert np.allclose(errors.round(2), np.array([0.45, 0.46, 0.53, 0.61]), atol=0.01)
+
+
+@pytest.mark.e2e
+def test_optimal_central_epochs_forHip1_hip27321():
+    # Hip 27321 parameters from the Hipparcos 1 catalogue via Vizier
+    cntr_ra, cntr_dec = Angle(86.82118054, 'degree'), Angle(-51.06671341, 'degree')
+    # generate fitter and parse intermediate data
+    astro = Astrometry('Hip1', '27321', 'htof/test/data_for_tests/Hip1', central_epoch_ra=1991.25,
+                       central_epoch_dec=1991.25, format='jyear', fit_degree=1, use_parallax=True,
+                       central_ra=cntr_ra, central_dec=cntr_dec, normed=False)
+    central_epoch = astro.optimal_central_epochs()
+    central_epoch_ra, central_epoch_dec = central_epoch['ra'], central_epoch['dec']
+
+    fitter = astro.fitter
+    cov_matrix = fitter.evaluate_cov_matrix(central_epoch_ra, central_epoch_dec)
+    ra_mura_cov, dec_mudec_cov = cov_matrix[1, 3], cov_matrix[2, 4]
+    # do a brute force evaluation of all reasonable central epochs
+    epoch_t = np.linspace(1991, 1992, 200)
+    ra_vals, dec_vals = [], []
+    for t in epoch_t:
+        cov = fitter.evaluate_cov_matrix(t, t)
+        ra_vals.append(cov[1, 3])
+        dec_vals.append(cov[2, 4])
+    # assert that the optimal central epochs give better covariances than all of those.
+    assert np.all(np.abs(dec_vals) >= dec_mudec_cov)
+    assert np.all(np.abs(ra_vals) >= ra_mura_cov)
+    assert np.allclose([dec_mudec_cov, ra_mura_cov], 0, atol=1e-8)
+
+
+@pytest.mark.e2e
+def test_optimal_central_epochs_forHip1_hip27321_no_parallax():
+    astro = Astrometry('Hip1', '27321', 'htof/test/data_for_tests/Hip1', central_epoch_ra=1991.25,
+                       central_epoch_dec=1991.25, format='jyear', fit_degree=1,
+                       use_parallax=False, normed=False)
+    central_epoch = astro.optimal_central_epochs()
+    central_epoch_ra, central_epoch_dec = central_epoch['ra'], central_epoch['dec']
+
+    fitter = astro.fitter
+    cov_matrix = fitter.evaluate_cov_matrix(central_epoch_ra, central_epoch_dec)
+    ra_mura_cov, dec_mudec_cov = cov_matrix[0, 2], cov_matrix[1, 3]
+    # do a brute force evaluation of all reasonable central epochs
+    epoch_t = np.linspace(1991, 1992, 200)
+    ra_vals, dec_vals = [], []
+    for t in epoch_t:
+        cov = fitter.evaluate_cov_matrix(t, t)
+        ra_vals.append(cov[0, 2])
+        dec_vals.append(cov[1, 3])
+    # assert that the optimal central epochs give better covariances than all of those.
+    assert np.all(np.abs(dec_vals) >= dec_mudec_cov)
+    assert np.all(np.abs(ra_vals) >= ra_mura_cov)
+    assert np.allclose([dec_mudec_cov, ra_mura_cov], 0, atol=1e-9)

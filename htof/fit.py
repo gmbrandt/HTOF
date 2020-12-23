@@ -6,6 +6,7 @@ Author: G. Mirek Brandt
 from numba import jit
 import numpy as np
 import warnings
+from scipy import optimize
 from htof.utils.fit_utils import ra_sol_vec, dec_sol_vec, chi2_matrix, transform_coefficients_to_unnormalized_domain
 from htof.utils.fit_utils import chisq_of_fit
 
@@ -50,6 +51,48 @@ class AstrometricFitter(object):
         if astrometric_chi_squared_matrices is None:
             self._chi2_matrix, astrometric_chi_squared_matrices = self._init_astrometric_chi_squared_matrix(fit_degree)
         self.astrometric_chi_squared_matrices = astrometric_chi_squared_matrices
+
+    def find_optimal_central_epoch(self, coordinate='ra'):
+        """
+        TODO: there is probably a slick linear algebra way to find the optimal central epoch, but the following
+         is straight forward. I should replace it in the future with the exact linear algebra method if it exists.
+        Method to find the central_epoch_ra or central_epoch_dec that minimizes the covariance between
+        the position and the proper motion (e.g. for 'ra' that minimizes the covariance between the ra offset
+        and the proper motion in ra). Formally, the central_epoch is the epoch that produces 0 covariance between
+        the proper motion and the position.
+        :return: float. The central_epoch which minimizes the positional and proper motion covariance.
+        """
+        if coordinate is not 'ra' and coordinate is not 'dec':
+            raise ValueError('coordinate kwarg must be either ra or dec')
+        # get the row (i) and column (j) that we are going to try and minimize in the covariance matrix
+        if coordinate is 'ra':
+            i, j = 1, 3
+        if coordinate is 'dec':
+            i, j = 2, 4
+        if not self.use_parallax:
+            i -= 1
+            j -= 1
+        # define a function that returns the covariance matrix element in question.
+        cov_matrix_entry = lambda t: np.abs(self.evaluate_cov_matrix(t, t)[i, j])
+        # TODO check that evaluate cov matrix does not change the ra entries when central_epoch_dec changes
+        #  and vice-versa
+        result = optimize.minimize(cov_matrix_entry, np.mean(self.epoch_times), method='Powell')
+        central_epoch = result.x
+        return central_epoch
+
+    def evaluate_cov_matrix(self, central_epoch_ra, central_epoch_dec):
+        """
+        Evaluate the covariance matrix of the fit at a particular set of central epochs. For use in
+        find_optimal_central_epoch.
+        :param central_epoch_ra:
+        :param central_epoch_dec:
+        :return:
+        """
+        icov_matrix = self._init_astrometric_chi_squared_matrix(self.fit_degree,
+                                                                ra_epochs=np.array(self.epoch_times) - central_epoch_ra,
+                                                                dec_epochs=np.array(self.epoch_times) - central_epoch_dec)[0]
+        cov_matrix = np.linalg.pinv(icov_matrix, hermitian=True)
+        return cov_matrix
 
     def _on_normed(self):
         warnings.warn('the normed fitting option (normed=True) will be removed in a future release.'
@@ -112,7 +155,11 @@ class AstrometricFitter(object):
                                                                              w_ra, w_dec, deg=fit_degree)[clip_i:]
         return astrometric_solution_vector_components
 
-    def _init_astrometric_chi_squared_matrix(self, fit_degree):
+    def _init_astrometric_chi_squared_matrix(self, fit_degree, ra_epochs=None, dec_epochs=None):
+        if ra_epochs is None:
+            ra_epochs = self.ra_epochs
+        if dec_epochs is None:
+            dec_epochs = self.dec_epochs
         num_epochs = len(self.epoch_times)
         plx = 1 * self.use_parallax
         astrometric_chi_squared_matrices = np.zeros((num_epochs, 2 * fit_degree + 2 + plx, 2 * fit_degree + 2 + plx))
@@ -121,7 +168,7 @@ class AstrometricFitter(object):
             w_ra, w_dec = self.parallactic_pertubations['ra_plx'][obs], self.parallactic_pertubations['dec_plx'][obs]
             clip_i = 0 if self.use_parallax else 1
             astrometric_chi_squared_matrices[obs] = chi2_matrix(a, b, c, d,
-                                                                self.ra_epochs[obs], self.dec_epochs[obs],
+                                                                ra_epochs[obs], dec_epochs[obs],
                                                                 w_ra, w_dec, deg=fit_degree)[clip_i:, clip_i:]
         return np.sum(astrometric_chi_squared_matrices, axis=0), astrometric_chi_squared_matrices
 

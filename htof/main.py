@@ -58,3 +58,6 @@ class Astrometry(object):
 
     def fit(self, ra_vs_epoch, dec_vs_epoch, return_all=False):
         return self.fitter.fit_line(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch, return_all=return_all)
+
+    def optimal_central_epochs(self):
+        return {'ra': self.fitter.find_optimal_central_epoch('ra'), 'dec': self.fitter.find_optimal_central_epoch('dec')}

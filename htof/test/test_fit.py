@@ -79,6 +79,14 @@ class TestAstrometricFitter:
         assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
                            astrometric_data['linear_solution'])
 
+    def test_optimal_central_epoch_on_linear_data(self):
+        astrometric_data = generate_astrometric_data()
+        fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+                                   epoch_times=astrometric_data['epoch_delta_t'])
+        central_epoch_ra, central_epoch_dec = fitter.find_optimal_central_epoch('ra'), fitter.find_optimal_central_epoch('dec')
+        cov_matrix = fitter.evaluate_cov_matrix(central_epoch_ra, central_epoch_dec)
+        assert np.allclose([cov_matrix[0, 2], cov_matrix[1, 3]], 0)
+
     def test_errors_on_linear_astrometric_data(self):
         astrometric_data = generate_astrometric_data()
         fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
@@ -120,6 +128,15 @@ class TestAstrometricFitter:
                               normed=False)
         assert np.allclose(fitter.fit_line(astrometric_data['ra'], astrometric_data['dec']),
                            astrometric_data['nonlinear_solution'], atol=0, rtol=1E-4)
+
+    def test_optimal_central_epoch_on_cubic_data(self):
+        astrometric_data = generate_astrometric_data(acc=True, jerk=True)
+        fitter = AstrometricFitter(inverse_covariance_matrices=astrometric_data['inverse_covariance_matrix'],
+                                   epoch_times=astrometric_data['epoch_delta_t'], use_parallax=False, fit_degree=3,
+                                   normed=False)
+        central_epoch_ra, central_epoch_dec = fitter.find_optimal_central_epoch('ra'), fitter.find_optimal_central_epoch('dec')
+        cov_matrix = fitter.evaluate_cov_matrix(central_epoch_ra, central_epoch_dec)
+        assert np.allclose([cov_matrix[0, 2], cov_matrix[1, 3]], 0)
 
     def test_fitting_to_linear_astrometric_data_with_parallax(self):
         real_plx = 100
