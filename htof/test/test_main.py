@@ -210,7 +210,7 @@ def test_optimal_central_epochs_forHip1_hip27321():
                        central_ra=cntr_ra, central_dec=cntr_dec, normed=False)
     central_epoch = astro.optimal_central_epochs()
     central_epoch_ra, central_epoch_dec = central_epoch['ra'], central_epoch['dec']
-
+    #print(central_epoch_ra, central_epoch_dec)
     fitter = astro.fitter
     cov_matrix = fitter.evaluate_cov_matrix(central_epoch_ra, central_epoch_dec)
     ra_mura_cov, dec_mudec_cov = cov_matrix[1, 3], cov_matrix[2, 4]
@@ -234,7 +234,7 @@ def test_optimal_central_epochs_forHip1_hip27321_no_parallax():
                        use_parallax=False, normed=False)
     central_epoch = astro.optimal_central_epochs()
     central_epoch_ra, central_epoch_dec = central_epoch['ra'], central_epoch['dec']
-
+    #print(central_epoch_ra, central_epoch_dec)
     fitter = astro.fitter
     cov_matrix = fitter.evaluate_cov_matrix(central_epoch_ra, central_epoch_dec)
     ra_mura_cov, dec_mudec_cov = cov_matrix[0, 2], cov_matrix[1, 3]
