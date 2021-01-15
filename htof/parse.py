@@ -372,6 +372,17 @@ class GaiaDR2(GaiaData):
                                       min_epoch=min_epoch, max_epoch=max_epoch)
 
 
+class GaiaeDR3(GaiaData):
+    DEAD_TIME_TABLE_NAME = pkg_resources.resource_filename('htof', 'data/astrometric_gaps_gaiaedr3_12232020.csv')
+
+    def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
+                 min_epoch=st.GaiaeDR3_min_epoch, max_epoch=st.GaiaeDR3_max_epoch, along_scan_errs=None):
+        super(GaiaeDR3, self).__init__(scan_angle=scan_angle, along_scan_errs=along_scan_errs,
+                                      epoch=epoch, residuals=residuals,
+                                      inverse_covariance_matrix=inverse_covariance_matrix,
+                                      min_epoch=min_epoch, max_epoch=max_epoch)
+
+
 def digits_only(x: str):
     return re.sub("[^0-9]", "", x)
 

@@ -10,13 +10,13 @@ from astropy.coordinates import Angle
 import warnings
 
 from htof.fit import AstrometricFitter
-from htof.parse import GaiaDR2, GaiaData
+from htof.parse import GaiaeDR3, GaiaDR2, GaiaData
 from htof.parse import HipparcosOriginalData, HipparcosRereductionJavaTool, HipparcosRereductionDVDBook
 from htof.sky_path import parallactic_motion, earth_ephemeris, earth_sun_l2_ephemeris
 
 
 class Astrometry(object):
-    parsers = {'gaiadr2': GaiaDR2, 'gaia': GaiaData, 'hip21': HipparcosRereductionJavaTool,
+    parsers = {'gaiaedr3': GaiaeDR3, 'gaiadr2': GaiaDR2, 'gaia': GaiaData, 'hip21': HipparcosRereductionJavaTool,
                'hip1': HipparcosOriginalData, 'hip2': HipparcosRereductionDVDBook}
     ephemeri = {'gaiadr2': earth_sun_l2_ephemeris, 'gaia': earth_sun_l2_ephemeris,
                 'hip1': earth_ephemeris, 'hip2': earth_ephemeris, 'hip21': earth_ephemeris}
@@ -58,3 +58,6 @@ class Astrometry(object):
 
     def fit(self, ra_vs_epoch, dec_vs_epoch, return_all=False):
         return self.fitter.fit_line(ra_vs_epoch=ra_vs_epoch, dec_vs_epoch=dec_vs_epoch, return_all=return_all)
+
+    def optimal_central_epochs(self):
+        return {'ra': self.fitter.find_optimal_central_epoch('ra'), 'dec': self.fitter.find_optimal_central_epoch('dec')}
