@@ -1,3 +1,9 @@
+0.3.4 (2020-12-23)
+- Amended how Hip2 ad-hoc epoch rejection was done to incorporate HD 72946 (HIP 42173)
+in hip2. We can now accurately refit HIP 42173 in Hip2 because HTOF fixes the
+ "duplicated epochs" bug for this source. 
+- Removed HIP 42173 from the HTOF flagged sources list. 
+
 0.3.3 (2020-12-23)
 ------------------
 - Added Gaia eDR3 deadtimes and a GaiaeDR3 class for Gaia early data release3.

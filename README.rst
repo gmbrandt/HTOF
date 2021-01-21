@@ -257,6 +257,12 @@ htof/data/hip2_dvd_flagged.txt for the 2007 re-reduction which came on the DVD a
 these lists have a difference in the catalog best fit proper motions and the HTOF refit proper motions in excess
 of 0.02 mas/yr in either RA or DEC or both.
 
+TODO: document how to refit a source and check for agreement:
+Example for HD72946
+from htof.validation.utils import load_hip2_catalog, refit_hip2_object
+cat = load_hip2_catalog('/home/gmbrandt/Documents/Hip2_CD_Book/Catalogues/Main_Cat.d')
+refit_hip2_object('/home/gmbrandt/Documents/Hip2_CD_Book/IntermediateData/resrec', 42173 ,cat)
+returns (diffs, errors - cat_errors, chisq, chi2_partials, soltype)
 
 Astrometric Gaps
 ~~~~~~~~~~~~~~~~
