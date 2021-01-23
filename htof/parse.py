@@ -398,13 +398,12 @@ def find_epochs_to_reject(data: DataParser, catalog_f2, n_transits, nparam, perc
     max_n_reject = max(ceil((percent_rejected + 1) / 100 * n_transits), 1)
 
     z_score = np.abs(data.residuals.values/data.along_scan_errs.values)
-    print(max_n_reject)
-    if max_n_reject >= 4 or (max_n_reject >= 3 and len(data) > 80):
+    if max_n_reject >= 4 or (max_n_reject >= 3 and len(data) > 100):
         # Calculate z_score and grab the worst max_n_reject observations plus a few for wiggle room.
-        # we do this because N choose 4 is enormous when N > 80.
+        # we do this because N choose 4 is enormous when N > 100 (100 choose 3 is ~150,000). Making a itertools.combinations list longer than that hits memory limits.
         possible_rejects = np.arange(len(data))[np.argsort(z_score)[::-1]][:max_n_reject + 3]
     else:
-        # if max_n_reject is 3, 2 or 1, and N <= 80, do the full brute force approach.
+        # if max_n_reject is 3, 2 or 1, and N <= 100, do the full brute force approach.
         # we can do 80 choose 3 reasonably, so try every combination.
         # For HD 72946, we need this.
         possible_rejects = np.arange(len(data))
