@@ -1,8 +1,9 @@
 0.3.4 (2020-12-23)
 - Amended how Hip2 ad-hoc epoch rejection was done to incorporate HD 72946 (HIP 42173)
 in hip2. We can now accurately refit HIP 42173 in Hip2 because HTOF fixes the
- "duplicated epochs" bug for this source. 
-- Removed HIP 42173 from the HTOF flagged sources list. 
+ "duplicated epochs" bug for this source down to the level of 0.03 mas/yr. 
+- The ad-hoc rejection scheme does not bring many more sources down to the 0.02 mas/yr level. We include a new
+file of sources that are discrepant at greater than the 0.1 mas/yr file.
 
 0.3.3 (2020-12-23)
 ------------------

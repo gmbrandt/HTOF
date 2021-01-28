@@ -255,7 +255,8 @@ of the 2007 re-reduction) that HTOF cannot well refit. These sources should be u
 the files in the htof/data directory, e.g. htof/data/hip1_flagged.txt for the 1997 reduction and
 htof/data/hip2_dvd_flagged.txt for the 2007 re-reduction which came on the DVD accompanying the book. Every source in
 these lists have a difference in the catalog best fit proper motions and the HTOF refit proper motions in excess
-of 0.02 mas/yr in either RA or DEC or both.
+of 0.02 mas/yr in either RA or DEC or both (hip1_flagged.txt and hip2_dvd_flagged.txt). For Hipparcos 2, we include
+another list with sources that are discrepant at more than the 0.1 mas/yr level (hip2_dvd_worseflagged.txt).
 
 TODO: document how to refit a source and check for agreement:
 Example for HD72946
