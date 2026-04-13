@@ -22,7 +22,7 @@ import itertools
 from math import ceil, floor
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
-import pkg_resources
+from importlib.resources import files
 
 from astropy.time import Time
 from astropy.table import QTable, Column, Table
@@ -195,7 +195,7 @@ class GaiaData(DataParser):
         # parse xml text to pandas DataFrame
         data = self.parse_xml(response)
         if data is None:
-           raise RuntimeError("Can not parse data. The Hipparcos star ID is likely invalid.") 
+           raise RuntimeError("Can not parse data. The Hipparcos star ID is likely invalid.")
         # keep first astronomic field hit of each observation
         data = self.keep_field_hits(data)
         return data
@@ -248,12 +248,12 @@ class GaiaData(DataParser):
         data = pd.DataFrame(rows, columns=columns)
         data = data.astype({"Target": str,"ra[rad]": float, "dec[rad]": float,"ra[h:m:s]": str,"dec[d:m:s]": str,"ObservationTimeAtGaia[UTC]": str,"CcdRow[1-7]": int,"zetaFieldAngle[rad]": float,"scanAngle[rad]": float,"Fov[FovP=preceding/FovF=following]": str,"parallaxFactorAlongScan": float,"parallaxFactorAcrossScan": float,"ObservationTimeAtBarycentre[BarycentricJulianDateInTCB]": float })
         return data
-    
+
     def keep_field_hits(self, data):
         """
         Gost files downloaded from the web through REST contain sequences of ten observations, for every observation of the
-        star in the scanning law. The first entry is the skymapper CCD hit, and the extra entries are redundant 
-        (the hits for astrometric field CCD's 1 through 9). Only the second observation of each sequence should be saved. 
+        star in the scanning law. The first entry is the skymapper CCD hit, and the extra entries are redundant
+        (the hits for astrometric field CCD's 1 through 9). Only the second observation of each sequence should be saved.
         This function saves the second observation (this is the hit on the first astrometric field CCD (AF1)).
         """
         format = "%Y-%m-%dT%H:%M:%S.%f"
@@ -380,7 +380,7 @@ class HipparcosOriginalData(DecimalYearData):
                                "or download this file manually using the HIP Catalogue online interface.")
         data = parse_html(response)
         if data is None:
-            raise RuntimeError("Can not parse data. The Hipparcos star ID is likely invalid.") 
+            raise RuntimeError("Can not parse data. The Hipparcos star ID is likely invalid.")
         return data
 
     def save_hip_data(self, star_id: str, data: str, intermediate_data_directory: str):
@@ -428,7 +428,7 @@ class HipparcosOriginalData(DecimalYearData):
         # compute scan angles and observations epochs according to van Leeuwen & Evans 1998
         #  10.1051/aas:1998218, eq. 11 & 12.
         self.scan_angle = np.arctan2(data['IA3'], data['IA4'])  # unit radians, arctan2(sin, cos)
-        # Use the larger denominator when computing the epoch offset. 
+        # Use the larger denominator when computing the epoch offset.
         # This increases numerical precision and avoids NaNs if one of the two fields (IA3, IA4) is exactly zero.
         self._epoch = 1991.25 + (data['IA6'] / data['IA3']).where(abs(data['IA3']) > abs(data['IA4']), (data['IA7'] / data['IA4']))
         self.residuals = data['IA8']  # unit milli-arcseconds (mas)
@@ -487,7 +487,7 @@ class HipparcosRereductionDVDBook(DecimalYearData):
         is given in the equatorial system. This is similar to the original
         Hipparcos and Gaia (Source: private communication between Daniel
         Michalik and Floor van Leeuwen, April 2019), which define the scan angle theta
-        as East of the North equatorial pole. theta = pi / 2 - psi, 
+        as East of the North equatorial pole. theta = pi / 2 - psi,
         see Brandt et al. (2021), Section 2.2.2."
         """
         self.meta['star_id'] = star_id
@@ -570,8 +570,7 @@ class HipparcosRereductionDVDBook(DecimalYearData):
 
 
 class HipparcosRereductionJavaTool(HipparcosRereductionDVDBook):
-    EPOCHREJECTLIST = Table.read(pkg_resources.resource_filename('htof',
-                                                                 'data/epoch_reject_shortlist.csv'), format='ascii')
+    EPOCHREJECTLIST = Table.read(files('htof') / 'data' / 'epoch_reject_shortlist.csv', format='ascii')
 
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  along_scan_errs=None, meta=None):
@@ -685,7 +684,7 @@ class HipparcosRereductionJavaTool(HipparcosRereductionDVDBook):
 
 
 class GaiaDR2(GaiaData):
-    DEAD_TIME_TABLE_NAME = pkg_resources.resource_filename('htof', 'data/astrometric_gaps_gaiadr2_08252020.csv')
+    DEAD_TIME_TABLE_NAME = files('htof') / 'data' / 'astrometric_gaps_gaiadr2_08252020.csv'
 
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None, meta=None,
                  min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch, along_scan_errs=None):
@@ -696,7 +695,7 @@ class GaiaDR2(GaiaData):
 
 
 class GaiaeDR3(GaiaData):
-    DEAD_TIME_TABLE_NAME = pkg_resources.resource_filename('htof', 'data/astrometric_gaps_gaiaedr3_12232020.csv')
+    DEAD_TIME_TABLE_NAME = files('htof') / 'data' / 'astrometric_gaps_gaiaedr3_12232020.csv'
 
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None, meta=None,
                  min_epoch=st.GaiaeDR3_min_epoch, max_epoch=st.GaiaeDR3_max_epoch, along_scan_errs=None):

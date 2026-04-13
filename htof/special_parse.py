@@ -1,6 +1,6 @@
 import numpy as np
 import warnings
-import pkg_resources
+from importlib.resources import files
 from pandas import DataFrame, Series
 from shutil import copy
 from copy import deepcopy
@@ -26,8 +26,7 @@ class Hipparcos2Recalibrated(HipparcosRereductionJavaTool):
     hipparcos 2 IAD.
 
     """
-    EPOCHREJECTLIST = Table.read(pkg_resources.resource_filename('htof',
-                                                                 'data/epoch_reject_shortlist.csv'), format='ascii')
+    EPOCHREJECTLIST = Table.read(files('htof') / 'data' / 'epoch_reject_shortlist.csv', format='ascii')
 
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
                  along_scan_errs=None, meta=None, residual_offset=0.141, cosmic_dispersion=2.25):
@@ -153,7 +152,7 @@ class Hipparcos2Recalibrated(HipparcosRereductionJavaTool):
                (56, 61), (63, 68), (70, 75), (77, 82), (84, 89), (91, 96),
                (98, 103), (105, 110), (114, 119), (123, 128), (131, 136), (139, 144),
                (149, 154), (159, 164), (167, 172), (175, 180), (184, 189), (193, 198)]
-        header_template_fpath = pkg_resources.resource_filename('htof', 'data/hip2_recalibrated_header.txt')
+        header_template_fpath = files('htof') / 'data' / 'hip2_recalibrated_header.txt'
         copy(header_template_fpath, path)  # copy the template file to the output path.
         # populate the header lines.
         f = open(path, 'r')
