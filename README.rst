@@ -1,14 +1,7 @@
 htof
 ===============
 
-This repo contains htof, the package for parsing intermediate data from the Gaia and
-Hipparcos satellites, and reproducing five, seven, and nine (or higher) parameter fits to their astrometry.
-
-This build runs on Python 3.10-3.13 and NumPy 2.x (verified against NumPy 2.5,
-SciPy 1.18, Astropy 8.0 and pandas 3.0). See ``CHANGES.md`` for what changed;
-no fitting result was altered.
-
-This repository is a fork of https://github.com/gmbrandt/HTOF at commit a75990e9, maintained at https://github.com/Realaqe/HTOF.
+Version 1.2.0 (October 2026) runs on Python 3.10–3.13 and NumPy 2.x, verified against NumPy 2.5, SciPy 1.18, Astropy 8.0 and pandas 3.0; see ``CHANGES.md`` for what changed. No fitting result was altered.
 
 Parallax is handled by the :code:`sky_path` module which was written by Anthony Brown
 as a part of his astrometric-sky-path package: https://github.com/agabrown/astrometric-sky-path/
