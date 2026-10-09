@@ -4,12 +4,11 @@ htof
 This repo contains htof, the package for parsing intermediate data from the Gaia and
 Hipparcos satellites, and reproducing five, seven, and nine (or higher) parameter fits to their astrometry.
 
-.. image:: https://coveralls.io/repos/github/gmbrandt/HTOF/badge.svg?branch=main
-    :target: https://coveralls.io/github/gmbrandt/HTOF?branch=main
+This build runs on Python 3.10-3.13 and NumPy 2.x (verified against NumPy 2.5,
+SciPy 1.18, Astropy 8.0 and pandas 3.0). See ``CHANGES.md`` for what changed;
+no fitting result was altered.
 
-
-.. image:: https://app.travis-ci.com/gmbrandt/HTOF.svg?branch=main
-    :target: https://app.travis-ci.com/gmbrandt/HTOF
+This repository is a fork of https://github.com/gmbrandt/HTOF at commit a75990e9, maintained at https://github.com/Realaqe/HTOF.
 
 Parallax is handled by the :code:`sky_path` module which was written by Anthony Brown
 as a part of his astrometric-sky-path package: https://github.com/agabrown/astrometric-sky-path/
@@ -34,6 +33,24 @@ while in the root directory of this repo. It can also be installed directly from
 .. code-block:: bash
 
     pip install git+https://github.com/gmbrandt/htof
+
+For a development install with the test dependencies:
+
+.. code-block:: bash
+
+    pip install -e ".[test]"
+
+Verifying
+---------
+
+From the root directory of the repo:
+
+.. code-block:: bash
+
+    pytest -sv
+
+All 140 tests should pass in about ten seconds. If they do not, something is
+wrong with the install.
 
 Usage
 -----

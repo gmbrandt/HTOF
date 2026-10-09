@@ -1,3 +1,34 @@
+1.2.0 (2026-08-28)
+------------------
+Modernisation release. No change to any fitting result; this is about running on
+current Python and current NumPy.
+
+- Supports Python 3.10-3.13. `python_requires` is now `>= 3.10`.
+- **Fixes an import failure on Python 3.12+.** `htof.parse` and
+  `htof.special_parse` imported `pkg_resources`, which setuptools no longer
+  installs by default, so `import htof.parse` raised `ModuleNotFoundError`.
+  Package data files are now located with `importlib.resources`, via the new
+  `htof.utils.resources.resource_filename`.
+- Packaging moved from `setup.py` to `pyproject.toml` (setuptools backend). The
+  `pytest-runner` `setup_requires` hook, deprecated for years, is gone; test and
+  coverage configuration now live in `pyproject.toml` instead of `pytest.ini`
+  and `.coveragerc`.
+- `htof.__version__` is now defined, read from the installed distribution
+  metadata.
+- `htof.validation.htof_adhoc_correction_f2` no longer runs an analysis at
+  import time (which made the module unimportable without the full Hip21 IAD on
+  disk, and tried to hit the ESA FTP server). Its body is now
+  `compute_f2_comparison()` plus a `main()` with `--iad-directory` / `--output`,
+  under `if __name__ == '__main__'`.
+- Every bare `except:` is now `except Exception:`, so a `KeyboardInterrupt`
+  during a long parse is no longer swallowed and turned into a misleading
+  "connection failed" error.
+- Fixed a `SyntaxWarning` from an unescaped `\d` in a `htof.fit` docstring.
+- Verified against NumPy 2.5, SciPy 1.18, Astropy 8.0 and pandas 3.0: all 140
+  tests pass.
+- Verified on 2026-09-11: 140 tests pass on Python 3.12.14 with NumPy 2.5.3.
+  Installs into a fresh Python 3.13 environment (2026-10-05).
+
 1.1.5 (2022-06-24)
 ------------------
 - Added the ability to download the Hipparcos re-reduction data (Java Tool Version). 

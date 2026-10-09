@@ -22,7 +22,7 @@ import itertools
 from math import ceil, floor
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
-import pkg_resources
+from htof.utils.resources import resource_filename
 
 from astropy.time import Time
 from astropy.table import QTable, Column, Table
@@ -214,14 +214,14 @@ class GaiaData(DataParser):
                 headers = {"Cookie": f"JSESSIONID={s.cookies.get_dict()['JSESSIONID']}"}
                 response = s.get(url, headers=headers, timeout=180)
                 return response.text
-        except:
+        except Exception:
             warnings.warn("Querying the GOST service failed.")
             return None
 
     def parse_xml(self, response):
         try:
             root = ET.fromstring(response)
-        except:
+        except Exception:
             warnings.warn("The GOST service returned an invalid xml file.")
             return None
         columns = ["Target", "ra[rad]", "dec[rad]", "ra[h:m:s]", "dec[d:m:s]", "ObservationTimeAtGaia[UTC]",
@@ -396,7 +396,7 @@ class HipparcosOriginalData(DecimalYearData):
             with requests.Session() as s:
                 response = s.get(url, timeout=180)
                 return response.text
-        except:
+        except Exception:
             warnings.warn("Querying the HIP service failed.")
             return None
 
@@ -570,7 +570,7 @@ class HipparcosRereductionDVDBook(DecimalYearData):
 
 
 class HipparcosRereductionJavaTool(HipparcosRereductionDVDBook):
-    EPOCHREJECTLIST = Table.read(pkg_resources.resource_filename('htof',
+    EPOCHREJECTLIST = Table.read(resource_filename('htof',
                                                                  'data/epoch_reject_shortlist.csv'), format='ascii')
 
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None,
@@ -685,7 +685,7 @@ class HipparcosRereductionJavaTool(HipparcosRereductionDVDBook):
 
 
 class GaiaDR2(GaiaData):
-    DEAD_TIME_TABLE_NAME = pkg_resources.resource_filename('htof', 'data/astrometric_gaps_gaiadr2_08252020.csv')
+    DEAD_TIME_TABLE_NAME = resource_filename('htof', 'data/astrometric_gaps_gaiadr2_08252020.csv')
 
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None, meta=None,
                  min_epoch=st.GaiaDR2_min_epoch, max_epoch=st.GaiaDR2_max_epoch, along_scan_errs=None):
@@ -696,7 +696,7 @@ class GaiaDR2(GaiaData):
 
 
 class GaiaeDR3(GaiaData):
-    DEAD_TIME_TABLE_NAME = pkg_resources.resource_filename('htof', 'data/astrometric_gaps_gaiaedr3_12232020.csv')
+    DEAD_TIME_TABLE_NAME = resource_filename('htof', 'data/astrometric_gaps_gaiaedr3_12232020.csv')
 
     def __init__(self, scan_angle=None, epoch=None, residuals=None, inverse_covariance_matrix=None, meta=None,
                  min_epoch=st.GaiaeDR3_min_epoch, max_epoch=st.GaiaeDR3_max_epoch, along_scan_errs=None):

@@ -1,0 +1,4 @@
+include README.rst LICENSE CHANGES.md pyproject.toml requirements.txt
+recursive-include htof/data *.csv *.txt
+recursive-include htof/test/data_for_tests *
+global-exclude *.pyc *.pyo

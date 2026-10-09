@@ -137,7 +137,7 @@ def get_cat_values_hip1(fname):
             cntr_Dec = Angle(float(lines[3].split(':')[1].split('Declination')[0]), unit='degree')
             plx = float(lines[4].split(':')[1].split('Trigonometric')[0])
             sol_type = str(lines[7].split(':')[1].split('Code')[0])
-        except:
+        except Exception:
             raise UnboundLocalError('could not read pmRA or pmDec from intermediate data of {0}'.format(fname))
     return plx, cntr_RA, cntr_Dec, pmRA, pmDec, sol_type
 
