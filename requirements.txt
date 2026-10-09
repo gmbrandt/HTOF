@@ -1,5 +1,6 @@
-astropy>=2.0
-pandas>=0.24.0
-scipy>=1.0.0
-numpy>=1.17
-requests
+# Runtime requirements. See pyproject.toml for the authoritative list.
+numpy>=1.24
+scipy>=1.9
+astropy>=5.1
+pandas>=1.5
+requests>=2.25

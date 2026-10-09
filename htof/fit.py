@@ -48,7 +48,7 @@ class AstrometricFitter(object):
         self.astrometric_chi_squared_matrices = astrometric_chi_squared_matrices
 
     def find_optimal_central_epoch(self, coordinate='ra'):
-        """
+        r"""
         Method to find the central_epoch_ra or central_epoch_dec (i.e. the reference epoch) that
         minimizes the covariance between
         the position and the proper motion (e.g. for 'ra' that minimizes the covariance between the ra offset

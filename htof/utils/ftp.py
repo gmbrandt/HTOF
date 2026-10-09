@@ -20,7 +20,7 @@ def download_and_save_hip21_data_to(star_id, outpath):
         ftps = FTP_TLS(HOSTNAME, timeout=30)
         ftps.login(USERNAME, PASSWORD)
         ftps.prot_p()
-    except:
+    except Exception:
         warnings.warn("Connecting to European Space Agency FTP failed.")
         raise RuntimeError("Connecting to European Space Agency FTP failed. Try again later, or download this"
                             " file manually.")
@@ -30,7 +30,7 @@ def download_and_save_hip21_data_to(star_id, outpath):
         with open(outpath, "wb") as file:
             # Command for Downloading the file "RETR filename"
             ftps.retrbinary(f"RETR {fullpath}", file.write)
-    except:
+    except Exception:
         os.remove(outpath)
         raise RuntimeError("Downloading the IAD file failed. Try again later, or download this"
                             " file manually. Also check if the star_id is a valid Hipparcos ID.")
