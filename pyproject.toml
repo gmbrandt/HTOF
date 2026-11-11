@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "htof"
-version = "1.2.0"
+version = "1.2.1"
 description = "Astrometric fitting of Hipparcos and Gaia intermediate astrometric data (IAD)."
 readme = {file = "README.rst", content-type = "text/x-rst"}
 license = "MIT"
