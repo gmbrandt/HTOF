@@ -12,8 +12,13 @@ as a part of his astrometric-sky-path package: https://github.com/agabrown/astro
 
 Installation
 ------------
-Version 1.2.0 is not yet on PyPI (``pip install htof`` gives 1.1.5, which does not
-import on Python 3.12+). Until it is, install the release tag directly from GitHub:
+htof can be installed with PyPI and pip, by running
+
+.. code-block:: bash
+
+    pip install htof
+
+It can also be installed directly from a release tag on GitHub:
 
 .. code-block:: bash
 
