@@ -1,3 +1,11 @@
+1.2.1 (2026-11-10)
+------------------
+README and packaging metadata only; the code is identical to 1.2.0.
+
+- Removed the leftover "this repository is a fork of..." sentence from the
+  README, which is also the PyPI project description.
+- `pip install htof` is again the primary install instruction.
+
 1.2.0 (2026-08-28)
 ------------------
 Modernisation release. No change to any fitting result; this is about running on

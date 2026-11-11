@@ -22,7 +22,7 @@ It can also be installed directly from a release tag on GitHub:
 
 .. code-block:: bash
 
-    pip install "htof @ git+https://github.com/gmbrandt/HTOF@1.2.0"
+    pip install "htof @ git+https://github.com/gmbrandt/HTOF@1.2.1"
 
 or, from a clone of this repo,
 
