@@ -711,7 +711,7 @@ def digits_only(x: str):
 
 
 def match_filename(paths, star_id):
-    return [f for f in paths if digits_only(os.path.basename(f).split('.')[0]).zfill(6) == star_id.zfill(6)]
+    return [f for f in paths if not os.path.isdir(f) and digits_only(os.path.basename(f).split('.')[0]).zfill(6) == star_id.zfill(6)]
 
 
 def find_epochs_to_reject_DVD(data: DataParser, n_transits, percent_rejected, nparam, catalog_f2):
